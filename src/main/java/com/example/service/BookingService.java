@@ -20,7 +20,10 @@ import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -34,7 +37,6 @@ import static com.example.constant.Enums.UserRole.AGENT;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class BookingService {
     private final BookingAttendeesRepository bookingAttendeesRepository;
     private final BookingsRepository bookingsRepository;
@@ -59,10 +61,27 @@ public class BookingService {
     private final UserUtils userUtils;
     private final GiftCertificateRedemptionRepository giftCertificateRedemptionRepository;
     private final GiftCertificatesRepository giftCertificatesRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     private record BookingEventProcessingResult(
             CreateBookingRequestDTO.BookingEventDTO responseEventDTO,
             BigDecimal total
+    ) {}
+
+    private record BookingEmailPayload(
+            CreateBookingRequestDTO.AttendeeDTO attendee,
+            BookingEvents bookingEvent,
+            List<CreateBookingRequestDTO.TicketTypeDTO> tickets,
+            List<CreateBookingRequestDTO.AttendeeDTO> allAttendees
+    ) {}
+
+    private record BookingCreatedEvent(
+            Users loggedInUser,
+            Bookings booking,
+            List<CreateBookingRequestDTO.BookingEventDTO> responseEvents,
+            String promoCode,
+            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
+            List<BookingEmailPayload> emailPayloads
     ) {}
 
     @Transactional
@@ -75,27 +94,31 @@ public class BookingService {
 
         List<CreateBookingRequestDTO.BookingEventDTO> responseEvents = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
+        List<BookingEmailPayload> emailPayloads = new ArrayList<>();
 
         for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : request.getBookingEvents()) {
             BookingEventProcessingResult result = processSingleBookingEvent(booking, bookingEventDTO);
             responseEvents.add(result.responseEventDTO());
             grandTotal = grandTotal.add(result.total());
+            
+            if (bookingEventDTO.getAttendees() != null) {
+                BookingEvents savedEvent = bookingEventsRepository.findByRefNo(result.responseEventDTO().getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Booking event not found"));
+                for (CreateBookingRequestDTO.AttendeeDTO attendee : bookingEventDTO.getAttendees()) {
+                    emailPayloads.add(new BookingEmailPayload(attendee, savedEvent, bookingEventDTO.getTickets(), bookingEventDTO.getAttendees()));
+                }
+            }
         }
 
         GiftCertificateApplicationResult gcResult = applyGiftCertificateIfPresent(request, loggedInUser, booking);
 
         updateBookingWithPaymentDetails(booking, grandTotal, gcResult);
 
-        if (loggedInUser != null && loggedInUser.getRole() == AGENT) {
-            emailService.sendBookingOrderSummaryEmail(
-                    loggedInUser, booking, responseEvents,
-                    request.getPromoCode(), gcResult.redeemedTicketTypes()
-            );
-        }
-
         CreateBookingResponseDTO response = bookingMapper.toCreateResponseDto(booking, responseEvents, request.getPromoCode());
         response.setMessage("Create Booking successfully");
         response.setTimestamp(LocalDateTime.now());
+
+        applicationEventPublisher.publishEvent(new BookingCreatedEvent(loggedInUser, booking, responseEvents, request.getPromoCode(), gcResult.redeemedTicketTypes(), emailPayloads));
 
         return response;
     }
@@ -368,10 +391,12 @@ public class BookingService {
             return new GiftCertificateApplicationResult(null, List.of(), BigDecimal.ZERO);
         }
 
-        GiftCertificates gc = giftCertificateService.validateGiftCertificateForBooking(
-                request.getPromoCode(), loggedInUser);
+        Long userId = loggedInUser != null ? loggedInUser.getId() : null;
 
-        return giftCertificateService.applyGiftCertificateToMultiEventBooking(booking, gc, request, loggedInUser);
+        GiftCertificates gc = giftCertificateService.validateGiftCertificateForBooking(
+                request.getPromoCode(), userId);
+
+        return giftCertificateService.applyGiftCertificateToMultiEventBooking(booking, gc, request, userId);
     }
 
     private void updateBookingWithPaymentDetails(Bookings booking,
@@ -548,8 +573,6 @@ public class BookingService {
     public void registerAttendeesForEvent(CreateBookingRequestDTO.BookingEventDTO bookingEventDTO, BookingEvents bookingEvent, Bookings booking) throws MessagingException {
         for (CreateBookingRequestDTO.AttendeeDTO attendeeDto : bookingEventDTO.getAttendees()) {
             saveAttendee(bookingEvent.getId(), attendeeDto);
-
-            emailService.sendBookingConfirmationEmail(attendeeDto, booking, bookingEvent, bookingEventDTO.getTickets(), bookingEventDTO.getAttendees());
         }
     }
 
@@ -588,5 +611,51 @@ public class BookingService {
                 .status(AVAILABLE)
                 .build();
         return bookingEventsRepository.save(bookingEvent);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleBookingCreatedEvent(BookingCreatedEvent event) {
+        try {
+            sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.responseEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
+            sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendBookingOrderSummaryEmailsAsync(Users loggedInUser,
+                                                    Bookings booking,
+                                                    List<CreateBookingRequestDTO.BookingEventDTO> eventList,
+                                                    String promoCode,
+                                                    List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
+                                                    List<BookingEmailPayload> payloads) throws MessagingException {
+        if (loggedInUser != null && loggedInUser.getRole() == AGENT) {
+            emailService.sendBookingOrderSummaryEmail(loggedInUser, booking, eventList, promoCode, redeemedTickets);
+        } else {
+            for (BookingEmailPayload payload : payloads) {
+                if(payload.attendee().getSequence() == 1) {
+                    Users guestAttendee = new Users();
+                    guestAttendee.setEmail(payload.attendee().getEmail());
+                    guestAttendee.setFirstName(payload.attendee.getFirstName());
+                    emailService.sendBookingOrderSummaryEmail(guestAttendee, booking, eventList, promoCode, redeemedTickets);
+                }
+            }
+        }
+    }
+
+    private void sendBookingConfirmationEmailsAsync(Bookings booking, List<BookingEmailPayload> payloads) {
+        for (BookingEmailPayload payload : payloads) {
+            try {
+                emailService.sendBookingConfirmationEmail(
+                        payload.attendee(),
+                        booking,
+                        payload.bookingEvent(),
+                        payload.tickets(),
+                        payload.allAttendees()
+                );
+            } catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

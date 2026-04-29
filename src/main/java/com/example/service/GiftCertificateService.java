@@ -188,7 +188,7 @@ public class GiftCertificateService {
         return ACTIVE;
     }
 
-    public GiftCertificates validateGiftCertificateForBooking(String promoCode, Users loggedInUser) throws BadRequestException {
+    public GiftCertificates validateGiftCertificateForBooking(String promoCode, Long userId) throws BadRequestException {
         GiftCertificates gc = giftCertificatesRepository.findByPromoCode(promoCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Gift certificate not found: " + promoCode));
 
@@ -202,7 +202,7 @@ public class GiftCertificateService {
     }
 
     public GiftCertificateApplicationResult applyGiftCertificateToMultiEventBooking(
-            Bookings booking, GiftCertificates gc, CreateBookingRequestDTO request, Users loggedInUser) {
+            Bookings booking, GiftCertificates gc, CreateBookingRequestDTO request, Long userId) {
 
         if (gc == null) return null;
 
@@ -212,7 +212,7 @@ public class GiftCertificateService {
         } else {
             giftCertificateApplicationResult = applyEventType(gc, request);
         }
-        confirmRedemption(booking, gc, loggedInUser);
+        confirmRedemption(booking, gc, userId);
         return giftCertificateApplicationResult;
     }
 
@@ -266,11 +266,11 @@ public class GiftCertificateService {
         return new GiftCertificateApplicationResult(gc, redeemedTickets, discount);
     }
 
-    private void confirmRedemption(Bookings booking, GiftCertificates gc, Users loggedInUser) {
+    private void confirmRedemption(Bookings booking, GiftCertificates gc, Long userId) {
         GiftCertificateRedemptions giftCertificateRedemptions = new GiftCertificateRedemptions();
         giftCertificateRedemptions.setGiftCertificateId(gc.getId());
         giftCertificateRedemptions.setBookingId(booking.getId());
-        giftCertificateRedemptions.setRedeemedByUserId(loggedInUser.getId());
+        giftCertificateRedemptions.setRedeemedByUserId(userId);
         giftCertificateRedemptions.setQuantityUsed(1);
         giftCertificateRedemptions.setRedeemedAt(LocalDateTime.now());
         giftCertificateRedemptionRepository.save(giftCertificateRedemptions);
