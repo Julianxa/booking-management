@@ -1,71 +1,56 @@
 package com.example.config;
 
-
-import com.example.service.AwsService;
-import com.example.utils.CognitoTokenFilter;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
-import java.util.Arrays;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
-    @Value("${filter.paths}")
-    private List<String> filterPaths;
-    
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
-    private String allowedOriginsConfig;
-    
     @Bean
-    public CognitoTokenFilter cognitoTokenFilter(AwsService awsService) {
-        return new CognitoTokenFilter(awsService, filterPaths());
-    }
-    @Bean
-    public List<String> filterPaths() {
-        return filterPaths;
-    }
+    public CorsFilter corsFilter() {
+        CorsConfiguration config = new CorsConfiguration();
 
-    private final AwsService awsService;
+        config.setAllowedOrigins(List.of(
+                "https://d17c6q888ubvgt.cloudfront.net",
+                "https://db6to9tswfrc9.cloudfront.net",
+                "https://tramway.duckdns.org",
+                "https://tramway.duckdns.org:8080",
+                "http://localhost:3000",
+                "http://localhost:3001"
+        ));
+
+        config.setAllowedMethods(List.of("*"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return new CorsFilter(source);
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // Parse CORS allowed origins from config
-        List<String> allowedOrigins = Arrays.asList(allowedOriginsConfig.split(","));
-        
+
         http
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for stateless REST API
-                .cors(cors -> cors.configurationSource(request -> {
-                    CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(allowedOrigins);
-                    config.setAllowedMethods(List.of("GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"));
-                    config.setAllowedHeaders(List.of("*"));
-                    config.setExposedHeaders(List.of("Content-Type", "Authorization"));
-                    config.setAllowCredentials(true);
-                    config.setMaxAge(3600L); // Cache preflight responses for 1 hour
-                    return config;
-                }))
+                .csrf(csrf -> csrf.disable())
+
+                // Put CORS filter very early
+                .addFilterBefore(corsFilter(), org.springframework.security.web.header.HeaderWriterFilter.class)
+
                 .authorizeHttpRequests(auth -> auth
-                        // Permit unauthenticated access to Swagger UI and API docs
-                        .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/**", "/api/v1/tokens/**", "/api/v1/organizations/**", "/api/v1/events/**", "/api/v1/bookings/**", "/api/v1/gift-certificates/**", "/api/v1/emails/**").permitAll()
-//                        // Allow registration and login without authentication
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users/**", "/api/v1/tokens/**", "/api/v1/organizations/**", "/api/v1/events/**", "/api/v1/bookings/**", "/api/v1/gift-certificates/**", "/api/v1/emails/**").permitAll()
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/**", "/api/v1/tokens/**", "/api/v1/organizations/**", "/api/v1/events/**", "/api/v1/bookings/**", "/api/v1/gift-certificates/**", "/api/v1/emails/**").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/users/**", "/api/v1/tokens/**", "/api/v1/organizations/**", "/api/v1/events/**", "/api/v1/bookings/**", "/api/v1/gift-certificates/**", "/api/v1/emails/**").permitAll()
-                        // All other endpoints require authentication
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(cognitoTokenFilter(awsService), UsernamePasswordAuthenticationFilter.class);
+                        .anyRequest().permitAll()
+                );
+
         return http.build();
     }
 }
