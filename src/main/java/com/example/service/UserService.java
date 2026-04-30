@@ -10,7 +10,6 @@ import com.example.model.dto.*;
 import com.example.repository.OrganizationsRepository;
 import com.example.repository.UsersRepository;
 import com.example.utils.ReferenceNoGenerator;
-import jakarta.mail.MessagingException;
 import com.example.model.dto.UserRegistrationResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -183,6 +182,8 @@ public class UserService {
                 .role(user.getRole())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .gender(user.getGender())
+                .country(user.getCountry())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .orgId(orgRefNo)
@@ -208,6 +209,8 @@ public class UserService {
                 .role(user.getRole())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .gender(user.getGender())
+                .country(user.getCountry())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .orgId(orgRefNo)

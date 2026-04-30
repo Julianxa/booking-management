@@ -346,6 +346,7 @@ public class EventService {
 
         TicketTypes ticketTypes = ticketTypeMapper.toEntity(request);
         ticketTypes.setRefNo(referenceNoGenerator.generateTicketTypeReference());
+        ticketTypes.setStatus(Enums.TicketTypeStatus.OPEN);
         ticketTypes.setEvent(event);
 
         if (ticketTypes.getTicketPricePeriods() != null) {
