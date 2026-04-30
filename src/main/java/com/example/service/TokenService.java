@@ -11,6 +11,7 @@ import com.example.repository.UsersLoginHistoryRepository;
 import com.example.repository.UsersRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GlobalSignOutResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
@@ -23,12 +24,14 @@ import static com.example.constant.Enums.UserStatus.CONFIRMED;
 @RequiredArgsConstructor
 public class TokenService {
     private final AwsService awsService;
+    private final UserService userService;
     private final UsersRepository usersRepository;
     private final UsersLoginHistoryRepository usersLoginHistoryRepository;
 
-    public LoginResponseDTO login(LoginRequestDTO loginRequestDTO, HttpServletRequest httpServletRequest) throws UnverifiedEmailException, InvalidEmailPasswordException {
+    public LoginResponseDTO login(LoginRequestDTO loginRequestDTO, HttpServletRequest httpServletRequest) throws UnverifiedEmailException, InvalidEmailPasswordException, BadRequestException {
         Users user = usersRepository.findByEmail(loginRequestDTO.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        userService.validateActiveUser(user);
         try {
             InitiateAuthResponse res = awsService.login(loginRequestDTO);
 
