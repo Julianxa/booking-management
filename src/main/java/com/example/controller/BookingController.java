@@ -254,7 +254,7 @@ public class BookingController {
         String userSub = userUtils.extractUserSub(authorizationHeader);
 
         try {
-            UpdateBookingEventStatusResponseDTO response = bookingService.updateBookingEventStatus(bookingEventId, request);
+            UpdateBookingEventStatusResponseDTO response = bookingService.updateBookingEventStatus(userSub, bookingEventId, request);
 
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
@@ -304,7 +304,7 @@ public class BookingController {
         String userSub = userUtils.extractUserSub(authorizationHeader);
 
         try {
-            UpdateBookingResponseDTO response = bookingService.updateBooking(bookingEventId, request);
+            UpdateBookingResponseDTO response = bookingService.updateBooking(userSub, bookingEventId, request);
 
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {

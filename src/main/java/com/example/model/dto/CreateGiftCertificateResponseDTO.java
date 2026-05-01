@@ -21,8 +21,6 @@ public class CreateGiftCertificateResponseDTO {
     private String promoCode;
     @JsonProperty("type")
     private Enums.GiftCertificateType type;
-    @JsonProperty("value")
-    private BigDecimal value;
     @JsonProperty("expiry_date")
     private LocalDate expiryDate;
     @JsonProperty("event_id")

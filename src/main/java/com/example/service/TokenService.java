@@ -31,7 +31,6 @@ public class TokenService {
     public LoginResponseDTO login(LoginRequestDTO loginRequestDTO, HttpServletRequest httpServletRequest) throws UnverifiedEmailException, InvalidEmailPasswordException, BadRequestException {
         Users user = usersRepository.findByEmail(loginRequestDTO.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        userService.validateActiveUser(user);
         try {
             InitiateAuthResponse res = awsService.login(loginRequestDTO);
 

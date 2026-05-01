@@ -16,16 +16,23 @@ import java.util.Optional;
 @Repository
 public interface UsersRepository extends JpaRepository<Users, Long> {
     boolean existsByRefNo(String refNo);
+    @Query("SELECT u.id FROM Users u WHERE u.refNo = :refNo and status !='INACTIVE'")
+    Optional<Long> findActiveIdByRefNo(String refNo);
     @Query("SELECT u.id FROM Users u WHERE u.refNo = :refNo")
     Optional<Long> findIdByRefNo(String refNo);
+    @Query("SELECT u.refNo FROM Users u WHERE u.id = :id and status !='INACTIVE'")
+    Optional<String> findActiveRefNoById(Long id);
     @Query("SELECT u.refNo FROM Users u WHERE u.id = :id")
     Optional<String> findRefNoById(Long id);
+    @Query("SELECT u FROM Users u WHERE u.userSub = :userSub and status !='INACTIVE'")
     Optional<Users> findByUserSub(String userSub);
     Optional<Users> findByEmailAndStatus(String email, Enums.UserStatus status);
+    @Query("SELECT u FROM Users u WHERE u.email = :email and status !='INACTIVE'")
     Optional<Users> findByEmail(String email);
+    @Query("SELECT u FROM Users u WHERE u.id = :id and status !='INACTIVE'")
     @NotNull
     Optional<Users> findById(@NotNull Long id);
-
+    @Query("SELECT u FROM Users u WHERE u.id = :id and u.role = :role and status !='INACTIVE'")
     Optional<Users> findByIdAndRole(Long id, Enums.UserRole role);
 
     @Modifying

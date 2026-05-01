@@ -16,5 +16,8 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
     @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-order-summary-email-template'")
     EmailTemplates findBookingOrderSummaryEmailTemplate();
 
+    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-cancellation-email-template'")
+    EmailTemplates findBookingCancellationEmailTemplate();
+
     Optional<EmailTemplates> findByRefNo(String emailTemplateRefNo);
 }

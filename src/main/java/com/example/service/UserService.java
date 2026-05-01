@@ -287,13 +287,4 @@ public class UserService {
 
         return userMapper.toResponseDto(user, dto.getOrgId());
     }
-
-    public void validateActiveUser(Users user) throws ForbiddenException, BadRequestException {
-        if (user == null) {
-            throw new ResourceNotFoundException("User not found");
-        }
-        if (Enums.UserStatus.INACTIVE.equals(user.getStatus())) {
-            throw new BadRequestException("Inactive user");
-        }
-    }
 }

@@ -486,7 +486,7 @@ public class EventService {
 
         String userRefNo = null;
         if(bookingEvent.getBooking().getUserId() != null) {
-            userRefNo = usersRepository.findRefNoById(bookingEvent.getBooking().getUserId()).orElse(null);
+            userRefNo = usersRepository.findActiveRefNoById(bookingEvent.getBooking().getUserId()).orElse(null);
         }
 
         if (bookingEvent.getVerifiedAt() != null) {

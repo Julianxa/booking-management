@@ -131,6 +131,44 @@ public class EmailService {
         sendEmail(attendeeDto.getEmail(), "Confirm Your Booking", template, inlineImages);
     }
 
+    @Async
+    public void sendBookingCancellationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDto,
+                                             Bookings booking,
+                                             BookingEvents bookingEvent,
+                                             List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDtos,
+                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDtos) throws MessagingException {
+        Context context = new Context();
+
+        Map<String, String> inlineImages = embedInlineImages();
+
+        EmailTemplates templates = emailTemplatesRepository.findBookingCancellationEmailTemplate();
+
+        String ticketSummary = buildTicketSummary(ticketsDtos);
+
+        context.setVariable("attendees", attendeeDtos);
+
+        context.setVariable("ticketSummary", ticketSummary);
+
+        context.setVariable("bookingId", booking.getRefNo());
+
+        context.setVariable("firstName", attendeeDto.getFirstName());
+
+        context.setVariable("eventName", bookingEvent.getEvent().getName());
+        context.setVariable("eventDate", bookingEvent.getEventDate());
+        context.setVariable("eventTime", bookingEvent.getEventTime());
+        context.setVariable("bookingEventTotal", bookingEvent.getTotal());
+
+        context.setVariable("subject", templates.getSubject());
+        context.setVariable("mainBody", templates.getMainBody());
+        context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
+        context.setVariable("importantInfoBody", templates.getImportantInfoBody());
+        context.setVariable("contactBody", templates.getContactBody());
+
+        String template = templateEngine.process("booking-cancellation-email-template", context);
+
+        sendEmail(attendeeDto.getEmail(), "Cancel Your Booking", template, inlineImages);
+    }
+
     public String buildTicketSummary(List<CreateBookingRequestDTO.TicketTypeDTO> ticketTypesDto) {
         if (ticketTypesDto == null || ticketTypesDto.isEmpty()) {
             return "No tickets selected";

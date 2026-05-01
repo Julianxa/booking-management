@@ -84,6 +84,18 @@ public class BookingService {
             List<BookingEmailPayload> emailPayloads
     ) {}
 
+    private record BookingCancelledEvent(
+            Users loggedInUser,
+            Bookings booking,
+            List<BookingEmailPayload> emailPayloads
+    ){}
+
+    private record BookingReConfirmedEvent(
+            Users loggedInUser,
+            Bookings booking,
+            List<BookingEmailPayload> emailPayloads
+    ) {}
+
     @Transactional
     public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) throws MessagingException, SQLException, BadRequestException {
         validateTicketQuantityMatchesAttendees(request);
@@ -125,8 +137,11 @@ public class BookingService {
 
     @Transactional
     public UpdateBookingResponseDTO updateBooking(
+            String userSub,
             String bookingEventId,
             UpdateBookingRequestDTO request) {
+        Users loggedInUser = userUtils.getLoggedInUser(userSub);
+
         BookingEvents bookingEvent = bookingEventsRepository.findByRefNo(bookingEventId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                 "Booking event not found for booking: " + bookingEventId));
@@ -153,35 +168,57 @@ public class BookingService {
     }
 
     @Transactional
-    public UpdateBookingEventStatusResponseDTO updateBookingEventStatus(String bookingEventId, UpdateBookingEventStatusRequestDTO dto) {
-        BookingEvents bookingEvents = bookingEventsRepository.findByRefNo(bookingEventId)
+    public UpdateBookingEventStatusResponseDTO updateBookingEventStatus(String userSub, String bookingEventId, UpdateBookingEventStatusRequestDTO dto) {
+        Users loggedInUser = userUtils.getLoggedInUser(userSub);
+
+        BookingEvents bookingEvent = bookingEventsRepository.findByRefNo(bookingEventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booked event not found"));
 
-        if(bookingEvents.getStatus() == CHECKED_IN) { throw new RuntimeException("Booking is already in CHECKED_IN status."); }
+        if(bookingEvent.getStatus() == CHECKED_IN) { throw new RuntimeException("Booking is already in CHECKED_IN status."); }
+
+        List<BookingEmailPayload> emailPayloads = new ArrayList<>();
+
+        List<CreateBookingRequestDTO.AttendeeDTO> attendees = bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
+
+        List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
+
+        List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItems.stream()
+                .map(this::toTicketTypeDTO)
+                .toList();
+
+        for (CreateBookingRequestDTO.AttendeeDTO attendee : attendees) {
+            emailPayloads.add(new BookingEmailPayload(attendee, bookingEvent, ticketDTOs, attendees));
+        }
+
+        Bookings booking = bookingsRepository.findById(bookingEvent.getBooking().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         if(dto.getStatus() != null) {
             if(dto.getStatus() == AVAILABLE) {
-                bookingEvents.setStatus(dto.getStatus());
-                bookingEvents.setUpdatedAt(LocalDateTime.now());
-                bookingEvents.setCancelledAt(null);
+                bookingEvent.setStatus(dto.getStatus());
+                bookingEvent.setUpdatedAt(LocalDateTime.now());
+                bookingEvent.setCancelledAt(null);
+                bookingEvent = bookingEventsRepository.save(bookingEvent);
+                applicationEventPublisher.publishEvent(new BookingReConfirmedEvent(loggedInUser, booking, emailPayloads));
             } else if(dto.getStatus() == CANCELLED) {
-                bookingEvents.setStatus(dto.getStatus());
-                bookingEvents.setUpdatedAt(LocalDateTime.now());
-                bookingEvents.setCancelledAt(LocalDateTime.now());
+                bookingEvent.setStatus(dto.getStatus());
+                bookingEvent.setUpdatedAt(LocalDateTime.now());
+                bookingEvent.setCancelledAt(LocalDateTime.now());
+                bookingEvent = bookingEventsRepository.save(bookingEvent);
+                applicationEventPublisher.publishEvent(new BookingCancelledEvent(loggedInUser, booking, emailPayloads));
             } else {
                 throw new IllegalArgumentException("Invalid BookingEventStatus: " + dto.getStatus() +
                         ". Allowed values are: CHECKED_IN, AVAILABLE, NO_SHOW, CANCELLED");
             }
         }
-        bookingEvents = bookingEventsRepository.save(bookingEvents);
 
         return UpdateBookingEventStatusResponseDTO.builder()
-        .bookingId(bookingEvents.getBooking().getRefNo())
-        .eventId(bookingEvents.getEvent().getRefNo())
-        .eventDate(bookingEvents.getEventDate())
-        .eventTime(bookingEvents.getEventTime())
+        .bookingId(bookingEvent.getBooking().getRefNo())
+        .eventId(bookingEvent.getEvent().getRefNo())
+        .eventDate(bookingEvent.getEventDate())
+        .eventTime(bookingEvent.getEventTime())
         .status(dto.getStatus())
-        .updatedAt(bookingEvents.getUpdatedAt())
+        .updatedAt(bookingEvent.getUpdatedAt())
         .message("The status of booked event is updated")
         .timestamp(LocalDateTime.now()).build();
     }
@@ -469,7 +506,7 @@ public class BookingService {
             eventDTO = bookingEventsMapper.toEventDto(be.getEvent().getRefNo(), be);
         }
 
-        String userRefNo = usersRepository.findRefNoById(booking.getUserId()).orElse(null);
+        String userRefNo = usersRepository.findActiveRefNoById(booking.getUserId()).orElse(null);
 
         return CreateBookingRequestDTO.BookingEventDTO.builder()
                 .id(be.getRefNo())
@@ -570,7 +607,7 @@ public class BookingService {
                 .build();
     }
 
-    public void registerAttendeesForEvent(CreateBookingRequestDTO.BookingEventDTO bookingEventDTO, BookingEvents bookingEvent, Bookings booking) throws MessagingException {
+    public void registerAttendeesForEvent(CreateBookingRequestDTO.BookingEventDTO bookingEventDTO, BookingEvents bookingEvent, Bookings booking) {
         for (CreateBookingRequestDTO.AttendeeDTO attendeeDto : bookingEventDTO.getAttendees()) {
             saveAttendee(bookingEvent.getId(), attendeeDto);
         }
@@ -623,6 +660,24 @@ public class BookingService {
         }
     }
 
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleBookingReConfirmedEvent(BookingReConfirmedEvent event) {
+        try {
+            sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleBookingCancelledEvent(BookingCancelledEvent event) {
+        try {
+            sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void sendBookingOrderSummaryEmailsAsync(Users loggedInUser,
                                                     Bookings booking,
                                                     List<CreateBookingRequestDTO.BookingEventDTO> eventList,
@@ -647,6 +702,22 @@ public class BookingService {
         for (BookingEmailPayload payload : payloads) {
             try {
                 emailService.sendBookingConfirmationEmail(
+                        payload.attendee(),
+                        booking,
+                        payload.bookingEvent(),
+                        payload.tickets(),
+                        payload.allAttendees()
+                );
+            } catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void sendBookingCancellationEmailsAsync(Bookings booking, List<BookingEmailPayload> payloads) {
+        for (BookingEmailPayload payload : payloads) {
+            try {
+                emailService.sendBookingCancellationEmail(
                         payload.attendee(),
                         booking,
                         payload.bookingEvent(),

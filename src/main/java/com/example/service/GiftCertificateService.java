@@ -47,7 +47,8 @@ public class GiftCertificateService {
         Users user = usersRepository.findByUserSub(userSub)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        GiftCertificates gc = buildGiftCertificate(user.getId(), dto);
+        Long eventId = eventsRepository.findIdByRefNo(dto.getEventId()).orElse(null);
+        GiftCertificates gc = buildGiftCertificate(user.getId(), eventId, dto);
 
         if(giftCertificatesRepository.existsByPromoCode(gc.getPromoCode())) {
             throw new BadRequestException("Promotion code already exists: " + gc.getPromoCode());
@@ -83,10 +84,11 @@ public class GiftCertificateService {
         return updateGiftCertificateResponseDTO;
     }
 
-    private GiftCertificates buildGiftCertificate(Long userId, CreateGiftCertificateRequestDTO dto) throws SQLException {
+    private GiftCertificates buildGiftCertificate(Long userId, Long eventId, CreateGiftCertificateRequestDTO dto) throws SQLException {
         return GiftCertificates.builder()
                 .refNo(referenceNoGenerator.generateGiftCertificateReference())
                 .promoCode(dto.getPromoCode())
+                .eventId(eventId)
                 .userId(userId)
                 .type(dto.getType())
                 .expiryDate(dto.getExpiryDate())
@@ -111,7 +113,6 @@ public class GiftCertificateService {
                     .giftCertificates(gc)
                     .ticketTypeId(ticketTypeId)
                     .quantity(itemDto.getQuantity())
-                    .value(itemDto.getValue())
                     .build());
         }
     }
