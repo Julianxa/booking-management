@@ -24,7 +24,7 @@ public interface TicketTypesRepository extends JpaRepository<TicketTypes, Long> 
 
     @Query(value="""
             SELECT * FROM ticket_types tt
-            WHERE tt.event_id = :eventId AND tt.status != 'CLOSE'
+            WHERE tt.event_id = :eventId
             """, nativeQuery = true)
     List<TicketTypes> findByEventId(Long eventId);
 

@@ -128,24 +128,22 @@ public class EventService {
             dto.getAvailableDays().forEach(day -> event.updateDay(event.getId(), day.getDay(), day.getStartTimes()));
         }
 
-        Events updatedEvent = eventsRepository.save(event);
-
         if (eventPic != null && !eventPic.isEmpty()) {
-            if (updatedEvent.getEventPicKey() != null) {
-                awsService.deleteFile(updatedEvent.getEventPicKey());
+            if (event.getEventPicKey() != null) {
+                awsService.deleteFile(event.getEventPicKey());
             }
-            String eventPicKey = awsService.uploadFile(updatedEvent.getRefNo(), eventPic);
+            String eventPicKey = awsService.uploadFile(event.getRefNo(), eventPic);
             if (eventPicKey != null) {
-                updatedEvent.setEventPicKey(eventPicKey);
-                eventsRepository.save(updatedEvent);
+                event.setEventPicKey(eventPicKey);
             }
         } else if (eventPic == null) {
-            if (updatedEvent.getEventPicKey() != null) {
-                awsService.deleteFile(updatedEvent.getEventPicKey());
-                updatedEvent.setEventPicKey(null);
-                eventsRepository.save(updatedEvent);
+            if (event.getEventPicKey() != null) {
+                awsService.deleteFile(event.getEventPicKey());
+                event.setEventPicKey(null);
             }
         }
+
+        Events updatedEvent = eventsRepository.save(event);
 
         String eventPicUrl = null;
         if(updatedEvent.getEventPicKey() != null) {

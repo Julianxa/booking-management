@@ -1,5 +1,6 @@
 package com.example.model.dto;
 
+import com.example.constant.Enums;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,7 +25,7 @@ public class CreateTicketTypeResponseDTO {
 
 //    private Integer capacity;
 
-    private Boolean isActive;
+    private Enums.TicketTypeStatus status;
 
     private String description;
 
