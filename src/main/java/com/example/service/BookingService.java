@@ -97,7 +97,7 @@ public class BookingService {
     ) {}
 
     @Transactional
-    public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) throws MessagingException, SQLException, BadRequestException {
+    public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) throws SQLException, BadRequestException {
         validateTicketQuantityMatchesAttendees(request);
 
         Users loggedInUser = userUtils.getLoggedInUser(userSub);
@@ -355,9 +355,9 @@ public class BookingService {
 
     private BookingEventProcessingResult processSingleBookingEvent(Bookings booking,
                                                                    CreateBookingRequestDTO.BookingEventDTO bookingEventDTO)
-            throws BadRequestException, MessagingException, SQLException {
+            throws BadRequestException, SQLException {
 
-        Events event = eventsRepository.findByRefNoAndStatusNotDeleted(bookingEventDTO.getEvent().getId())
+        Events event = eventsRepository.findByRefNoAndOpenStatusAndPublished(bookingEventDTO.getEvent().getId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Active Event not found with reference no: " + bookingEventDTO.getEvent().getId()));
 
@@ -377,7 +377,7 @@ public class BookingService {
         bookingEvent.setTotal(bookingEventTotal);
         bookingEvent = bookingEventsRepository.save(bookingEvent);
 
-        registerAttendeesForEvent(bookingEventDTO, bookingEvent, booking);
+        registerAttendeesForEvent(bookingEventDTO, bookingEvent);
 
         String checkInUrl = appProperties.getBaseUrl() + appProperties.getCheckin().getPath()
                 + bookingEvent.getVerificationToken();
@@ -571,7 +571,7 @@ public class BookingService {
             participantCount += ticket.getQuantity();
         }
 
-        List<EventBookingStats> bookingData = eventService.getBookingPercentageByDateForEvent(event.getId(), bookingEventDTO.getEvent().getEventDate(), dayValueForDate);
+        List<EventBookingStats> bookingData = eventService.getBookingPercentageByDateForEvent(true, event.getId(), bookingEventDTO.getEvent().getEventDate(), dayValueForDate);
         List<EventTimeSlotException> eventTimeSlotExceptionsByDate = eventTimeSlotExceptionsRepository.findExceptionTimeByEventIdAndExceptionDate(event.getId(), bookingEventDTO.getEvent().getEventDate());
         CreateEventResponseDTO.OccupancyDTO occupancyMap = eventMapper.toEventOccupancyMap(event.getRefNo(),
                 bookingEventDTO.getEvent().getEventDate(),
@@ -607,7 +607,7 @@ public class BookingService {
                 .build();
     }
 
-    public void registerAttendeesForEvent(CreateBookingRequestDTO.BookingEventDTO bookingEventDTO, BookingEvents bookingEvent, Bookings booking) {
+    public void registerAttendeesForEvent(CreateBookingRequestDTO.BookingEventDTO bookingEventDTO, BookingEvents bookingEvent) {
         for (CreateBookingRequestDTO.AttendeeDTO attendeeDto : bookingEventDTO.getAttendees()) {
             saveAttendee(bookingEvent.getId(), attendeeDto);
         }

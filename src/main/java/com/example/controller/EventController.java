@@ -59,13 +59,12 @@ public class EventController {
     @PostMapping(value="/events", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
             @RequestPart(value = "eventPic", required = false) MultipartFile eventPic,
-            @RequestPart(value = "contactInfo", required = true)
+            @RequestPart(value = "contactInfo")
             @Schema(
                     description = "Event information in JSON format",
                     type = "string",
                     implementation = CreateEventRequestDTO.class,
-                    format = "textarea",
-                    required = true) String createEventRequestDTOJson) {
+                    format = "textarea") String createEventRequestDTOJson) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
@@ -140,7 +139,7 @@ public class EventController {
     )
     @GetMapping("/events/{id}/availability")
     public ResponseEntity<?> getEventAvailability(@PathVariable String id,
-                                                @RequestParam(required = false) String search,
+                                                @RequestParam(value="is_published_only", defaultValue = "false") boolean isPublishedOnly,
                                                 @Parameter(
                                                         description = "Filter events by a specific date",
                                                         example = "2026-03-24",
@@ -149,7 +148,7 @@ public class EventController {
                                                 @RequestParam(required = false)
                                                 @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
-            EventAvailabilityDTO events = eventService.getAvailability(id, date);
+            EventAvailabilityDTO events = eventService.getAvailability(isPublishedOnly, id, date);
 
             return ResponseEntity.ok(events);
         } catch (ResourceNotFoundException e) {
@@ -185,22 +184,24 @@ public class EventController {
             }
     )
     @GetMapping("/events/availability")
-    public ResponseEntity<?> getAllAvailability(@RequestParam(defaultValue = "0") int page,
-                                    @RequestParam(defaultValue = "20") int size,
-                                    @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
-                                    @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
-                                    @RequestParam(required = false) String search,
-                                    @Parameter(
-                                            description = "Filter events by a specific date",
-                                            example = "2026-03-24",
-                                            schema = @Schema(type = "string", format = "date")
-                                    )
-                                    @RequestParam(required = false)
-                                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+    public ResponseEntity<?> getAllAvailability(
+            @RequestParam(value="is_published_only", defaultValue = "false") boolean isPublishedOnly,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
+            @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
+            @RequestParam(required = false) String search,
+            @Parameter(
+                    description = "Filter events by a specific date",
+                    example = "2026-03-24",
+                    schema = @Schema(type = "string", format = "date")
+            )
+            @RequestParam(required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            GetListEventAvailabilityResponseDTO events = eventService.getAllAvailabilities(pageable, search, date);
+            GetListEventAvailabilityResponseDTO events = eventService.getAllAvailabilities(isPublishedOnly, pageable, search, date);
 
             return ResponseEntity.ok(events);
         } catch (ResourceNotFoundException e) {
@@ -236,7 +237,9 @@ public class EventController {
             }
     )
     @GetMapping("/events")
-    public ResponseEntity<?> getAll(@RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<?> getAll(
+            @RequestParam(value="is_published_only", defaultValue = "false") boolean isPublishedOnly,
+            @RequestParam(defaultValue = "0") int page,
                                     @RequestParam(defaultValue = "20") int size,
                                     @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
                                     @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
@@ -244,7 +247,7 @@ public class EventController {
         try {
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            GetListEventResponseDTO events = eventService.getAllEvents(pageable, search);
+            GetListEventResponseDTO events = eventService.getAllEvents(isPublishedOnly, pageable, search);
 
             return ResponseEntity.ok(events);
         } catch (ResourceNotFoundException e) {
@@ -294,8 +297,7 @@ public class EventController {
                                             description = "Event information in JSON format",
                                             type = "string",
                                             implementation = UpdateEventRequestDTO.class,
-                                            format = "textarea",
-                                            required = true) String updateEventRequestDTOJson
+                                            format = "textarea") String updateEventRequestDTOJson
                                     ) {
         try {
             ObjectMapper mapper = new ObjectMapper();

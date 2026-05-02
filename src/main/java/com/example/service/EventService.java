@@ -253,13 +253,17 @@ public class EventService {
         return createEventResponseDTO;
     }
 
-    public GetListEventResponseDTO getAllEvents(Pageable pageable, String search) {
+    public GetListEventResponseDTO getAllEvents(boolean isPublishedOnly, Pageable pageable, String search) {
         Page<Events> eventsPage;
 
         if (StringUtils.isNotBlank(search)) {
-            eventsPage = eventsRepository.findBySearchTerm(search.trim(), pageable);
+            eventsPage = eventsRepository.findBySearchTermWithPublishFilter(isPublishedOnly, search.trim(), pageable);
         } else {
-            eventsPage = eventsRepository.findAllActive(pageable);
+            if (Boolean.TRUE.equals(isPublishedOnly)) {
+                eventsPage = eventsRepository.findAllPublished(isPublishedOnly, pageable);
+            } else {
+                eventsPage = eventsRepository.findAllActive(pageable);
+            }
         }
 
         List<CreateEventResponseDTO> content = eventsPage.getContent().stream()
@@ -281,7 +285,7 @@ public class EventService {
         return getListEventResponseDTO;
     }
 
-    public EventAvailabilityDTO getAvailability(String eventRefNo, LocalDate filterDate) {
+    public EventAvailabilityDTO getAvailability(boolean isPublishedOnly, String eventRefNo, LocalDate filterDate) {
         String dayValue = dateUtils.getDayValueForDate(filterDate);
 
         Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
@@ -290,9 +294,9 @@ public class EventService {
 
         if(event == null) return eventMapper.toGetAvailabilityResponse(event, Collections.emptyMap());
 
-        List<EventDailySlot> allSlots = eventsRepository.getEventScheduleSlots(eventId, filterDate, dayValue);
+        List<EventDailySlot> allSlots = eventsRepository.getEventScheduleSlots(isPublishedOnly,eventId, filterDate, dayValue);
 
-        List<EventBookingStats> bookingData = getBookingPercentageByDateForEvent(eventId, filterDate, dayValue);
+        List<EventBookingStats> bookingData = getBookingPercentageByDateForEvent(isPublishedOnly, eventId, filterDate, dayValue);
 
         List<EventTimeSlotException> eventTimeSlotExceptionsByDate = eventTimeSlotExceptionsRepository.findExceptionTimeByEventIdAndExceptionDate(eventId, filterDate);
 
@@ -304,7 +308,7 @@ public class EventService {
         return eventAvailabilityDTO;
     }
 
-    public GetListEventAvailabilityResponseDTO getAllAvailabilities(Pageable pageable, String search, LocalDate filterDate) {
+    public GetListEventAvailabilityResponseDTO getAllAvailabilities(boolean isPublishedOnly, Pageable pageable, String search, LocalDate filterDate) {
         String dayValue = dateUtils.getDayValueForDate(filterDate);
 
         Page<Events> eventsPage;
@@ -320,7 +324,7 @@ public class EventService {
             getListEventAvailabilityResponseDTO.setTimestamp(LocalDateTime.now());
         }
 
-        List<EventDailySlot> allSlots = eventsRepository.getAllEventsScheduleSlots(filterDate, dayValue);
+        List<EventDailySlot> allSlots = eventsRepository.getAllEventsScheduleSlots(isPublishedOnly, filterDate, dayValue);
 
         List<EventBookingStats> bookingData = getBookingPercentageByDate(filterDate, dayValue);
 
@@ -538,7 +542,7 @@ public class EventService {
     }
 
     public List<EventBookingStats> getBookingPercentageByDate(LocalDate filterDate, String dayValue) {
-        List<EventDailySlot> slots = eventsRepository.getAllEventsScheduleSlots(filterDate, dayValue);
+        List<EventDailySlot> slots = eventsRepository.getAllEventsScheduleSlots(true, filterDate, dayValue);
 
         return slots.stream().map(slot -> {
             EventBookingSummary summary = eventsRepository.getBookingSummary(
@@ -566,11 +570,12 @@ public class EventService {
     }
 
     public List<EventBookingStats> getBookingPercentageByDateForEvent(
+            boolean isPublishedOnly,
             Long eventId,
             LocalDate filterDate,
             String dayValue) {
 
-        List<EventDailySlot> slots = eventsRepository.getEventScheduleSlots(eventId, filterDate, dayValue);
+        List<EventDailySlot> slots = eventsRepository.getEventScheduleSlots(isPublishedOnly, eventId, filterDate, dayValue);
 
         return slots.stream().map(slot -> {
             EventBookingSummary summary = eventsRepository.getBookingSummary(

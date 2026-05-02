@@ -1,56 +1,43 @@
 package com.example.repository;
 
-import com.example.constant.Enums;
 import com.example.model.entity.Events;
 import com.example.model.record.EventBookingSummary;
 import com.example.model.record.EventDailySlot;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface EventsRepository extends JpaRepository<Events, Long> {
-    @Modifying
-    @Transactional
-    @Query("UPDATE Events e SET e.status = :status, e.updatedAt = :deletedAt, e.deletedAt = :deletedAt WHERE e.refNo = :refNo")
-    void updateCloseStatusById(@Param("refNo") String refNo, @Param("status") Enums.EventStatus status, @Param("deletedAt") LocalDateTime deletedAt);
-
-    @Modifying
-    @Transactional
-    @Query("UPDATE Events e SET e.status = :status, e.updatedAt = :updatedAt, e.deletedAt = null WHERE e.refNo = :refNo")
-    void updateOpenStatusById(@Param("refNo") String refNo, @Param("status") Enums.EventStatus status, @Param("updatedAt") LocalDateTime updatedAt);
-
     @Query("SELECT e.id FROM Events e WHERE e.refNo = :refNo")
     Optional<Long> findIdByRefNo(String refNo);
 
     @Query("SELECT e FROM Events e WHERE e.refNo = :refNo")
     Optional<Events> findByRefNo(String refNo);
 
-    @Query("SELECT e FROM Events e WHERE e.refNo = :refNo AND e.deletedAt IS NULL")
-    Optional<Events> findByRefNoAndStatusNotDeleted(String refNo);
+    @Query("SELECT e FROM Events e WHERE e.refNo = :refNo AND e.deletedAt IS NULL AND e.isPublish = true")
+    Optional<Events> findByRefNoAndOpenStatusAndPublished(String refNo);
 
     @Query("SELECT e.refNo FROM Events e WHERE e.id = :id")
     Optional<String> findRefNoById(Long id);
 
     @Query("""
     SELECT e FROM Events e
-    WHERE e.deletedAt IS NULL AND (
+    WHERE e.deletedAt IS NULL
+    AND (:isPublishedOnly = false OR e.isPublish = true)
+    AND (
     LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%'))
        OR LOWER(e.type) LIKE LOWER(CONCAT('%', :search, '%'))
        OR LOWER(e.category) LIKE LOWER(CONCAT('%', :search, '%'))
        OR LOWER(e.description) LIKE LOWER(CONCAT('%', :search, '%')))
     """)
-    Page<Events> findBySearchTerm(@Param("search") String search, Pageable pageable);
+    Page<Events> findBySearchTermWithPublishFilter(@Param("publishedOnly") Boolean isPublishedOnly, @Param("search") String search, Pageable pageable);
 
     @Query("""
     SELECT e
@@ -58,6 +45,14 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
     WHERE e.deletedAt IS NULL
     """)
     Page<Events> findAllActive(Pageable pageable);
+
+    @Query("""
+    SELECT e
+    FROM Events e
+    WHERE e.deletedAt IS NULL
+    AND (:isPublishedOnly = false OR e.isPublish = true)
+    """)
+    Page<Events> findAllPublished(@Param("isPublishedOnly") boolean isPublishedOnly, Pageable pageable);
 
     @Query("""
     SELECT e FROM Events e
@@ -118,31 +113,42 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
     FROM events e
     INNER JOIN event_day_schedules eds ON e.id = eds.event_id
     WHERE e.deleted_at IS NULL
-      AND e.is_publish = true
+      AND (
+          :isPublishedOnly = false
+          OR e.is_publish = true
+      )
       AND eds.day = :dayValue
     ORDER BY e.id, eds.start_time
     """, nativeQuery = true)
-    List<EventDailySlot> getAllEventsScheduleSlots(@Param("filterDate") LocalDate filterDate,
-                                                @Param("dayValue") String dayValue);
+    List<EventDailySlot> getAllEventsScheduleSlots(
+            @Param("isPublishedOnly") boolean isPublishedOnly,
+            @Param("filterDate") LocalDate filterDate,
+            @Param("dayValue") String dayValue
+            );
 
     @Query(value = """
-    SELECT
-        e.id AS event_id,
-        e.ref_no AS event_ref,
-        e.name AS event_name,
-        eds.day AS schedule_day,
-        :filterDate AS event_date,
-        eds.start_time AS event_time,
-        COALESCE(e.max_capacity, 0) AS max_capacity
-    FROM events e
-    INNER JOIN event_day_schedules eds ON e.id = eds.event_id
-    WHERE e.id = :id
-      AND e.deleted_at IS NULL
-      AND e.is_publish = true
-      AND eds.day = :dayValue
-    ORDER BY eds.start_time
-    """, nativeQuery = true)
-    List<EventDailySlot> getEventScheduleSlots(@Param("id") Long id,
-                                               @Param("filterDate") LocalDate filterDate,
-                                               @Param("dayValue") String dayValue);
+            SELECT
+                e.id AS event_id,
+                e.ref_no AS event_ref,
+                e.name AS event_name,
+                eds.day AS schedule_day,
+                :filterDate AS event_date,
+                eds.start_time AS event_time,
+                COALESCE(e.max_capacity, 0) AS max_capacity
+            FROM events e
+            INNER JOIN event_day_schedules eds ON e.id = eds.event_id
+            WHERE e.id = :id
+              AND e.deleted_at IS NULL
+              AND (
+                  :isPublishedOnly = false
+                  OR e.is_publish = true
+              )
+              AND eds.day = :dayValue
+            ORDER BY eds.start_time
+            """, nativeQuery = true)
+    List<EventDailySlot> getEventScheduleSlots(
+            @Param("isPublishedOnly") boolean isPublishedOnly,
+            @Param("id") Long id,
+            @Param("filterDate") LocalDate filterDate,
+            @Param("dayValue") String dayValue);
 }

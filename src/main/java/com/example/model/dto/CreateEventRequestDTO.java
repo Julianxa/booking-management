@@ -89,7 +89,8 @@ public class CreateEventRequestDTO {
     @JsonProperty("match_ticket_quantity_with_attendees")
     private Boolean matchTicketQuantityWithAttendees = true;
 
-    @Schema(description = "Whether the event should be immediately visible")
+    @NotNull(message = "is_publish is required")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Whether the event should be immediately visible")
     @JsonProperty("is_publish")
     private Boolean isPublish;
 
