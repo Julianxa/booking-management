@@ -3,9 +3,7 @@ package com.example.service;
 import com.example.config.AppProperties;
 import com.example.exception.ResourceNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
-import com.example.model.dto.CreateBookingRequestDTO;
-import com.example.model.dto.UpdateEmailTemplatesRequestDTO;
-import com.example.model.dto.UpdateEmailTemplatesResponseDTO;
+import com.example.model.dto.*;
 import com.example.model.entity.*;
 import com.example.repository.EmailTemplatesRepository;
 import com.example.repository.TicketTypesRepository;
@@ -16,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,30 @@ public class EmailService {
     private final EmailTemplateMapper emailTemplateMapper;
     @Value("${app.mail.from}")
     String senderEmail;
+
+    public GetEmailTemplateResponseDTO getEmailTemplate(String emailTemplateRefNo) {
+        EmailTemplates emailTemplate = emailTemplatesRepository.findByRefNo(emailTemplateRefNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Email template not found with code: " + emailTemplateRefNo));
+
+        GetEmailTemplateResponseDTO getEmailTemplateResponseDTO = emailTemplateMapper.toResponseDto(emailTemplate);
+
+        getEmailTemplateResponseDTO.setMessage("Retrieve Email Templates successfully.");
+        getEmailTemplateResponseDTO.setTimestamp(LocalDateTime.now());
+        return getEmailTemplateResponseDTO;
+    }
+
+    public GetListEmailTemplatesResponseDTO getAllEmailTemplates(Pageable pageable) {
+        Page<EmailTemplates> emailTemplatesPage = emailTemplatesRepository.findAllActive(pageable);
+
+        List<GetEmailTemplateResponseDTO> content = emailTemplatesPage.getContent().stream()
+                .map(emailTemplateMapper::toResponseDto)
+                .toList();
+
+        GetListEmailTemplatesResponseDTO getListEmailTemplatesResponseDTO = emailTemplateMapper.toGetListResponse(emailTemplatesPage, content);
+        getListEmailTemplatesResponseDTO.setMessage("Retrieve list of Email Templates successfully.");
+        getListEmailTemplatesResponseDTO.setTimestamp(LocalDateTime.now());
+        return getListEmailTemplatesResponseDTO;
+    }
 
     @Transactional
     public UpdateEmailTemplatesResponseDTO updateEmailTemplate(String templateRefNo, UpdateEmailTemplatesRequestDTO updateEmailTemplatesRequestDTO) {

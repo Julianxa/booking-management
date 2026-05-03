@@ -1,6 +1,8 @@
 package com.example.repository;
 
 import com.example.model.entity.EmailTemplates;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -20,4 +22,21 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
     EmailTemplates findBookingCancellationEmailTemplate();
 
     Optional<EmailTemplates> findByRefNo(String emailTemplateRefNo);
+
+    @Query("""
+    SELECT new com.example.model.entity.EmailTemplates(
+        et.id,
+        et.refNo,
+        et.templateName,
+        et.subject,
+        SUBSTRING(et.mainBody, 1, 200),
+        SUBSTRING(et.importantInfoIntro, 1, 200),
+        SUBSTRING(et.importantInfoBody, 1, 200),
+        SUBSTRING(et.contactBody, 1, 200),
+        et.createdAt, et.updatedAt
+    )
+    FROM EmailTemplates et
+    """)
+    Page<EmailTemplates> findAllActive(Pageable pageable);
+
 }
