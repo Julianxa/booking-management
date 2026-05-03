@@ -331,6 +331,34 @@ public class UserController {
     }
 
     @Operation(
+            summary = "Delete user by ID",
+            description = "Deletes a user account by user ID.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "User deleted successfully"),
+                    @ApiResponse(responseCode = "400", description = "Invalid request"),
+                    @ApiResponse(responseCode = "404", description = "User not found")
+            }
+    )
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<?> deleteUserById(
+            @PathVariable String userId,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+
+        try {
+            DeleteUserResponseDTO response = userService.deleteUserById(userId);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    ErrorResponseDTO.builder()
+                            .message(e.getMessage())
+                            .timestamp(LocalDateTime.now().toString())
+                            .build()
+            );
+        }
+    }
+
+    @Operation(
             summary = "List all admin users",
             description = "Retrieves a paginated list of all users. Admin access required.",
             responses = {

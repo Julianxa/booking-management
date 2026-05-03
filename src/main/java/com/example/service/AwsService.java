@@ -253,6 +253,14 @@ public class AwsService {
         return cognitoClient.deleteUser(deleteUserRequest);
     }
 
+    public AdminDeleteUserResponse deleteUserByAdmin(String username) {
+        AdminDeleteUserRequest deleteUserRequest = AdminDeleteUserRequest.builder()
+                .userPoolId(userPoolId)
+                .username(username)
+                .build();
+        return cognitoClient.adminDeleteUser(deleteUserRequest);
+    }
+
     public GlobalSignOutResponse signOut(String accessToken) {
         if (accessToken != null) {
             GlobalSignOutRequest globalSignOutRequest = GlobalSignOutRequest.builder()

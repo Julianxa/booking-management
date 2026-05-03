@@ -24,6 +24,8 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
     Optional<String> findActiveRefNoById(Long id);
     @Query("SELECT u.refNo FROM Users u WHERE u.id = :id")
     Optional<String> findRefNoById(Long id);
+    @Query("SELECT u FROM Users u WHERE u.refNo = :userRefNo and status !='INACTIVE'")
+    Optional<Users> findByRefNo(String userRefNo);
     @Query("SELECT u FROM Users u WHERE u.userSub = :userSub and status !='INACTIVE'")
     Optional<Users> findByUserSub(String userSub);
     Optional<Users> findByEmailAndStatus(String email, Enums.UserStatus status);

@@ -171,6 +171,21 @@ public class UserService {
         return deleteUserResponseDTO;
     }
 
+    @Transactional
+    public DeleteUserResponseDTO deleteUserById(String userRefNo) {
+        Users user = usersRepository.findByRefNo(userRefNo)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // inactivate user status
+        usersRepository.updateStatusToInactiveByOwnerUserId(user.getId(), LocalDateTime.now());
+
+        awsService.deleteUserByAdmin(user.getUserSub());
+        DeleteUserResponseDTO deleteUserResponseDTO = new DeleteUserResponseDTO();
+        deleteUserResponseDTO.setMessage("User deleted successfully");
+        deleteUserResponseDTO.setTimestamp(LocalDateTime.now());
+        return deleteUserResponseDTO;
+    }
+
     public GetUserResponseDTO getUserByUserSub(String userSub) {
         Users user = usersRepository.findByUserSub(userSub)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with userSub: " + userSub));
