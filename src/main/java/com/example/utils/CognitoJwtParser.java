@@ -17,20 +17,24 @@ import com.nimbusds.jose.jwk.RSAKey;
 
 public class CognitoJwtParser {
     public static String getUserSub(String idToken, String userPoolId, String region) throws IOException, ParseException, JOSEException {
-        String jwksUrl = String.format("https://cognito-idp.%s.amazonaws.com/%s/.well-known/jwks.json", region, userPoolId);
-        JWKSet jwkSet = JWKSet.load(new URL(jwksUrl));
-        RSAKey rsaKey = (RSAKey) jwkSet.getKeyByKeyId(getKidFromToken(idToken));
-        PublicKey publicKey = rsaKey.toPublicKey();
-
-        JwtParser jwtParser = Jwts.parser()
-                .setSigningKey(publicKey)
-                .build();
-        Claims claims = jwtParser.parseClaimsJws(idToken).getBody();
+        Claims claims = parseTokenClaims(idToken, userPoolId, region);
         String userSub = claims.getSubject();
         if (userSub == null) {
             throw new IllegalArgumentException("ID token missing 'sub' claim");
         }
         return userSub;
+    }
+
+    public static Claims parseTokenClaims(String jwtToken, String userPoolId, String region) throws IOException, ParseException, JOSEException {
+        String jwksUrl = String.format("https://cognito-idp.%s.amazonaws.com/%s/.well-known/jwks.json", region, userPoolId);
+        JWKSet jwkSet = JWKSet.load(new URL(jwksUrl));
+        RSAKey rsaKey = (RSAKey) jwkSet.getKeyByKeyId(getKidFromToken(jwtToken));
+        PublicKey publicKey = rsaKey.toPublicKey();
+
+        JwtParser jwtParser = Jwts.parser()
+                .setSigningKey(publicKey)
+                .build();
+        return jwtParser.parseClaimsJws(jwtToken).getBody();
     }
 
     private static String getKidFromToken(String idToken) {
