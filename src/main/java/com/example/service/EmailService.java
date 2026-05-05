@@ -74,10 +74,10 @@ public class EmailService {
                 .orElseThrow(() -> new ResourceNotFoundException("Email template not found with code: " + templateRefNo));
 
         if(updateEmailTemplatesRequestDTO.getSubject() != null) template.setSubject(updateEmailTemplatesRequestDTO.getSubject());
-        if(updateEmailTemplatesRequestDTO.getMainBody() != null) template.setSubject(updateEmailTemplatesRequestDTO.getMainBody());
-        if(updateEmailTemplatesRequestDTO.getImportantInfoIntro() != null) template.setSubject(updateEmailTemplatesRequestDTO.getImportantInfoIntro());
-        if(updateEmailTemplatesRequestDTO.getImportantInfoBody() != null) template.setSubject(updateEmailTemplatesRequestDTO.getImportantInfoBody());
-        if(updateEmailTemplatesRequestDTO.getContactBody() != null) template.setSubject(updateEmailTemplatesRequestDTO.getContactBody());
+        if(updateEmailTemplatesRequestDTO.getMainBody() != null) template.setMainBody(updateEmailTemplatesRequestDTO.getMainBody());
+        if(updateEmailTemplatesRequestDTO.getImportantInfoIntro() != null) template.setImportantInfoIntro(updateEmailTemplatesRequestDTO.getImportantInfoIntro());
+        if(updateEmailTemplatesRequestDTO.getImportantInfoBody() != null) template.setImportantInfoBody(updateEmailTemplatesRequestDTO.getImportantInfoBody());
+        if(updateEmailTemplatesRequestDTO.getContactBody() != null) template.setContactBody(updateEmailTemplatesRequestDTO.getContactBody());
         template = emailTemplatesRepository.save(template);
 
         return emailTemplateMapper.toUpdateResponseDto(template);
