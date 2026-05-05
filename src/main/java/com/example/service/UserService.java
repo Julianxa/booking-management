@@ -43,9 +43,8 @@ public class UserService {
         if (res.userSub() != null) { // sign up successfully
             user = new Users();
             user.setUserSub(res.userSub());
-        } else { // User exists
-            user = usersRepository.findByEmailAndStatus(userRegistrationRequestDTO.getEmail(), Enums.UserStatus.UNCONFIRMED)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        } else {
+            throw new RuntimeException("User exists");
         }
 
         Long orgId = null;
