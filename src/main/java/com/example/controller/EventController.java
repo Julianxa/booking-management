@@ -22,6 +22,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -596,7 +597,8 @@ public class EventController {
             }
     )
     @GetMapping("/events/checkin")
-    public ResponseEntity<?> checkin(@RequestParam("token") String token) {
+    public ResponseEntity<?> checkin(@RequestParam("token") String token,
+                                     @RequestHeader(value = "X-Access-Token", required = false) String accessToken) {
         try {
             InitiateCheckinResponseDTO initiateCheckinResponseDTO = eventService.initiateCheckin(token);
             return ResponseEntity.ok(initiateCheckinResponseDTO);
@@ -634,6 +636,7 @@ public class EventController {
                     @ApiResponse(responseCode = "401", description = "Unauthorized")
             }
     )
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping("/events/confirm")
     public ResponseEntity<?> confirmCheckin(@RequestBody ConfirmCheckinRequestDTO request) {
         try {
