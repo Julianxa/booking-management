@@ -109,9 +109,6 @@ public class TokenController {
     public ResponseEntity<?> revokeTokens(
             @RequestHeader(value = "X-Access-Token", required = false) String accessToken) {
         try {
-            if (accessToken == null || accessToken.isBlank()) {
-                throw new IllegalArgumentException("Missing or invalid X-Access-Token header");
-            }
             LogoutResponseDTO response = tokenService.logout(accessToken);
             return ResponseEntity.ok(response);
         } catch(NotAuthorizedException e) {
