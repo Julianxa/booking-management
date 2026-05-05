@@ -109,6 +109,14 @@ public class AwsService {
                     .build();
             cognitoClient.adminUpdateUserAttributes(updateRequest);
 
+            AdminAddUserToGroupRequest addToGroupRequest = AdminAddUserToGroupRequest.builder()
+                    .userPoolId(userPoolId)
+                    .username(signUpResponse.userSub())
+                    .groupName(userRegistrationRequestDTO.getRole().name())
+                    .build();
+
+            cognitoClient.adminAddUserToGroup(addToGroupRequest);
+
             return signUpResponse;
         } catch (UsernameExistsException e) {
             throw new RuntimeException("User account already exists. Please use a different email.");
