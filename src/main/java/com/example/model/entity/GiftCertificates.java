@@ -70,8 +70,7 @@ public class GiftCertificates {
     public boolean isUsable() {
         if (cancelledAt != null) return false;
         if (remainingQuantity < 1) return false;
-        if (expiryDate != null && expiryDate.isBefore(LocalDate.now())) return false;
-        return true;
+        return expiryDate == null || !expiryDate.isBefore(LocalDate.now());
     }
 
     public boolean isExpired() {
