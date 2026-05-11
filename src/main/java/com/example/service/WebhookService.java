@@ -7,8 +7,13 @@ import com.example.model.dto.CreateBookingRequestDTO;
 import com.example.model.entity.*;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
+import com.example.utils.DateUtils;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.checkout.Session;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +27,7 @@ import static com.example.constant.Enums.UserRole.AGENT;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class WebhookService {
     private final GiftCertificatesRepository giftCertificatesRepository;
     private final UsersRepository usersRepository;
@@ -32,6 +38,7 @@ public class WebhookService {
     private final EmailService emailService;
     private final BookingsConverter bookingsConverter;
     private final GiftCertificateService giftCertificateService;
+    private final DateUtils dateUtils;
     public record BookingCreatedEvent(
             Users loggedInUser,
             Bookings booking,
@@ -188,6 +195,64 @@ public class WebhookService {
         }
     }
 
+    @Transactional
+    public void processFailedPayment(Event event) {
+        PaymentIntent intent = getPaymentIntentFromEvent(event);
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+
+        Payments payment = paymentsRepository.findBySessionId(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+        payment.setPaymentStatus(Enums.PaymentStatus.FAILED);
+        paymentsRepository.save(payment);
+
+        Bookings booking = bookingsRepository.findById(payment.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        booking.setStatus(Enums.BookingStatus.FAILED);
+        bookingsRepository.save(booking);
+    }
+
+    @Transactional
+    public void processPaymentIntentCreated(Event event) {
+        PaymentIntent intent = getPaymentIntentFromEvent(event);
+        updateBookingStatus(intent.getPaymentDetails().getOrderReference(),
+                Enums.BookingStatus.PAYMENT_IN_PROGRESS,
+                intent.getId());
+    }
+
+    @Transactional
+    public void processPaymentIntentCanceled(Event event) {
+        PaymentIntent intent = getPaymentIntentFromEvent(event);
+        updateBookingStatus(intent.getPaymentDetails().getOrderReference(),
+                Enums.BookingStatus.CANCELLED,
+                intent.getId());
+    }
+
+    @Transactional
+    public void processSuccessfulPayment(Event event) {
+        PaymentIntent intent = getPaymentIntentFromEvent(event);
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+        String paymentMethod = intent.getPaymentMethodTypes().get(0);
+        String paymentIntent = intent.getId();
+        LocalDateTime paidAt = dateUtils.convertToLocalDateTime(intent.getCreated());
+        confirmPayment(sessionId, paymentIntent, paymentMethod, paidAt);
+    }
+
+    @Transactional
+    public void processExpiredPayment(Event event) {
+        PaymentIntent intent = getPaymentIntentFromEvent(event);
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+
+        Payments payment = paymentsRepository.findBySessionId(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+        payment.setPaymentStatus(Enums.PaymentStatus.EXPIRED);
+        paymentsRepository.save(payment);
+
+        Bookings booking = bookingsRepository.findById(payment.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        booking.setStatus(Enums.BookingStatus.EXPIRED);
+        bookingsRepository.save(booking);
+    }
+
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCreatedEvent(WebhookService.BookingCreatedEvent event) {
         try {
@@ -214,5 +279,37 @@ public class WebhookService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private PaymentIntent getPaymentIntentFromEvent(Event event) {
+        return (PaymentIntent) event.getDataObjectDeserializer()
+                .getObject()
+                .orElseThrow(() -> new IllegalStateException("Failed to deserialize PaymentIntent"));
+    }
+
+    private Session getSessionFromEvent(Event event) {
+        return (Session) event.getDataObjectDeserializer()
+                .getObject()
+                .orElseThrow(() -> new IllegalStateException("Failed to deserialize Stripe Session"));
+    }
+
+    private void updateBookingStatus(String sessionId,
+                                     Enums.BookingStatus newStatus,
+                                     String paymentIntentId) {
+
+        Payments payment = paymentsRepository.findBySessionId(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        if (paymentIntentId != null) {
+            payment.setPaymentIntentId(paymentIntentId);
+        }
+
+        Bookings booking = bookingsRepository.findById(payment.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + payment.getBookingId()));
+
+        booking.setStatus(newStatus);
+
+        bookingsRepository.save(booking);
+        log.info("Booking {} updated to status: {}", payment.getBookingId(), newStatus);
     }
 }
