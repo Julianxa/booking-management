@@ -29,8 +29,13 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.time.*;
-import java.util.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.example.constant.Enums.BookingEventStatus.*;
@@ -90,7 +95,7 @@ public class EventService {
         }
 
         String eventPicUrl = null;
-        if(savedEvent.getEventPicKey() != null) {
+        if (savedEvent.getEventPicKey() != null) {
             eventPicUrl = awsService.getFileFromS3(savedEvent.getEventPicKey());
         }
         CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(savedEvent);
@@ -116,14 +121,17 @@ public class EventService {
         if (dto.getStartDate() != null) event.setStartDate(dto.getStartDate());
         if (dto.getEndDate() != null) event.setEndDate(dto.getEndDate());
         if (dto.getEquipment() != null) event.setEquipment(dto.getEquipment());
-        if (dto.getAvailabilityToEmployeeRatio() != null) event.setAvailabilityToEmployeeRatio(dto.getAvailabilityToEmployeeRatio());
+        if (dto.getAvailabilityToEmployeeRatio() != null)
+            event.setAvailabilityToEmployeeRatio(dto.getAvailabilityToEmployeeRatio());
         if (dto.getMaxCapacity() != null) event.setMaxCapacity(dto.getMaxCapacity());
         if (dto.getPrivateBookings() != null) event.setPrivateBookings(dto.getPrivateBookings());
         if (dto.getAdditionalInfo() != null) event.setAdditionalInfo(dto.getAdditionalInfo());
         if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
-        if (dto.getMinActivityThresholdTime() != null) event.setMinActivityThresholdTime(dto.getMinActivityThresholdTime());
+        if (dto.getMinActivityThresholdTime() != null)
+            event.setMinActivityThresholdTime(dto.getMinActivityThresholdTime());
         if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
-        if (dto.getMaxActivityThresholdTime() != null) event.setMaxActivityThresholdTime(dto.getMaxActivityThresholdTime());
+        if (dto.getMaxActivityThresholdTime() != null)
+            event.setMaxActivityThresholdTime(dto.getMaxActivityThresholdTime());
 //        if (dto.getCreatedBy() != null) event.setCreatedBy(dto.getCreatedBy());
 //        if (dto.getUpdatedBy() != null) event.setUpdatedBy(dto.getUpdatedBy());
         if (dto.getAvailableDays() != null) {
@@ -149,7 +157,7 @@ public class EventService {
         Events updatedEvent = eventsRepository.save(event);
 
         String eventPicUrl = null;
-        if(updatedEvent.getEventPicKey() != null) {
+        if (updatedEvent.getEventPicKey() != null) {
             eventPicUrl = awsService.getFileFromS3(updatedEvent.getEventPicKey());
         }
 
@@ -220,7 +228,7 @@ public class EventService {
         Events event = eventsRepository.findByRefNo(eventRefNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventRefNo));
         String eventPicUrl = null;
-        if(event.getEventPicKey() != null) {
+        if (event.getEventPicKey() != null) {
             eventPicUrl = awsService.getFileFromS3(event.getEventPicKey());
         }
 
@@ -248,7 +256,7 @@ public class EventService {
         List<CreateEventResponseDTO> content = eventsPage.getContent().stream()
                 .map(event -> {
                     String eventPicUrl = null;
-                    if(event.getEventPicKey() != null) {
+                    if (event.getEventPicKey() != null) {
                         eventPicUrl = awsService.getFileFromS3(event.getEventPicKey());
                     }
                     CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(event);
@@ -271,9 +279,9 @@ public class EventService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
         Events event = eventsRepository.findByDateAndId(eventId, filterDate);
 
-        if(event == null) return eventMapper.toGetAvailabilityResponse(event, Collections.emptyMap());
+        if (event == null) return eventMapper.toGetAvailabilityResponse(event, Collections.emptyMap());
 
-        List<EventDailySlot> allSlots = eventsRepository.getEventScheduleSlots(isPublishedOnly,eventId, filterDate, dayValue);
+        List<EventDailySlot> allSlots = eventsRepository.getEventScheduleSlots(isPublishedOnly, eventId, filterDate, dayValue);
 
         List<EventBookingStats> bookingData = getBookingPercentageByDateForEvent(isPublishedOnly, eventId, filterDate, dayValue);
 
@@ -375,7 +383,7 @@ public class EventService {
         Events event = eventsRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
 
-        if(request.hasPeriods()) {
+        if (request.hasPeriods()) {
             List<TicketPricePeriods> newPeriods = request.getPeriods().stream()
                     .map(dto -> TicketPricePeriods.builder()
                             .event(event)
@@ -390,8 +398,8 @@ public class EventService {
             ticketTypes.getPeriods().addAll(newPeriods);
         }
 
-        if(request.getName() != null) ticketTypes.setName(request.getName());
-        if(request.getDescription() != null) ticketTypes.setDescription(request.getDescription());
+        if (request.getName() != null) ticketTypes.setName(request.getName());
+        if (request.getDescription() != null) ticketTypes.setDescription(request.getDescription());
 
         ticketTypesRepository.save(ticketTypes);
 
@@ -407,7 +415,7 @@ public class EventService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
 
         UpdateTicketTypeStatusResponseDTO updateTicketTypeStatusResponseDTO = new UpdateTicketTypeStatusResponseDTO();
-        if(updateTicketTypeStatusRequestDTO.getStatus() == Enums.TicketTypeStatus.CLOSE) {
+        if (updateTicketTypeStatusRequestDTO.getStatus() == Enums.TicketTypeStatus.CLOSE) {
             LocalDateTime deletedAt = LocalDateTime.now();
             ticketTypesRepository.updateDeleteStatusByEventIdAndTicketTypesRefNo(eventId, ticketTypeRefNo, Enums.TicketTypeStatus.CLOSE, deletedAt);
 
@@ -459,7 +467,7 @@ public class EventService {
         List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs = bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
 
         String userRefNo = null;
-        if(bookingEvent.getBooking().getUserId() != null) {
+        if (bookingEvent.getBooking().getUserId() != null) {
             userRefNo = usersRepository.findActiveRefNoById(bookingEvent.getBooking().getUserId()).orElse(null);
         }
 
@@ -494,14 +502,14 @@ public class EventService {
         bookingEvent = bookingEventsRepository.save(bookingEvent);
 
         return ConfirmCheckinResponseDTO.builder()
-                        .bookingId(bookingEvent.getBooking().getRefNo())
-                        .eventId(bookingEvent.getEvent().getRefNo())
-                        .eventDate(bookingEvent.getEventDate())
-                        .eventTime(bookingEvent.getEventTime())
-                        .status(bookingEvent.getStatus())
-                        .verifiedAt(bookingEvent.getVerifiedAt())
-                        .message("Confirm Check-in successfully")
-                        .timestamp(LocalDateTime.now()).build();
+                .bookingId(bookingEvent.getBooking().getRefNo())
+                .eventId(bookingEvent.getEvent().getRefNo())
+                .eventDate(bookingEvent.getEventDate())
+                .eventTime(bookingEvent.getEventTime())
+                .status(bookingEvent.getStatus())
+                .verifiedAt(bookingEvent.getVerifiedAt())
+                .message("Confirm Check-in successfully")
+                .timestamp(LocalDateTime.now()).build();
     }
 
     // ====================== Private Helper Methods ======================
@@ -516,7 +524,7 @@ public class EventService {
             int maxCap = slot.maxCapacity() != null ? slot.maxCapacity().intValue() : 0;
 
             BigDecimal bookingPct = dataUtils.calculatePercentage(summary.totalBooked().intValue(), maxCap);
-            BigDecimal checkInPct  = dataUtils.calculatePercentage(summary.totalCheckedIn().intValue(), maxCap);
+            BigDecimal checkInPct = dataUtils.calculatePercentage(summary.totalCheckedIn().intValue(), maxCap);
 
             return new EventBookingStats(
                     slot.eventRef(),
@@ -549,7 +557,7 @@ public class EventService {
             int maxCap = slot.maxCapacity() != null ? slot.maxCapacity().intValue() : 0;
 
             BigDecimal bookingPct = dataUtils.calculatePercentage(summary.totalBooked().intValue(), maxCap);
-            BigDecimal checkInPct  = dataUtils.calculatePercentage(summary.totalCheckedIn().intValue(), maxCap);
+            BigDecimal checkInPct = dataUtils.calculatePercentage(summary.totalCheckedIn().intValue(), maxCap);
 
             return new EventBookingStats(
                     slot.eventRef(),

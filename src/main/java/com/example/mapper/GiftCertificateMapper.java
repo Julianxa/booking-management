@@ -1,6 +1,8 @@
 package com.example.mapper;
 
-import com.example.model.dto.*;
+import com.example.model.dto.CreateGiftCertificateRequestDTO;
+import com.example.model.dto.CreateGiftCertificateResponseDTO;
+import com.example.model.dto.GetListGiftCertificateResponseDTO;
 import com.example.model.entity.GiftCertificates;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Page;

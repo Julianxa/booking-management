@@ -8,4 +8,5 @@ public record EventDailySlot(
         String eventDate,
         String eventTime,
         Long maxCapacity
-) {}
+) {
+}

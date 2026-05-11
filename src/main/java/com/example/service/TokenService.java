@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAut
 import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
 
 import java.time.LocalDateTime;
+
 import static com.example.constant.Enums.UserStatus.CONFIRMED;
 
 @Service
@@ -38,7 +39,7 @@ public class TokenService {
 
             LoginResponseDTO loginResponseDTO = new LoginResponseDTO();
 
-            if(res.authenticationResult() != null) {
+            if (res.authenticationResult() != null) {
                 loginResponseDTO.setEmail(loginRequestDTO.getEmail());
                 loginResponseDTO.setSession(res.session());
                 loginResponseDTO.setAccessToken(res.authenticationResult().accessToken());
@@ -97,7 +98,7 @@ public class TokenService {
         LocalDateTime loginAt = LocalDateTime.now();
         String userAgent = httpServletRequest.getHeader("User-Agent");
 
-        if(loginActivityStatus == Enums.LoginActivityStatus.SUCCESS)
+        if (loginActivityStatus == Enums.LoginActivityStatus.SUCCESS)
             user.setLastLoginAt(loginAt);
 
         UsersLoginHistory loginActivity = UsersLoginHistory.builder()

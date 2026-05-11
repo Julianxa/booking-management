@@ -24,19 +24,19 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
     Optional<EmailTemplates> findByRefNo(String emailTemplateRefNo);
 
     @Query("""
-    SELECT new com.example.model.entity.EmailTemplates(
-        et.id,
-        et.refNo,
-        et.templateName,
-        et.subject,
-        SUBSTRING(et.mainBody, 1, 200),
-        SUBSTRING(et.importantInfoIntro, 1, 200),
-        SUBSTRING(et.importantInfoBody, 1, 200),
-        SUBSTRING(et.contactBody, 1, 200),
-        et.createdAt, et.updatedAt
-    )
-    FROM EmailTemplates et
-    """)
+            SELECT new com.example.model.entity.EmailTemplates(
+                et.id,
+                et.refNo,
+                et.templateName,
+                et.subject,
+                SUBSTRING(et.mainBody, 1, 200),
+                SUBSTRING(et.importantInfoIntro, 1, 200),
+                SUBSTRING(et.importantInfoBody, 1, 200),
+                SUBSTRING(et.contactBody, 1, 200),
+                et.createdAt, et.updatedAt
+            )
+            FROM EmailTemplates et
+            """)
     Page<EmailTemplates> findAllActive(Pageable pageable);
 
 }

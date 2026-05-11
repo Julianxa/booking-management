@@ -3,17 +3,16 @@ package com.example.utils;
 
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 
 import java.io.IOException;
-import java.security.PublicKey;
 import java.net.URL;
+import java.security.PublicKey;
 import java.text.ParseException;
-
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
 
 public class CognitoJwtParser {
     public static String getUserSub(String idToken, String userPoolId, String region) throws IOException, ParseException, JOSEException {

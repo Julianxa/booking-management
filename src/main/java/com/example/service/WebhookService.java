@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,7 @@ public class WebhookService {
     private final BookingsConverter bookingsConverter;
     private final GiftCertificateService giftCertificateService;
     private final DateUtils dateUtils;
+
     public record BookingCreatedEvent(
             Users loggedInUser,
             Bookings booking,
@@ -46,20 +48,23 @@ public class WebhookService {
             String promoCode,
             List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
             List<BookingEmailPayload> emailPayloads
-    ) {}
+    ) {
+    }
 
     public record BookingEmailPayload(
             CreateBookingRequestDTO.AttendeeDTO attendee,
             BookingEvents bookingEvent,
             List<CreateBookingRequestDTO.TicketTypeDTO> tickets,
             List<CreateBookingRequestDTO.AttendeeDTO> allAttendees
-    ) {}
+    ) {
+    }
 
     public record BookingReConfirmedEvent(
             Users loggedInUser,
             Bookings booking,
             List<BookingEmailPayload> emailPayloads
-    ) {}
+    ) {
+    }
 
     @Transactional
     public void confirmPayment(String sessionId, String paymentIntent, String paymentMethod, LocalDateTime paidAt) {
@@ -153,7 +158,7 @@ public class WebhookService {
             emailService.sendBookingOrderSummaryEmail(loggedInUser, booking, eventList, promoCode, redeemedTickets);
         } else {
             for (WebhookService.BookingEmailPayload payload : payloads) {
-                if(payload.attendee().getSequence() == 1) {
+                if (payload.attendee().getSequence() == 1) {
                     Users guestAttendee = new Users();
                     guestAttendee.setEmail(payload.attendee().getEmail());
                     guestAttendee.setFirstName(payload.attendee.getFirstName());

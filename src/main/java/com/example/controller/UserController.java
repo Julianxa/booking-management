@@ -1,10 +1,8 @@
 package com.example.controller;
 
-import com.example.model.dto.ErrorResponseDTO;
 import com.example.exception.InvalidIdTokenException;
 import com.example.exception.UnverifiedEmailException;
 import com.example.model.dto.*;
-import com.example.service.AwsService;
 import com.example.service.UserService;
 import com.example.utils.UserUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.LimitExceededException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
+
 import java.time.LocalDateTime;
 
 import static com.example.constant.Enums.UserRole.*;
@@ -47,7 +46,7 @@ public class UserController {
                     @ApiResponse(responseCode = "401", description = "Invalid API key or signature", content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PostMapping(value="/users", consumes=MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/users", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> signUp(@RequestBody UserRegistrationRequestDTO clientUserRegistrationRequest) {
         try {
             UserRegistrationResponseDTO userRegistrationResponseDTO = userService.register(clientUserRegistrationRequest);
@@ -77,7 +76,7 @@ public class UserController {
                                     schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PostMapping(value="/users/confirmation", consumes=MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/users/confirmation", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> confirmUser(
             @RequestBody ConfirmUserRegistrationRequestDTO confirmSignUpRequest) {
         try {
@@ -187,15 +186,15 @@ public class UserController {
         try {
             ChangePasswordResponseDTO changePasswordResponseDTO = userService.changePassword(accessToken, changePasswordRequest);
             return ResponseEntity.ok(changePasswordResponseDTO);
-        } catch(LimitExceededException e) {
+        } catch (LimitExceededException e) {
             return ResponseEntity.status(429).body(
                     ErrorResponseDTO.builder()
                             .message(e.getMessage())
                             .timestamp(LocalDateTime.now().toString())
                             .build()
             );
-        } catch(NotAuthorizedException e) {
-            if(e.awsErrorDetails().errorMessage().contains("Access Token has expired") | e.awsErrorDetails().errorMessage().contains("Invalid Access Token")) {
+        } catch (NotAuthorizedException e) {
+            if (e.awsErrorDetails().errorMessage().contains("Access Token has expired") | e.awsErrorDetails().errorMessage().contains("Invalid Access Token")) {
                 return ResponseEntity.status(401).body(
                         ErrorResponseDTO.builder()
                                 .message(e.getMessage())
@@ -298,7 +297,7 @@ public class UserController {
             DeleteUserResponseDTO deleteUserResponseDTO = userService.deleteUser(userSub, accessToken, deleteUserRequest);
             return ResponseEntity.ok(deleteUserResponseDTO);
         } catch (NotAuthorizedException e) {
-            if(e.awsErrorDetails().errorMessage().contains("Access Token has expired") | e.awsErrorDetails().errorMessage().contains("Invalid Access Token")) {
+            if (e.awsErrorDetails().errorMessage().contains("Access Token has expired") | e.awsErrorDetails().errorMessage().contains("Invalid Access Token")) {
                 return ResponseEntity.status(401).body(
                         ErrorResponseDTO.builder()
                                 .message(e.getMessage())
@@ -313,7 +312,7 @@ public class UserController {
                                 .build()
                 );
             }
-        } catch(InvalidIdTokenException e) {
+        } catch (InvalidIdTokenException e) {
             return ResponseEntity.status(401).body(
                     ErrorResponseDTO.builder()
                             .message(e.getMessage())
@@ -695,7 +694,7 @@ public class UserController {
     )
     @GetMapping("/users/currentUser")
     public ResponseEntity<?> getCurrentUser(@RequestHeader(value = "Authorization", required = false) String authorizationHeader,
-                                                             @RequestHeader(value = "X-Access-Token", required = false) String accessToken) {
+                                            @RequestHeader(value = "X-Access-Token", required = false) String accessToken) {
         try {
             String userSub = userUtils.extractUserSub(authorizationHeader);
             GetUserResponseDTO userProfile = userService.getUserByUserSub(userSub);

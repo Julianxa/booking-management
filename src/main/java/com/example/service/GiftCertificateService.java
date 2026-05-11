@@ -13,9 +13,10 @@ import com.example.utils.ReferenceNoGenerator;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -55,7 +56,7 @@ public class GiftCertificateService {
         Long eventId = eventsRepository.findIdByRefNo(dto.getEventId()).orElse(null);
         GiftCertificates gc = buildGiftCertificate(user.getId(), eventId, dto);
 
-        if(giftCertificatesRepository.existsByPromoCode(gc.getPromoCode())) {
+        if (giftCertificatesRepository.existsByPromoCode(gc.getPromoCode())) {
             throw new BadRequestException("Promotion code already exists: " + gc.getPromoCode());
         }
 
@@ -75,8 +76,12 @@ public class GiftCertificateService {
         GiftCertificates giftCertificates = giftCertificatesRepository.findByPromoCode(promoCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate not found"));
 
-        if(dto.getExpiryDate() != null) {giftCertificates.setExpiryDate(dto.getExpiryDate());}
-        if(dto.getMessageToRecipient() != null) {giftCertificates.setMessageToRecipient(dto.getMessageToRecipient());}
+        if (dto.getExpiryDate() != null) {
+            giftCertificates.setExpiryDate(dto.getExpiryDate());
+        }
+        if (dto.getMessageToRecipient() != null) {
+            giftCertificates.setMessageToRecipient(dto.getMessageToRecipient());
+        }
         giftCertificatesRepository.save(giftCertificates);
 
         UpdateGiftCertificateResponseDTO updateGiftCertificateResponseDTO = new UpdateGiftCertificateResponseDTO();
@@ -92,7 +97,7 @@ public class GiftCertificateService {
     public GiftCertificateApplicationResult getCertificateRedemptionResult(Bookings booking) {
         GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
 
-        if(giftCertificate != null && giftCertificate.getType() == VALUE) {
+        if (giftCertificate != null && giftCertificate.getType() == VALUE) {
             GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(giftCertificate.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Value gift certificate item not found"));
 
@@ -177,9 +182,9 @@ public class GiftCertificateService {
     public GetListGiftCertificateResponseDTO getGiftCertificates(
             Pageable pageable, String eventRefNo) {
         Page<GiftCertificates> giftCertificatesPage;
-        Long eventId  = eventRefNo != null ? eventsRepository.findIdByRefNo(eventRefNo)
+        Long eventId = eventRefNo != null ? eventsRepository.findIdByRefNo(eventRefNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"))
-        : null;
+                : null;
         if (eventId != null) {
             giftCertificatesPage = giftCertificatesRepository.findByEventId(eventId, pageable);
         } else {

@@ -20,25 +20,25 @@ public interface EventTimeSlotExceptionsRepository extends JpaRepository<EventTi
     void deleteExceptionTimeByEventIdAndDateAndTime(Long eventId, LocalDate exceptionDate, String exceptionTime);
 
     @Query(value = """
-    SELECT
-        e.ref_no AS event_id,
-        etse.exception_time AS event_time
-    FROM events e
-    INNER JOIN event_time_slot_exceptions etse ON e.id = etse.event_id
-    WHERE e.deleted_at IS NULL
-      AND e.id = :eventId
-      AND etse.exception_date = :exceptionDate
-    """, nativeQuery = true)
+            SELECT
+                e.ref_no AS event_id,
+                etse.exception_time AS event_time
+            FROM events e
+            INNER JOIN event_time_slot_exceptions etse ON e.id = etse.event_id
+            WHERE e.deleted_at IS NULL
+              AND e.id = :eventId
+              AND etse.exception_date = :exceptionDate
+            """, nativeQuery = true)
     List<EventTimeSlotException> findExceptionTimeByEventIdAndExceptionDate(Long eventId, LocalDate exceptionDate);
 
     @Query(value = """
-    SELECT
-        e.ref_no AS event_id,
-        etse.exception_time AS event_time
-    FROM events e
-    INNER JOIN event_time_slot_exceptions etse ON e.id = etse.event_id
-    WHERE e.deleted_at IS NULL
-      AND etse.exception_date = :exceptionDate
-    """, nativeQuery = true)
+            SELECT
+                e.ref_no AS event_id,
+                etse.exception_time AS event_time
+            FROM events e
+            INNER JOIN event_time_slot_exceptions etse ON e.id = etse.event_id
+            WHERE e.deleted_at IS NULL
+              AND etse.exception_date = :exceptionDate
+            """, nativeQuery = true)
     List<EventTimeSlotException> findExceptionTimeByExceptionDate(LocalDate exceptionDate);
 }

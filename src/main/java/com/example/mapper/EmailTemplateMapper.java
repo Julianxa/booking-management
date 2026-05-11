@@ -1,6 +1,8 @@
 package com.example.mapper;
 
-import com.example.model.dto.*;
+import com.example.model.dto.GetEmailTemplateResponseDTO;
+import com.example.model.dto.GetListEmailTemplatesResponseDTO;
+import com.example.model.dto.UpdateEmailTemplatesResponseDTO;
 import com.example.model.entity.EmailTemplates;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

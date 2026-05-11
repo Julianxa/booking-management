@@ -10,4 +10,5 @@ public record GiftCertificateApplicationResult(
         GiftCertificates certificate,
         List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTicketTypes,
         BigDecimal discount
-) {}
+) {
+}

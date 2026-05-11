@@ -15,7 +15,7 @@ import java.util.List;
 public class BookingItemsConverter {
     private final TicketTypesRepository ticketTypesRepository;
 
-    public List<CreateBookingRequestDTO.TicketTypeDTO> toTicketTypeDTOs (List<BookingItems> items) {
+    public List<CreateBookingRequestDTO.TicketTypeDTO> toTicketTypeDTOs(List<BookingItems> items) {
         return items.stream()
                 .map(item -> {
                     TicketTypes ticketType = ticketTypesRepository.findById(item.getTicketTypeId())

@@ -145,7 +145,7 @@ public class CreateEventResponseDTO {
         private LocalDate eventDate;
         @JsonProperty("event_time")
         private String eventTime;
-//        @JsonProperty("max_capacity")
+        //        @JsonProperty("max_capacity")
 //        private int maxCapacity;
         @JsonProperty("total_booked")
         private int totalBooked;

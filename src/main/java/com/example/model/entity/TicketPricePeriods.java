@@ -2,6 +2,7 @@ package com.example.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"event","ticketTypes"})
+@ToString(exclude = {"event", "ticketTypes"})
 @EqualsAndHashCode(of = "id")
 @Table(name = "ticket_price_periods")
 public class TicketPricePeriods {

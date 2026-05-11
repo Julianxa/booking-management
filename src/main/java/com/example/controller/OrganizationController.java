@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalDateTime;
 
 @Tag(name = "Organizations", description = "Organization management APIs")
@@ -154,7 +155,7 @@ public class OrganizationController {
     )
     @PutMapping("/organizations/{id}")
     public ResponseEntity<?> update(@PathVariable String id,
-                                          @RequestBody CreateOrganizationRequestDTO dto) {
+                                    @RequestBody CreateOrganizationRequestDTO dto) {
         try {
             UpdateOrganizationResponseDTO organizationResponseDTO = organizationService.updateOrganization(id, dto);
             return ResponseEntity.ok(organizationResponseDTO);

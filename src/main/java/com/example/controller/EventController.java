@@ -57,7 +57,7 @@ public class EventController {
                             content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PostMapping(value="/events", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/events", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
             @RequestPart(value = "eventPic", required = false) MultipartFile eventPic,
             @RequestPart(value = "contactInfo")
@@ -140,14 +140,14 @@ public class EventController {
     )
     @GetMapping("/events/{id}/availability")
     public ResponseEntity<?> getEventAvailability(@PathVariable String id,
-                                                @RequestParam(value="is_published_only", defaultValue = "false") boolean isPublishedOnly,
-                                                @Parameter(
-                                                        description = "Filter events by a specific date",
-                                                        example = "2026-03-24",
-                                                        schema = @Schema(type = "string", format = "date")
-                                                )
-                                                @RequestParam(required = false)
-                                                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+                                                  @RequestParam(value = "is_published_only", defaultValue = "false") boolean isPublishedOnly,
+                                                  @Parameter(
+                                                          description = "Filter events by a specific date",
+                                                          example = "2026-03-24",
+                                                          schema = @Schema(type = "string", format = "date")
+                                                  )
+                                                  @RequestParam(required = false)
+                                                  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
             EventAvailabilityDTO events = eventService.getAvailability(isPublishedOnly, id, date);
 
@@ -186,7 +186,7 @@ public class EventController {
     )
     @GetMapping("/events/availability")
     public ResponseEntity<?> getAllAvailability(
-            @RequestParam(value="is_published_only", defaultValue = "false") boolean isPublishedOnly,
+            @RequestParam(value = "is_published_only", defaultValue = "false") boolean isPublishedOnly,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
@@ -198,7 +198,7 @@ public class EventController {
                     schema = @Schema(type = "string", format = "date")
             )
             @RequestParam(required = false)
-                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         try {
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
@@ -239,12 +239,12 @@ public class EventController {
     )
     @GetMapping("/events")
     public ResponseEntity<?> getAll(
-            @RequestParam(value="is_published_only", defaultValue = "false") boolean isPublishedOnly,
+            @RequestParam(value = "is_published_only", defaultValue = "false") boolean isPublishedOnly,
             @RequestParam(defaultValue = "0") int page,
-                                    @RequestParam(defaultValue = "20") int size,
-                                    @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
-                                    @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
-                                    @RequestParam(required = false) String search) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
+            @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
+            @RequestParam(required = false) String search) {
         try {
             Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
@@ -291,7 +291,7 @@ public class EventController {
                             content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PutMapping(value="/events/{id}", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/events/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(@RequestPart(value = "eventPic", required = false) MultipartFile eventPic,
                                     @PathVariable String id,
                                     @Schema(
@@ -299,7 +299,7 @@ public class EventController {
                                             type = "string",
                                             implementation = UpdateEventRequestDTO.class,
                                             format = "textarea") String updateEventRequestDTOJson
-                                    ) {
+    ) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
@@ -323,7 +323,7 @@ public class EventController {
             description = "Update the status of an event by ID.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Event status updated successfully",
-                                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                                     schema = @Schema(implementation = UpdateEventStatusResponseDTO.class))),
                     @ApiResponse(
                             responseCode = "404",

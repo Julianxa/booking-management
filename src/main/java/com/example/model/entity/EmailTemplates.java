@@ -3,6 +3,7 @@ package com.example.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
+
 import java.time.LocalDateTime;
 
 @Getter
@@ -40,7 +41,7 @@ public class EmailTemplates {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.updatedAt   = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate

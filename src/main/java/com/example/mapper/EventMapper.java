@@ -13,10 +13,12 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
+
 import static java.util.stream.Collectors.toList;
 
 @Mapper(componentModel = "spring")
@@ -94,33 +96,33 @@ public interface EventMapper {
                 .toList();
     }
 
-    @Mapping(target="id", source="entity.refNo")
+    @Mapping(target = "id", source = "entity.refNo")
     EventAvailabilityDTO toAvailabilityResponseDTO(Events entity);
 
     @Mapping(target = "availableDays",
             expression = """
-        java( entity.getAvailableDays() != null ?
-            entity.getAvailableDays().stream()
-                .collect(java.util.stream.Collectors.groupingBy(
-                    s -> s.getWeekday().name(),
-                    java.util.stream.Collectors.mapping(
-                        s -> s.getId().getStartTime(),
-                        java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new)
-                    )
-                ))
-                .entrySet().stream()
-                .map(entry -> AvailableDayDTO.builder()
-                    .day(entry.getKey())
-                    .startTimes(new java.util.ArrayList<>(entry.getValue()))
-                    .build())
-                .collect(java.util.stream.Collectors.toSet())
-            : null )
-        """)
-    @Mapping(target="id", source="entity.refNo")
+                    java( entity.getAvailableDays() != null ?
+                        entity.getAvailableDays().stream()
+                            .collect(java.util.stream.Collectors.groupingBy(
+                                s -> s.getWeekday().name(),
+                                java.util.stream.Collectors.mapping(
+                                    s -> s.getId().getStartTime(),
+                                    java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new)
+                                )
+                            ))
+                            .entrySet().stream()
+                            .map(entry -> AvailableDayDTO.builder()
+                                .day(entry.getKey())
+                                .startTimes(new java.util.ArrayList<>(entry.getValue()))
+                                .build())
+                            .collect(java.util.stream.Collectors.toSet())
+                        : null )
+                    """)
+    @Mapping(target = "id", source = "entity.refNo")
     UpdateEventResponseDTO toUpdateResponseDTO(Events entity);
 
     default CreateBookingRequestDTO.EventDTO toEventDTO(Events event,
-                                                BookingEvents bookingEvent) {
+                                                        BookingEvents bookingEvent) {
         return CreateBookingRequestDTO.EventDTO.builder()
                 .id(event.getRefNo())
                 .name(event.getName())

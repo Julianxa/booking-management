@@ -32,8 +32,8 @@ public class EventTimeSlotExceptions {
     private Long createdBy;
     @Column(name = "updated_by")
     private Long updatedBy;
-    @Column(name="created_at")
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
-    @Column(name="updated_at")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

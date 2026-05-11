@@ -2,7 +2,6 @@ package com.example.controller;
 
 import com.example.exception.ResourceNotFoundException;
 import com.example.model.dto.*;
-import com.example.service.AwsService;
 import com.example.service.GiftCertificateService;
 import com.example.utils.UserUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -138,7 +137,7 @@ public class GiftCertificateController {
                             .timestamp(LocalDateTime.now().toString())
                             .build()
             );
-        } catch(Exception e) {
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(
                     ErrorResponseDTO.builder()
                             .message(e.getMessage())
@@ -265,7 +264,7 @@ public class GiftCertificateController {
     @PutMapping("/gift-certificates/{promoCode}/status")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<?> updateGiftCertificateStatus(@PathVariable String promoCode,
-                                               @RequestBody UpdateGiftCertificateStatusRequestDTO request) {
+                                                         @RequestBody UpdateGiftCertificateStatusRequestDTO request) {
         try {
             UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatusResponseDTO = giftCertificateService.updateGiftCertificateStatus(promoCode, request);
             return ResponseEntity.ok(updateGiftCertificateStatusResponseDTO);

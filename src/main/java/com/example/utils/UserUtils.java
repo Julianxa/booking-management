@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class UserUtils {
     private final UsersRepository usersRepository;
     private final AwsService awsService;
+
     public Users getLoggedInUser(String userSub) {
         Users loggedInUser = null;
         if (userSub != null) {

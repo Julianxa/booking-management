@@ -3,6 +3,7 @@ package com.example.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
+
 import java.time.LocalDateTime;
 
 @Getter
@@ -19,13 +20,13 @@ public class BookingAttendees {
     @Column(name = "id", unique = true, nullable = false)
     private Long id;
 
-    @Column(name="booking_event_id", nullable = false)
+    @Column(name = "booking_event_id", nullable = false)
     private Long bookingEventId;
 
-    @Column(name="first_name", nullable = false)
+    @Column(name = "first_name", nullable = false)
     private String firstName;
 
-    @Column(name="last_name", nullable = false)
+    @Column(name = "last_name", nullable = false)
     private String lastName;
 
     @Column(name = "email", nullable = false)
@@ -43,19 +44,19 @@ public class BookingAttendees {
     @Column(name = "sequence")
     private int sequence;
 
-    @Column(name="created_at")
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name="updated_at")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name="deleted_at")
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.updatedAt   = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate

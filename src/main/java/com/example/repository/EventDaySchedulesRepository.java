@@ -12,11 +12,11 @@ import java.util.Optional;
 @Repository
 public interface EventDaySchedulesRepository extends JpaRepository<EventDaySchedules, Long> {
     @Query("""
-        SELECT s FROM EventDaySchedules s 
-        WHERE s.id.eventId = :eventId 
-          AND s.id.day = :day 
-          AND s.id.startTime = :startTime
-        """)
+            SELECT s FROM EventDaySchedules s 
+            WHERE s.id.eventId = :eventId 
+              AND s.id.day = :day 
+              AND s.id.startTime = :startTime
+            """)
     Optional<EventDaySchedules> findByEventIdAndDayAndStartTime(
             @Param("eventId") Long eventId,
             @Param("day") String day,
@@ -26,9 +26,9 @@ public interface EventDaySchedulesRepository extends JpaRepository<EventDaySched
     List<EventDaySchedules> findByIdEventIdAndIdDay(Long eventId, String day);
 
     @Query("""
-        SELECT s FROM EventDaySchedules s 
-        WHERE s.id.eventId = :eventId 
-        ORDER BY s.id.day, s.id.startTime
-        """)
+            SELECT s FROM EventDaySchedules s 
+            WHERE s.id.eventId = :eventId 
+            ORDER BY s.id.day, s.id.startTime
+            """)
     List<EventDaySchedules> findByEventIdOrderByDayAndTime(@Param("eventId") Long eventId);
 }

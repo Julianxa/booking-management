@@ -2,20 +2,20 @@ package com.example.controller;
 
 import com.example.exception.InvalidEmailPasswordException;
 import com.example.exception.UnverifiedEmailException;
-import com.example.model.dto.ErrorResponseDTO;
 import com.example.model.dto.*;
 import com.example.service.TokenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
+
 import java.time.LocalDateTime;
 
 @Tag(name = "Tokens", description = "Token management APIs")
@@ -111,7 +111,7 @@ public class TokenController {
         try {
             LogoutResponseDTO response = tokenService.logout(accessToken);
             return ResponseEntity.ok(response);
-        } catch(NotAuthorizedException e) {
+        } catch (NotAuthorizedException e) {
             return ResponseEntity.status(401).body(
                     ErrorResponseDTO.builder()
                             .message("Operation failed: " + e.getMessage())

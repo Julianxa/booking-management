@@ -14,4 +14,5 @@ public record EventBookingStats(
         Integer totalCheckedIn,
         BigDecimal bookingPercentage,
         BigDecimal checkInPercentage
-) {}
+) {
+}

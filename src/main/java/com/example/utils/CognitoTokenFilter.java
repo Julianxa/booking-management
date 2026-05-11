@@ -16,6 +16,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,7 @@ public class CognitoTokenFilter extends OncePerRequestFilter {
     private final AwsService awsService;
     private final List<String> filterPaths;
 
-    public CognitoTokenFilter(AwsService awsService,FilterPathConfig filterPathConfig) {
+    public CognitoTokenFilter(AwsService awsService, FilterPathConfig filterPathConfig) {
         this.awsService = awsService;
         this.filterPaths = filterPathConfig.getPaths();
     }

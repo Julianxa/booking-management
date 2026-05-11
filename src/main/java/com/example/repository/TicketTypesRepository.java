@@ -17,16 +17,20 @@ import java.util.Optional;
 @Repository
 public interface TicketTypesRepository extends JpaRepository<TicketTypes, Long> {
     Optional<TicketTypes> findByRefNo(String ticketTypeRefNo);
+
     @Query("SELECT tt FROM TicketTypes tt WHERE tt.id = :id")
     @NotNull
     Optional<TicketTypes> findById(@Param("id") Long id);
+
     @Query("SELECT tt.id FROM TicketTypes tt WHERE tt.refNo = :refNo")
     Optional<Long> findIdByRefNo(String refNo);
+
     boolean existsByRefNo(String refNo);
+
     @Query("SELECT tt.refNo FROM TicketTypes tt WHERE tt.id = :id")
     Optional<String> findRefNoById(Long id);
 
-    @Query(value="""
+    @Query(value = """
             SELECT * FROM ticket_types tt
             WHERE tt.event_id = :eventId
             """, nativeQuery = true)
@@ -35,24 +39,24 @@ public interface TicketTypesRepository extends JpaRepository<TicketTypes, Long> 
     @Modifying
     @Transactional
     @Query("""
-    UPDATE TicketTypes t
-    SET t.status = :status,
-        t.updatedAt = :deletedAt,
-        t.deletedAt = :deletedAt
-    WHERE t.event.id = :eventId
-      AND t.refNo = :ticketTypeRefNo
-    """)
+            UPDATE TicketTypes t
+            SET t.status = :status,
+                t.updatedAt = :deletedAt,
+                t.deletedAt = :deletedAt
+            WHERE t.event.id = :eventId
+              AND t.refNo = :ticketTypeRefNo
+            """)
     void updateDeleteStatusByEventIdAndTicketTypesRefNo(Long eventId, String ticketTypeRefNo, Enums.TicketTypeStatus status, LocalDateTime deletedAt);
 
     @Modifying
     @Transactional
     @Query("""
-    UPDATE TicketTypes t
-    SET t.status = :status,
-        t.updatedAt = :updatedAt,
-        t.deletedAt = null
-    WHERE t.event.id = :eventId
-      AND t.refNo = :ticketTypeRefNo
-    """)
+            UPDATE TicketTypes t
+            SET t.status = :status,
+                t.updatedAt = :updatedAt,
+                t.deletedAt = null
+            WHERE t.event.id = :eventId
+              AND t.refNo = :ticketTypeRefNo
+            """)
     void updateOpenStatusByEventIdAndTicketTypesRefNo(Long eventId, String ticketTypeRefNo, Enums.TicketTypeStatus status, LocalDateTime updatedAt);
 }

@@ -1,12 +1,13 @@
 package com.example.config;
 
-import software.amazon.awssdk.services.kms.KmsClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import software.amazon.awssdk.auth.credentials.*;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
+import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -89,26 +90,32 @@ public class AwsConfig {
     public String region() {
         return region;
     }
+
     @Bean
     public String userPoolId() {
         return userPoolId;
     }
+
     @Bean
     public String clientId() {
         return clientId;
     }
+
     @Bean
     public String appSecretKey() {
         return appSecretKey;
     }
+
     @Bean
     public String accessKey() {
         return accessKey;
     }
+
     @Bean
     public String cmkKeyId() {
         return cmkKeyId;
     }
+
     @Bean
     public String bucketName() {
         return bucketName;

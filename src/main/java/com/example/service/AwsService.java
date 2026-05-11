@@ -1,22 +1,20 @@
 package com.example.service;
 
-import com.example.model.dto.ChangePasswordRequestDTO;
-import com.example.model.dto.ResetPasswordRequestDTO;
 import com.example.config.AwsConfig;
 import com.example.exception.InvalidIdTokenException;
 import com.example.exception.UnverifiedEmailException;
-import com.example.utils.CognitoJwtParser;
 import com.example.model.dto.*;
+import com.example.utils.CognitoJwtParser;
 import com.example.utils.FileUtils;
 import com.example.utils.HashGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
-import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.kms.KmsClient;
 import software.amazon.awssdk.services.kms.model.DecryptRequest;
 import software.amazon.awssdk.services.kms.model.DecryptResponse;
@@ -28,13 +26,17 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
-import software.amazon.awssdk.transfer.s3.model.*;
+import software.amazon.awssdk.transfer.s3.model.CompletedUpload;
+import software.amazon.awssdk.transfer.s3.model.UploadRequest;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import static software.amazon.awssdk.services.cognitoidentityprovider.model.AuthFlowType.*;
+
+import static software.amazon.awssdk.services.cognitoidentityprovider.model.AuthFlowType.REFRESH_TOKEN;
+import static software.amazon.awssdk.services.cognitoidentityprovider.model.AuthFlowType.USER_PASSWORD_AUTH;
 
 @Service
 public class AwsService {
@@ -52,6 +54,7 @@ public class AwsService {
     private final String cmkKeyId;
     private final String bucketName;
     Logger logger = LoggerFactory.getLogger(getClass());
+
     public AwsService(
             FileUtils fileUtils,
             HashGenerator hashGenerator,
@@ -70,7 +73,7 @@ public class AwsService {
         this.s3Presigner = awsConfig.s3Presigner();
         this.s3TransferManager = awsConfig.s3TransferManager();
         this.s3Client = awsConfig.s3Client();
-        this.bucketName= awsConfig.bucketName();
+        this.bucketName = awsConfig.bucketName();
     }
 
     // confirm account without OTP confirmation
@@ -282,7 +285,7 @@ public class AwsService {
     public String getUserSub(String idToken) throws InvalidIdTokenException {
         try {
             return CognitoJwtParser.getUserSub(idToken, userPoolId, region);
-        }  catch (Exception e) {
+        } catch (Exception e) {
             throw new InvalidIdTokenException("Expired/Invalid JWT");
         }
     }
@@ -378,7 +381,7 @@ public class AwsService {
     }
 
     public String uploadFile(String uniqueIdentifier, MultipartFile file) throws IOException {
-        if(file == null || file.isEmpty()) {
+        if (file == null || file.isEmpty()) {
             return null;
         }
         if (!fileUtils.isValidImageFile(file)) {

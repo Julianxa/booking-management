@@ -21,16 +21,18 @@ import com.stripe.exception.StripeException;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+
 import static com.example.constant.Enums.BookingEventStatus.*;
 
 @Service
@@ -62,15 +64,19 @@ public class BookingService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final BookingItemsConverter bookingItemsConverter;
     private final BookingsConverter bookingsConverter;
+
     public record BookingEventProcessingResult(
             CreateBookingRequestDTO.BookingEventDTO responseEventDTO,
             BigDecimal total
-    ) {}
+    ) {
+    }
+
     public record BookingCancelledEvent(
             Users loggedInUser,
             Bookings booking,
             List<WebhookService.BookingEmailPayload> emailPayloads
-    ){}
+    ) {
+    }
 
     // ====================== Public API ======================
     @Transactional
@@ -103,7 +109,7 @@ public class BookingService {
 
         BookingEvents bookingEvent = bookingEventsRepository.findByRefNo(bookingEventId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                "Booking event not found for booking: " + bookingEventId));
+                        "Booking event not found for booking: " + bookingEventId));
 
         bookingAttendeesRepository.deleteByBookingEventId(bookingEvent.getId());
 
@@ -133,21 +139,23 @@ public class BookingService {
         BookingEvents bookingEvent = bookingEventsRepository.findByRefNo(bookingEventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booked event not found"));
 
-        if(bookingEvent.getStatus() == CHECKED_IN) { throw new IllegalStateException("Booking is already in CHECKED_IN status."); }
+        if (bookingEvent.getStatus() == CHECKED_IN) {
+            throw new IllegalStateException("Booking is already in CHECKED_IN status.");
+        }
 
         Bookings booking = bookingsRepository.findById(bookingEvent.getBooking().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         List<WebhookService.BookingEmailPayload> emailPayloads = prepareEmailPayloads(bookingEvent);
 
-        if(dto.getStatus() != null) {
+        if (dto.getStatus() != null) {
             bookingEvent.setStatus(dto.getStatus());
             bookingEvent.setUpdatedAt(LocalDateTime.now());
-            if(dto.getStatus() == AVAILABLE) {
+            if (dto.getStatus() == AVAILABLE) {
                 bookingEvent.setCancelledAt(null);
                 bookingEvent = bookingEventsRepository.save(bookingEvent);
                 applicationEventPublisher.publishEvent(new WebhookService.BookingReConfirmedEvent(loggedInUser, booking, emailPayloads));
-            } else if(dto.getStatus() == CANCELLED) {
+            } else if (dto.getStatus() == CANCELLED) {
                 bookingEvent.setCancelledAt(LocalDateTime.now());
                 bookingEvent = bookingEventsRepository.save(bookingEvent);
                 applicationEventPublisher.publishEvent(new BookingCancelledEvent(loggedInUser, booking, emailPayloads));
@@ -158,14 +166,14 @@ public class BookingService {
         }
 
         return UpdateBookingEventStatusResponseDTO.builder()
-        .bookingId(bookingEvent.getBooking().getRefNo())
-        .eventId(bookingEvent.getEvent().getRefNo())
-        .eventDate(bookingEvent.getEventDate())
-        .eventTime(bookingEvent.getEventTime())
-        .status(dto.getStatus())
-        .updatedAt(bookingEvent.getUpdatedAt())
-        .message("The status of booked event is updated")
-        .timestamp(LocalDateTime.now()).build();
+                .bookingId(bookingEvent.getBooking().getRefNo())
+                .eventId(bookingEvent.getEvent().getRefNo())
+                .eventDate(bookingEvent.getEventDate())
+                .eventTime(bookingEvent.getEventTime())
+                .status(dto.getStatus())
+                .updatedAt(bookingEvent.getUpdatedAt())
+                .message("The status of booked event is updated")
+                .timestamp(LocalDateTime.now()).build();
     }
 
     public GetListBookingResponseDTO getUserBookings(String userRefNo, Pageable pageable) {
@@ -207,7 +215,7 @@ public class BookingService {
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
 
         String giftCertificatePromoCode = null;
-        if(booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
+        if (booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
             GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate Redemption not found: " + bookingRefNo));
             giftCertificatePromoCode = giftCertificatesRepository.findPromoCodeById(redemption.getGiftCertificateId());
@@ -408,7 +416,7 @@ public class BookingService {
                 bookingEventDTO.getEvent().getEventTime(),
                 bookingData,
                 exceptions);
-        if(occupancyDTO.getTotalBooked() + requestedParticipants > event.getMaxCapacity()) {
+        if (occupancyDTO.getTotalBooked() + requestedParticipants > event.getMaxCapacity()) {
             throw new BadRequestException(String.format("Event %s is full on %s at %s", event.getName(), bookingEventDTO.getEvent().getEventDate(), bookingEventDTO.getEvent().getEventTime()));
         }
     }

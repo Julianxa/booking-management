@@ -5,20 +5,21 @@ import com.example.constant.Enums;
 import com.example.exception.ResourceNotFoundException;
 import com.example.exception.UnverifiedEmailException;
 import com.example.mapper.UserMapper;
-import com.example.model.entity.Users;
 import com.example.model.dto.*;
+import com.example.model.entity.Users;
 import com.example.repository.OrganizationsRepository;
 import com.example.repository.UsersRepository;
 import com.example.utils.ReferenceNoGenerator;
-import com.example.model.dto.UserRegistrationResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
+import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
+
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -47,7 +48,7 @@ public class UserService {
         }
 
         Long orgId = null;
-        if(userRegistrationRequestDTO.getOrgId() != null) {
+        if (userRegistrationRequestDTO.getOrgId() != null) {
             orgId = organizationsRepository.findIdByRefNo(userRegistrationRequestDTO.getOrgId())
                     .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
         }
@@ -91,7 +92,7 @@ public class UserService {
         if (user != null) {
             ConfirmSignUpResponse res = awsService.confirmSignUp(confirmSignUpRequestDTO);
             ConfirmUserRegistrationResponseDTO confirmSignUpResponseDTO = new ConfirmUserRegistrationResponseDTO();
-            if(res.session() != null && !res.session().isEmpty()) {
+            if (res.session() != null && !res.session().isEmpty()) {
                 awsService.setEmailVerified(confirmSignUpRequestDTO.getEmail());
 
                 confirmSignUpResponseDTO.setEmail(confirmSignUpRequestDTO.getEmail());

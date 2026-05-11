@@ -37,26 +37,26 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
     BookingEvents findByBooking_RefNoAndEvent_RefNoAndEventDateAndEventTime(String bookingRefNo, String eventRefNo, LocalDate eventDate, String eventTime);
 
     @Query(value = """
-    SELECT ba.*
-    FROM booking_events be
-    INNER JOIN booking_attendees ba ON ba.booking_event_id = be.id
-    WHERE be.event_id = :eventId
-      AND be.event_date = :eventDate
-      AND be.event_time = :eventTime
-      AND be.cancelled_at IS NULL
-      AND be.status IN ('AVAILABLE', 'CHECKED_IN')
-    ORDER BY be.id, ba.sequence ASC, ba.id ASC
-    """,
+            SELECT ba.*
+            FROM booking_events be
+            INNER JOIN booking_attendees ba ON ba.booking_event_id = be.id
+            WHERE be.event_id = :eventId
+              AND be.event_date = :eventDate
+              AND be.event_time = :eventTime
+              AND be.cancelled_at IS NULL
+              AND be.status IN ('AVAILABLE', 'CHECKED_IN')
+            ORDER BY be.id, ba.sequence ASC, ba.id ASC
+            """,
             countQuery = """
-    SELECT COUNT(ba.id)
-    FROM booking_events be
-    INNER JOIN booking_attendees ba ON ba.booking_event_id = be.id
-    WHERE be.event_id = :eventId
-      AND be.event_date = :eventDate
-      AND be.event_time = :eventTime
-      AND be.cancelled_at IS NULL
-      AND be.status IN ('AVAILABLE', 'CHECKED_IN')
-    """,
+                    SELECT COUNT(ba.id)
+                    FROM booking_events be
+                    INNER JOIN booking_attendees ba ON ba.booking_event_id = be.id
+                    WHERE be.event_id = :eventId
+                      AND be.event_date = :eventDate
+                      AND be.event_time = :eventTime
+                      AND be.cancelled_at IS NULL
+                      AND be.status IN ('AVAILABLE', 'CHECKED_IN')
+                    """,
             nativeQuery = true)
     Page<BookingAttendees> findPassengersByEventDateTime(
             @Param("eventId") Long eventId,
@@ -66,24 +66,24 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
 
     @Modifying
     @Query("""
-        UPDATE BookingEvents be
-        SET be.notes = :notes
-        WHERE be.refNo = :bookingEventRefNo
-    """)
+                UPDATE BookingEvents be
+                SET be.notes = :notes
+                WHERE be.refNo = :bookingEventRefNo
+            """)
     void updateNotes(@Param("bookingEventRefNo") String bookingEventRefNo,
-                    @Param("notes") String notes);
+                     @Param("notes") String notes);
 
     @Modifying
     @Transactional
     @Query(value = """
-        UPDATE booking_events
-        SET status = :status,
-            cancelled_at = :cancelledAt,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE event_id = :eventId
-          AND event_date = :eventDate
-          AND event_time = :eventTime
-        """, nativeQuery = true)
+            UPDATE booking_events
+            SET status = :status,
+                cancelled_at = :cancelledAt,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE event_id = :eventId
+              AND event_date = :eventDate
+              AND event_time = :eventTime
+            """, nativeQuery = true)
     void updateCancelStatusBookingsByEventTimeSlot(
             @Param("eventId") Long eventId,
             @Param("eventDate") LocalDate eventDate,

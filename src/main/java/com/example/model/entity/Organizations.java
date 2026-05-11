@@ -21,7 +21,7 @@ public class Organizations {
     @Column(name = "id", unique = true, nullable = false)
     private Long id;
 
-    @Column(name="ref_no", nullable = false)
+    @Column(name = "ref_no", nullable = false)
     private String refNo;
 
     @Column(name = "name", nullable = false)
@@ -40,19 +40,19 @@ public class Organizations {
     @Column(name = "status")
     private Enums.OrganizationStatus status;
 
-    @Column(name="created_at", nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name="updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name="deleted_at")
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.updatedAt   = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate

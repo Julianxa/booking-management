@@ -5,7 +5,10 @@ import com.example.model.dto.CreateTicketTypeRequestDTO;
 import com.example.model.dto.CreateTicketTypeResponseDTO;
 import com.example.model.dto.UpdateTicketTypeResponseDTO;
 import com.example.model.entity.TicketTypes;
-import org.mapstruct.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.ReportingPolicy;
 
 @Mapper(
         componentModel = "spring",

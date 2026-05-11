@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -73,11 +74,16 @@ public class EmailService {
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Email template not found with code: " + templateRefNo));
 
-        if(updateEmailTemplatesRequestDTO.getSubject() != null) template.setSubject(updateEmailTemplatesRequestDTO.getSubject());
-        if(updateEmailTemplatesRequestDTO.getMainBody() != null) template.setMainBody(updateEmailTemplatesRequestDTO.getMainBody());
-        if(updateEmailTemplatesRequestDTO.getImportantInfoIntro() != null) template.setImportantInfoIntro(updateEmailTemplatesRequestDTO.getImportantInfoIntro());
-        if(updateEmailTemplatesRequestDTO.getImportantInfoBody() != null) template.setImportantInfoBody(updateEmailTemplatesRequestDTO.getImportantInfoBody());
-        if(updateEmailTemplatesRequestDTO.getContactBody() != null) template.setContactBody(updateEmailTemplatesRequestDTO.getContactBody());
+        if (updateEmailTemplatesRequestDTO.getSubject() != null)
+            template.setSubject(updateEmailTemplatesRequestDTO.getSubject());
+        if (updateEmailTemplatesRequestDTO.getMainBody() != null)
+            template.setMainBody(updateEmailTemplatesRequestDTO.getMainBody());
+        if (updateEmailTemplatesRequestDTO.getImportantInfoIntro() != null)
+            template.setImportantInfoIntro(updateEmailTemplatesRequestDTO.getImportantInfoIntro());
+        if (updateEmailTemplatesRequestDTO.getImportantInfoBody() != null)
+            template.setImportantInfoBody(updateEmailTemplatesRequestDTO.getImportantInfoBody());
+        if (updateEmailTemplatesRequestDTO.getContactBody() != null)
+            template.setContactBody(updateEmailTemplatesRequestDTO.getContactBody());
         template = emailTemplatesRepository.save(template);
 
         return emailTemplateMapper.toUpdateResponseDTO(template);
@@ -221,13 +227,12 @@ public class EmailService {
         helper.setFrom(senderEmail);
         helper.setSubject(subject);
         for (Map.Entry<String, String> entry : inlineImages.entrySet()) {
-            if(entry.getKey().equals("qr")) {
+            if (entry.getKey().equals("qr")) {
                 byte[] qrBytes = qrCodeGenerator.generateQrCode(entry.getValue());
                 ByteArrayResource qrResource = new ByteArrayResource(qrBytes);
 
                 helper.addInline(entry.getKey(), qrResource, "image/png");
-            }
-            else
+            } else
                 helper.addInline(entry.getKey(), new ClassPathResource(entry.getValue()));
         }
         javaMailSender.send(message);
@@ -235,15 +240,15 @@ public class EmailService {
 
     private Map<String, String> embedInlineImages() {
         Map<String, String> inlineImages = new HashMap<>();
-        inlineImages.put("logo","images/email/logo.png");
-        inlineImages.put("google","images/email/google.png");
-        inlineImages.put("apple","images/email/apple.png");
-        inlineImages.put("cat","images/email/cat.png");
-        inlineImages.put("fb","images/email/fb.png");
-        inlineImages.put("wb","images/email/wb.png");
-        inlineImages.put("ta","images/email/ta.png");
-        inlineImages.put("ig","images/email/ig.png");
-        inlineImages.put("yt","images/email/yt.png");
+        inlineImages.put("logo", "images/email/logo.png");
+        inlineImages.put("google", "images/email/google.png");
+        inlineImages.put("apple", "images/email/apple.png");
+        inlineImages.put("cat", "images/email/cat.png");
+        inlineImages.put("fb", "images/email/fb.png");
+        inlineImages.put("wb", "images/email/wb.png");
+        inlineImages.put("ta", "images/email/ta.png");
+        inlineImages.put("ig", "images/email/ig.png");
+        inlineImages.put("yt", "images/email/yt.png");
         return inlineImages;
     }
 }

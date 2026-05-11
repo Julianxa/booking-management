@@ -35,7 +35,7 @@ public class BookingsConverter {
         List<CreateBookingRequestDTO.BookingEventDTO> events = toBookingEventDTOs(booking, eventRefNo);
 
         String giftCertificatePromoCode = null;
-        if(booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
+        if (booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
             GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate Redemption not found by booking refNo: " + booking.getRefNo()));
             giftCertificatePromoCode = giftCertificatesRepository.findPromoCodeById(redemption.getGiftCertificateId());
@@ -54,7 +54,7 @@ public class BookingsConverter {
                 .build();
     }
 
-    public List<CreateBookingRequestDTO.BookingEventDTO> toBookingEventDTOs( Bookings booking, String eventRefNo) {
+    public List<CreateBookingRequestDTO.BookingEventDTO> toBookingEventDTOs(Bookings booking, String eventRefNo) {
         List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
         List<CreateBookingRequestDTO.AttendeeDTO> attendees = bookingAttendeesRepository.findAttendeesByBookingId(booking.getId());
 
