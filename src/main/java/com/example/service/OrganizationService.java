@@ -30,7 +30,7 @@ public class OrganizationService {
         organization.setRefNo(referenceNoGenerator.generateOrganizationReference());
         organization.setStatus(Enums.OrganizationStatus.ACTIVE);
         Organizations saved = organizationsRepository.save(organization);
-        CreateOrganizationResponseDTO createOrganizationResponseDTO = mapper.toCreateResponseDto(saved);
+        CreateOrganizationResponseDTO createOrganizationResponseDTO = mapper.toCreateResponseDTO(saved);
         createOrganizationResponseDTO.setMessage("Organization created successfully");
         createOrganizationResponseDTO.setTimestamp(LocalDateTime.now());
         return createOrganizationResponseDTO;
@@ -49,7 +49,7 @@ public class OrganizationService {
         if (dto.getCompanyGroup() != null) organization.setCompanyGroup(dto.getCompanyGroup());
 
         Organizations updated = organizationsRepository.save(organization);
-        UpdateOrganizationResponseDTO updateOrganizationResponseDTO = mapper.toUpdateResponseDto(updated);
+        UpdateOrganizationResponseDTO updateOrganizationResponseDTO = mapper.toUpdateResponseDTO(updated);
         updateOrganizationResponseDTO.setMessage("Organization updated successfully");
         updateOrganizationResponseDTO.setTimestamp(LocalDateTime.now());
         return updateOrganizationResponseDTO;
@@ -72,7 +72,7 @@ public class OrganizationService {
     public CreateOrganizationResponseDTO getOrganization(String orgRefNo) {
         Organizations organization = organizationsRepository.findByRefNo(orgRefNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Organization not found with code: " + orgRefNo));
-        return mapper.toCreateResponseDto(organization);
+        return mapper.toCreateResponseDTO(organization);
     }
 
     public GetListOrganizationResponseDTO getAllOrganizations(Pageable pageable, String search) {

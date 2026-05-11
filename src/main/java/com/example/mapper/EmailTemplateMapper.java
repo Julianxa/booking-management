@@ -19,7 +19,7 @@ public interface EmailTemplateMapper {
     @Mapping(target = "contactBody", source = "template.contactBody")
     @Mapping(target = "createdAt", source = "template.createdAt")
     @Mapping(target = "updatedAt", source = "template.updatedAt")
-    UpdateEmailTemplatesResponseDTO toUpdateResponseDto(EmailTemplates template);
+    UpdateEmailTemplatesResponseDTO toUpdateResponseDTO(EmailTemplates template);
 
     @Mapping(target = "id", source = "template.refNo")
     @Mapping(target = "templateName", source = "template.templateName")
@@ -30,7 +30,7 @@ public interface EmailTemplateMapper {
     @Mapping(target = "contactBody", source = "template.contactBody")
     @Mapping(target = "createdAt", source = "template.createdAt")
     @Mapping(target = "updatedAt", source = "template.updatedAt")
-    GetEmailTemplateResponseDTO toResponseDto(EmailTemplates template);
+    GetEmailTemplateResponseDTO toResponseDTO(EmailTemplates template);
 
     default GetListEmailTemplatesResponseDTO toGetListResponse(
             Page<EmailTemplates> page,

@@ -12,7 +12,7 @@ import static com.example.constant.Enums.BookingStatus.SUCCESS;
 
 @Mapper(componentModel = "spring")
 public interface BookingMapper {
-    default CreateBookingResponseDTO toCreateResponseDto(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> eventList, String promoCode) {
+    default CreateBookingResponseDTO toCreateResponseDTO(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> eventList, String promoCode, String checkoutUrl) {
         CreateBookingResponseDTO createBookingResponseDTO = new CreateBookingResponseDTO();
         createBookingResponseDTO.setId(booking.getRefNo());
         createBookingResponseDTO.setStatus(SUCCESS);
@@ -20,7 +20,9 @@ public interface BookingMapper {
         createBookingResponseDTO.setTotalPaidAmount(booking.getTotalPaidPrice());
         createBookingResponseDTO.setDiscount(booking.getDiscount());
         createBookingResponseDTO.setFinalPaidAmount(booking.getFinalPaidAmount());
+        createBookingResponseDTO.setCurrency(booking.getCurrency());
         createBookingResponseDTO.setPromoCode(promoCode);
+        createBookingResponseDTO.setCheckoutUrl(checkoutUrl);
         return createBookingResponseDTO;
     }
 

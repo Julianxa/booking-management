@@ -12,10 +12,10 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class InitiateCheckinResponseDTO {
+public class InitiateCheckInResponseDTO {
     @JsonProperty("booking_id")
     private String bookingId;
 
     @JsonProperty("booking_event")
-    private CreateBookingRequestDTO.BookingEventDTO bookingEventDto;
+    private CreateBookingRequestDTO.BookingEventDTO bookingEventDTO;
 }

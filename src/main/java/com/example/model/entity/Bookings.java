@@ -38,6 +38,9 @@ public class Bookings {
     @Column(name = "final_paid_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal finalPaidAmount;
 
+    @Column(name = "currency")
+    private String currency;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private Enums.BookingStatus status; // e.g., PENDING, CONFIRMED, CANCELLED, COMPLETED

@@ -2,9 +2,11 @@ package com.example.repository;
 
 import com.example.constant.Enums;
 import com.example.model.entity.TicketTypes;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +17,9 @@ import java.util.Optional;
 @Repository
 public interface TicketTypesRepository extends JpaRepository<TicketTypes, Long> {
     Optional<TicketTypes> findByRefNo(String ticketTypeRefNo);
-
+    @Query("SELECT tt FROM TicketTypes tt WHERE tt.id = :id")
+    @NotNull
+    Optional<TicketTypes> findById(@Param("id") Long id);
     @Query("SELECT tt.id FROM TicketTypes tt WHERE tt.refNo = :refNo")
     Optional<Long> findIdByRefNo(String refNo);
     boolean existsByRefNo(String refNo);

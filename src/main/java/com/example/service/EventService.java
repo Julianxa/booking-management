@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.constant.Enums;
+import com.example.converter.BookingItemsConverter;
 import com.example.exception.InvalidVerificationTokenException;
 import com.example.exception.ResourceNotFoundException;
 import com.example.mapper.BookingEventsMapper;
@@ -54,7 +55,9 @@ public class EventService {
     private final AwsService awsService;
     private final DateUtils dateUtils;
     private final DataUtils dataUtils;
+    private final BookingItemsConverter bookingItemsConverter;
 
+    // ====================== Public API ======================
     @Transactional
     public CreateEventResponseDTO createEvent(CreateEventRequestDTO request, MultipartFile eventPic) throws SQLException, IOException {
         Events event = eventMapper.toEntity(request);
@@ -64,10 +67,10 @@ public class EventService {
         event.setMatchTicketQuantityWithAttendees(request.getMatchTicketQuantityWithAttendees());
 
         if (request.getAvailableDays() != null) {
-            request.getAvailableDays().forEach(dayDto ->
-                    dayDto.getStartTimes().stream()
+            request.getAvailableDays().forEach(dayDTO ->
+                    dayDTO.getStartTimes().stream()
                             .map(startTime -> EventDayScheduleId.builder()
-                                    .day(dayDto.getDay())
+                                    .day(dayDTO.getDay())
                                     .startTime(startTime)
                                     .build())
                             .map(id -> EventDaySchedules.builder()
@@ -90,7 +93,7 @@ public class EventService {
         if(savedEvent.getEventPicKey() != null) {
             eventPicUrl = awsService.getFileFromS3(savedEvent.getEventPicKey());
         }
-        CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDto(savedEvent);
+        CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(savedEvent);
         createEventResponseDTO.setStatus(Enums.EventStatus.OPEN);
         createEventResponseDTO.setEventPicUrl(eventPicUrl);
         createEventResponseDTO.setMessage("Create Event successfully");
@@ -150,7 +153,7 @@ public class EventService {
             eventPicUrl = awsService.getFileFromS3(updatedEvent.getEventPicKey());
         }
 
-        UpdateEventResponseDTO updateEventResponseDTO = eventMapper.toUpdateResponseDto(updatedEvent);
+        UpdateEventResponseDTO updateEventResponseDTO = eventMapper.toUpdateResponseDTO(updatedEvent);
         updateEventResponseDTO.setEventPicUrl(eventPicUrl);
         updateEventResponseDTO.setMessage("Event updated successfully");
         updateEventResponseDTO.setTimestamp(LocalDateTime.now());
@@ -213,30 +216,6 @@ public class EventService {
         return updateEventStatusResponseDTO;
     }
 
-//    @Transactional
-//    public UpdateEventStatusResponseDTO updateEventStatus(String eventRefNo, UpdateEventStatusRequestDTO updateEventStatusRequestDTO) {
-//        Events event = eventsRepository.findByRefNo(eventRefNo)
-//                .orElseThrow(() -> new RuntimeException("Event not found with reference no: " + eventRefNo));
-//
-//        UpdateEventStatusResponseDTO updateEventStatusResponseDTO = new UpdateEventStatusResponseDTO();
-//        if (updateEventStatusRequestDTO.getStatus() == CLOSE) {
-//            LocalDateTime deletedAt = LocalDateTime.now();
-//            eventsRepository.updateCloseStatusById(eventRefNo, CLOSE, deletedAt);
-//            updateEventStatusResponseDTO.setStatus(CLOSE);
-//            updateEventStatusResponseDTO.setDeletedAt(deletedAt);
-//            updateEventStatusResponseDTO.setMessage("Event deleted successfully");
-//            updateEventStatusResponseDTO.setTimestamp(deletedAt);
-//        } else {
-//            LocalDateTime openedAt = LocalDateTime.now();
-//            eventsRepository.updateOpenStatusById(eventRefNo, OPEN, openedAt);
-//            updateEventStatusResponseDTO.setMessage("Event opened successfully");
-//            updateEventStatusResponseDTO.setTimestamp(openedAt);
-//        }
-//
-//        updateEventStatusResponseDTO.setEventRefNo(eventRefNo);
-//        return updateEventStatusResponseDTO;
-//    }
-
     public CreateEventResponseDTO getEvent(String eventRefNo) {
         Events event = eventsRepository.findByRefNo(eventRefNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventRefNo));
@@ -245,7 +224,7 @@ public class EventService {
             eventPicUrl = awsService.getFileFromS3(event.getEventPicKey());
         }
 
-        CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDto(event);
+        CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(event);
         createEventResponseDTO.setStatus(event.getStatus());
         createEventResponseDTO.setEventPicUrl(eventPicUrl);
         createEventResponseDTO.setMessage("Retrieve an Event successfully");
@@ -272,7 +251,7 @@ public class EventService {
                     if(event.getEventPicKey() != null) {
                         eventPicUrl = awsService.getFileFromS3(event.getEventPicKey());
                     }
-                    CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDto(event);
+                    CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(event);
                     createEventResponseDTO.setStatus(event.getStatus());
                     createEventResponseDTO.setEventPicUrl(eventPicUrl);
                     return createEventResponseDTO;
@@ -358,14 +337,14 @@ public class EventService {
         ticketTypes = ticketTypesRepository.save(ticketTypes);
 
         if (request.hasPeriods() && request.getPeriods() != null) {
-            for (TicketPricePeriodDTO periodDto : request.getPeriods()) {
+            for (TicketPricePeriodDTO periodDTO : request.getPeriods()) {
 
                 TicketPricePeriods period = new TicketPricePeriods();
 
-                period.setPrice(periodDto.getPrice());
-                period.setEffectiveFrom(periodDto.getEffectiveFrom());
-                period.setEffectiveTo(periodDto.getEffectiveTo());
-                period.setReason(periodDto.getReason() != null ? periodDto.getReason() : "");
+                period.setPrice(periodDTO.getPrice());
+                period.setEffectiveFrom(periodDTO.getEffectiveFrom());
+                period.setEffectiveTo(periodDTO.getEffectiveTo());
+                period.setReason(periodDTO.getReason() != null ? periodDTO.getReason() : "");
 
                 period.setEvent(event);
                 period.setTicketTypes(ticketTypes);
@@ -380,7 +359,7 @@ public class EventService {
 
         eventsRepository.save(event);
 
-        CreateTicketTypeResponseDTO createTicketTypeResponseDTO = ticketTypeMapper.toCreateResponseDto(ticketTypes);
+        CreateTicketTypeResponseDTO createTicketTypeResponseDTO = ticketTypeMapper.toCreateResponseDTO(ticketTypes);
         createTicketTypeResponseDTO.setMessage("Create Ticket Type successfully.");
         createTicketTypeResponseDTO.setTimestamp(LocalDateTime.now());
         return createTicketTypeResponseDTO;
@@ -416,7 +395,7 @@ public class EventService {
 
         ticketTypesRepository.save(ticketTypes);
 
-        UpdateTicketTypeResponseDTO updateTicketTypeResponseDTO = ticketTypeMapper.toUpdateResponseDto(ticketTypes);
+        UpdateTicketTypeResponseDTO updateTicketTypeResponseDTO = ticketTypeMapper.toUpdateResponseDTO(ticketTypes);
         updateTicketTypeResponseDTO.setMessage("Update Ticket Type successfully");
         updateTicketTypeResponseDTO.setTimestamp(LocalDateTime.now());
         return updateTicketTypeResponseDTO;
@@ -455,14 +434,14 @@ public class EventService {
             throw new IllegalArgumentException("Event not found with id: " + eventId);
         }
 
-        List<TicketTypes> entities = ticketTypesRepository.findByEventId(eventId);
+        List<TicketTypes> ticketTypes = ticketTypesRepository.findByEventId(eventId);
 
-        return entities.stream()
-                .map(ticketTypeMapper::toCreateResponseDto)
+        return ticketTypes.stream()
+                .map(ticketTypeMapper::toCreateResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    public InitiateCheckinResponseDTO initiateCheckin(String token) throws InvalidVerificationTokenException {
+    public InitiateCheckInResponseDTO initiateCheckIn(String token) throws InvalidVerificationTokenException {
 
         if (token == null || token.trim().isEmpty()) {
             throw new InvalidVerificationTokenException("Verification token is required");
@@ -470,19 +449,12 @@ public class EventService {
 
         BookingEvents bookingEvent = bookingEventsRepository.findByVerificationToken(token)
                 .orElseThrow(() -> new ResourceNotFoundException("Invalid Verification token"));
+        Events event = eventsRepository.findById(bookingEvent.getEvent().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
 
-        List<BookingItems> items = bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
-        List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = items.stream()
-                .map(item -> {
-                    String ticketTypeRefNo = ticketTypesRepository.findRefNoById(item.getTicketTypeId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found"));
+        List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
 
-                    CreateBookingRequestDTO.TicketTypeDTO dto = new CreateBookingRequestDTO.TicketTypeDTO();
-                    dto.setId(ticketTypeRefNo);
-                    dto.setQuantity(item.getQuantity());
-                    return dto;
-                })
-                .toList();
+        List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
 
         List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs = bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
 
@@ -491,24 +463,15 @@ public class EventService {
             userRefNo = usersRepository.findActiveRefNoById(bookingEvent.getBooking().getUserId()).orElse(null);
         }
 
-        if (bookingEvent.getVerifiedAt() != null) {
-            throw new InvalidVerificationTokenException("Ticket has already been checked in");
-        }
+        validateCheckIn(bookingEvent);
 
-        LocalDate date = bookingEvent.getEventDate();
-        LocalTime time = LocalTime.parse(bookingEvent.getEventTime());
+        CreateBookingRequestDTO.EventDTO eventDTO = eventMapper.toEventDTO(event, bookingEvent);
 
-        LocalDateTime eventStartTime = LocalDateTime.of(date, time);
-
-        if (eventStartTime.isBefore(LocalDateTime.now())) {
-            throw new InvalidVerificationTokenException("Ticket has expired");
-        }
-
-        return bookingEventsMapper.toResponseDto(userRefNo, bookingEvent, ticketDTOs, attendeeDTOs);
+        return bookingEventsMapper.toInitiateCheckInResponseDTO(userRefNo, eventDTO, bookingEvent, ticketDTOs, attendeeDTOs);
     }
 
     @Transactional
-    public ConfirmCheckinResponseDTO confirmCheckin(ConfirmCheckinRequestDTO request) throws InvalidVerificationTokenException {
+    public ConfirmCheckinResponseDTO confirmCheckIn(ConfirmCheckinRequestDTO request) throws InvalidVerificationTokenException {
         BookingEvents bookingEvent = bookingEventsRepository
                 .findByBooking_RefNoAndEvent_RefNoAndEventDateAndEventTime(
                         request.getBookingId(),
@@ -541,7 +504,8 @@ public class EventService {
                         .timestamp(LocalDateTime.now()).build();
     }
 
-    public List<EventBookingStats> getBookingPercentageByDate(LocalDate filterDate, String dayValue) {
+    // ====================== Private Helper Methods ======================
+    private List<EventBookingStats> getBookingPercentageByDate(LocalDate filterDate, String dayValue) {
         List<EventDailySlot> slots = eventsRepository.getAllEventsScheduleSlots(true, filterDate, dayValue);
 
         return slots.stream().map(slot -> {
@@ -600,5 +564,20 @@ public class EventService {
                     checkInPct
             );
         }).collect(Collectors.toList());
+    }
+
+    private void validateCheckIn(BookingEvents bookingEvent) throws InvalidVerificationTokenException {
+        if (bookingEvent.getVerifiedAt() != null) {
+            throw new InvalidVerificationTokenException("Ticket has already been checked in");
+        }
+
+        LocalDate date = bookingEvent.getEventDate();
+        LocalTime time = LocalTime.parse(bookingEvent.getEventTime());
+
+        LocalDateTime eventStartTime = LocalDateTime.of(date, time);
+
+        if (eventStartTime.isBefore(LocalDateTime.now())) {
+            throw new InvalidVerificationTokenException("Ticket has expired");
+        }
     }
 }

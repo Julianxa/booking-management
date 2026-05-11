@@ -17,6 +17,7 @@ public class ReferenceNoGenerator {
     private final EventsRepository eventsRepository;
     private final BookingEventsRepository bookingEventsRepository;
     private final UsersRepository usersRepository;
+    private final PaymentsRepository paymentsRepository;
     private final GiftCertificatesRepository giftCertificatesRepository;
     private final OrganizationsRepository organizationsRepository;
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -51,6 +52,10 @@ public class ReferenceNoGenerator {
 
     public String generateEventReference() throws SQLException {
         return generateUniqueReference("EVT-", 10, eventsRepository);
+    }
+
+    public String generatePaymentReference() throws SQLException {
+        return generateUniqueReference("P-", 10, paymentsRepository);
     }
 
     public String generateGiftCertificateReference() throws SQLException {

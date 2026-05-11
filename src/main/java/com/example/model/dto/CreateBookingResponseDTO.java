@@ -30,9 +30,13 @@ public class CreateBookingResponseDTO {
     private BigDecimal discount;
     @JsonProperty("final_paid_amount")
     private BigDecimal finalPaidAmount;
+    @JsonProperty("currency")
+    private String currency;
     private Enums.BookingStatus status;
     @JsonProperty("promo_code")
     private String promoCode;
+    @JsonProperty("checkout_url")
+    private String checkoutUrl;
     @JsonProperty("redeemed_at")
     private LocalDateTime redeemedAt;
     @JsonProperty("created_at")

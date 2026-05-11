@@ -25,9 +25,12 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
     @Query("SELECT be.id FROM BookingEvents be WHERE be.refNo = :refNo")
     Optional<Long> findIdByRefNo(String refNo);
 
+    @Query(value = "SELECT id FROM booking_events WHERE booking_id = :bookingId AND event_id = :eventId", nativeQuery = true)
+    Optional<Long> findIdByBookingIdAndEventId(Long bookingId, Long eventId);
+
     List<BookingEvents> findByBookingId(Long bookingId);
 
-    Optional<BookingEvents> findByRefNo(String bookingId);
+    Optional<BookingEvents> findByRefNo(String bookingEventId);
 
     Optional<BookingEvents> findByVerificationToken(String verificationToken);
 
@@ -77,8 +80,8 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
         SET status = :status,
             cancelled_at = :cancelledAt,
             updated_at = CURRENT_TIMESTAMP
-        WHERE event_id = :eventId 
-          AND event_date = :eventDate 
+        WHERE event_id = :eventId
+          AND event_date = :eventDate
           AND event_time = :eventTime
         """, nativeQuery = true)
     void updateCancelStatusBookingsByEventTimeSlot(

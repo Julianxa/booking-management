@@ -18,7 +18,7 @@ public interface UserMapper {
 
     @Mapping(target = "id", source = "entity.refNo")
     @Mapping(target = "orgId", source = "orgRefNo")
-    GetUserResponseDTO toResponseDto(Users entity, String orgRefNo);
+    GetUserResponseDTO toResponseDTO(Users entity, String orgRefNo);
 
-    UpdateUserResponseDTO toUpdateResponseDto(Users entity);
+    UpdateUserResponseDTO toUpdateResponseDTO(Users entity);
 }

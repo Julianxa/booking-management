@@ -2,6 +2,7 @@ package com.example.mapper;
 
 import com.example.constant.Enums;
 import com.example.model.dto.*;
+import com.example.model.entity.BookingEvents;
 import com.example.model.entity.EventDaySchedules;
 import com.example.model.entity.Events;
 import com.example.model.entity.TicketTypes;
@@ -26,7 +27,7 @@ public interface EventMapper {
     @Mapping(target = "deletedAt", ignore = true)
     Events toEntity(CreateEventRequestDTO dto);
 
-    default CreateEventResponseDTO toCreateResponseDto(Events entity) {
+    default CreateEventResponseDTO toCreateResponseDTO(Events entity) {
         if (entity == null) {
             return null;
         }
@@ -94,7 +95,7 @@ public interface EventMapper {
     }
 
     @Mapping(target="id", source="entity.refNo")
-    EventAvailabilityDTO toAvailabilityResponseDto(Events entity);
+    EventAvailabilityDTO toAvailabilityResponseDTO(Events entity);
 
     @Mapping(target = "availableDays",
             expression = """
@@ -116,7 +117,17 @@ public interface EventMapper {
             : null )
         """)
     @Mapping(target="id", source="entity.refNo")
-    UpdateEventResponseDTO toUpdateResponseDto(Events entity);
+    UpdateEventResponseDTO toUpdateResponseDTO(Events entity);
+
+    default CreateBookingRequestDTO.EventDTO toEventDTO(Events event,
+                                                BookingEvents bookingEvent) {
+        return CreateBookingRequestDTO.EventDTO.builder()
+                .id(event.getRefNo())
+                .name(event.getName())
+                .eventDate(bookingEvent.getEventDate())
+                .eventTime(bookingEvent.getEventTime())
+                .build();
+    }
 
     default GetListEventResponseDTO toGetListResponse(
             Page<Events> page,
@@ -153,7 +164,7 @@ public interface EventMapper {
             Events event,
             Map<String, List<CreateEventResponseDTO.OccupancyDTO>> occupancyMap) {
 
-        EventAvailabilityDTO dto = toAvailabilityResponseDto(event);
+        EventAvailabilityDTO dto = toAvailabilityResponseDTO(event);
         addOccupancyToEvent(dto, occupancyMap);
         return dto;
     }

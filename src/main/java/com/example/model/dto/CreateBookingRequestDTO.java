@@ -27,6 +27,12 @@ public class CreateBookingRequestDTO {
     @JsonProperty("promo_code")
     private String promoCode;
 
+    @JsonProperty("success_url")
+    private String successUrl;
+
+    @JsonProperty("cancel_url")
+    private String cancelUrl;
+
     @Data
     @Builder
     @Getter

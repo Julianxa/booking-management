@@ -6,7 +6,6 @@ import com.example.model.dto.CreateTicketTypeResponseDTO;
 import com.example.model.dto.UpdateTicketTypeResponseDTO;
 import com.example.model.entity.TicketTypes;
 import org.mapstruct.*;
-import org.mapstruct.factory.Mappers;
 
 @Mapper(
         componentModel = "spring",
@@ -24,11 +23,11 @@ public interface TicketTypeMapper {
 
     @Mapping(source = "refNo", target = "id")
     @Mapping(source = "event.refNo", target = "eventId")
-    CreateTicketTypeResponseDTO toCreateResponseDto(TicketTypes entity);
+    CreateTicketTypeResponseDTO toCreateResponseDTO(TicketTypes entity);
 
     @Mapping(source = "refNo", target = "id")
     @Mapping(source = "event.refNo", target = "eventId")
-    UpdateTicketTypeResponseDTO toUpdateResponseDto(TicketTypes entity);
+    UpdateTicketTypeResponseDTO toUpdateResponseDTO(TicketTypes entity);
 
     static CreateBookingRequestDTO.TicketTypeDTO toTicketTypeDTO(TicketTypes ticketTypes) {
         if (ticketTypes == null) {

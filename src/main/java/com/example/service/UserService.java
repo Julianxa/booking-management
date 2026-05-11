@@ -14,7 +14,6 @@ import com.example.model.dto.UserRegistrationResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -263,7 +262,7 @@ public class UserService {
                 .map(user -> {
                     String userOrgRefNo = organizationsRepository.findRefNoById(user.getOrgId())
                             .orElse(null);
-                    return userMapper.toResponseDto(user, userOrgRefNo);
+                    return userMapper.toResponseDTO(user, userOrgRefNo);
                 })
                 .collect(Collectors.toList());
 
@@ -299,6 +298,6 @@ public class UserService {
 
         user = usersRepository.save(user);
 
-        return userMapper.toResponseDto(user, dto.getOrgId());
+        return userMapper.toResponseDTO(user, dto.getOrgId());
     }
 }

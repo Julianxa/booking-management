@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class InitiateCheckinRequestDTO {
+public class InitiateCheckInRequestDTO {
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Token is required")
     @JsonProperty("token")

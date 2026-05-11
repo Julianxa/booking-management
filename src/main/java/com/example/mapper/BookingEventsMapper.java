@@ -2,7 +2,7 @@ package com.example.mapper;
 
 
 import com.example.model.dto.CreateBookingRequestDTO;
-import com.example.model.dto.InitiateCheckinResponseDTO;
+import com.example.model.dto.InitiateCheckInResponseDTO;
 import com.example.model.entity.BookingEvents;
 import com.example.model.entity.Bookings;
 import org.mapstruct.Mapper;
@@ -23,12 +23,13 @@ public interface BookingEventsMapper {
     @Mapping(target = "tickets", source = "dto.tickets")
     @Mapping(target = "event", source = "dto.event")
     @Mapping(target = "total", source = "bookingEvent.total")
-    CreateBookingRequestDTO.BookingEventDTO toCreateResponseDto(
+    CreateBookingRequestDTO.BookingEventDTO toCreateResponseDTO(
             Bookings booking, BookingEvents bookingEvent, CreateBookingRequestDTO.BookingEventDTO dto,
             List<CreateBookingRequestDTO.AttendeeDTO> attendees, String qrCodeBase64);
 
-    default InitiateCheckinResponseDTO toResponseDto(
+    default InitiateCheckInResponseDTO toInitiateCheckInResponseDTO(
             String userRefNo,
+            CreateBookingRequestDTO.EventDTO eventDTO,
             BookingEvents bookingEvent,
             List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs,
             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) {
@@ -37,13 +38,9 @@ public interface BookingEventsMapper {
             return null;
         }
 
-        CreateBookingRequestDTO.BookingEventDTO eventDto = CreateBookingRequestDTO.BookingEventDTO.builder()
+        CreateBookingRequestDTO.BookingEventDTO bookingEventDTO = CreateBookingRequestDTO.BookingEventDTO.builder()
                 .id(bookingEvent.getRefNo())
-                .event(CreateBookingRequestDTO.EventDTO.builder()
-                        .id(bookingEvent.getRefNo())
-                        .eventDate(bookingEvent.getEventDate())
-                        .eventTime(bookingEvent.getEventTime())
-                        .build())
+                .event(eventDTO)
                 .userId(userRefNo)
                 .notes(bookingEvent.getNotes())
                 .status(bookingEvent.getStatus())
@@ -52,14 +49,9 @@ public interface BookingEventsMapper {
                 .createdAt(bookingEvent.getBooking() != null ? bookingEvent.getBooking().getCreatedAt() : null)
                 .build();
 
-        return InitiateCheckinResponseDTO.builder()
+        return InitiateCheckInResponseDTO.builder()
                 .bookingId(bookingEvent.getBooking() != null ? bookingEvent.getBooking().getRefNo() : null)
-                .bookingEventDto(eventDto)
+                .bookingEventDTO(bookingEventDTO)
                 .build();
     }
-
-    @Mapping(target = "id", source = "eventRefNo")
-    @Mapping(target = "eventDate", source = "be.eventDate")
-    @Mapping(target = "eventTime", source = "be.eventTime")
-    CreateBookingRequestDTO.EventDTO toEventDto(String eventRefNo, BookingEvents be);
 }

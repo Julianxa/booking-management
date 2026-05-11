@@ -1,6 +1,8 @@
 package com.example.service;
 
 import com.example.constant.Enums;
+import com.example.converter.BookingItemsConverter;
+import com.example.converter.GiftCertificateItemsConverter;
 import com.example.exception.ResourceNotFoundException;
 import com.example.mapper.GiftCertificateMapper;
 import com.example.model.dto.*;
@@ -20,7 +22,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.example.constant.Enums.GiftCertificateStatus.ACTIVE;
 import static com.example.constant.Enums.GiftCertificateType.EVENT;
@@ -39,6 +40,10 @@ public class GiftCertificateService {
     private final GiftCertificateRedemptionRepository giftCertificateRedemptionRepository;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final TicketTypesRepository ticketTypesRepository;
+    private final BookingItemsRepository bookingItemsRepository;
+    private final BookingEventsRepository bookingEventsRepository;
+    private final BookingItemsConverter bookingItemsConverter;
+    private final GiftCertificateItemsConverter giftCertificateItemsConverter;
 
     @Transactional
     public CreateGiftCertificateResponseDTO createCertificate(String userSub, CreateGiftCertificateRequestDTO dto)
@@ -84,6 +89,30 @@ public class GiftCertificateService {
         return updateGiftCertificateResponseDTO;
     }
 
+    public GiftCertificateApplicationResult getCertificateRedemptionResult(Bookings booking) {
+        GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
+
+        if(giftCertificate != null && giftCertificate.getType() == VALUE) {
+            GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(giftCertificate.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Value gift certificate item not found"));
+
+            return new GiftCertificateApplicationResult(giftCertificate, List.of(), item.getValue());
+        } else if (giftCertificate != null && giftCertificate.getType() == EVENT) {
+            Long bookingEventId = bookingEventsRepository.findIdByBookingIdAndEventId(booking.getId(), giftCertificate.getEventId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Booking event not found"));
+
+            List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEventId);
+
+            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTicketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
+
+            BigDecimal discount = getGiftCertificateDiscount(redeemedTicketDTOs);
+            return new GiftCertificateApplicationResult(giftCertificate, redeemedTicketDTOs, discount);
+
+        } else {
+            return null;
+        }
+    }
+
     private GiftCertificates buildGiftCertificate(Long userId, Long eventId, CreateGiftCertificateRequestDTO dto) throws SQLException {
         return GiftCertificates.builder()
                 .refNo(referenceNoGenerator.generateGiftCertificateReference())
@@ -105,14 +134,14 @@ public class GiftCertificateService {
             throw new BadRequestException("Empty ticket list to create EVENT Gift Certificate");
         }
 
-        for (var itemDto : items) {
-            Long ticketTypeId = ticketTypesRepository.findIdByRefNo(itemDto.getTicketTypeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found: " + itemDto.getTicketTypeId()));
+        for (var itemDTO : items) {
+            Long ticketTypeId = ticketTypesRepository.findIdByRefNo(itemDTO.getTicketTypeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found: " + itemDTO.getTicketTypeId()));
 
             gc.getItems().add(GiftCertificateItems.builder()
                     .giftCertificates(gc)
                     .ticketTypeId(ticketTypeId)
-                    .quantity(itemDto.getQuantity())
+                    .quantity(itemDTO.getQuantity())
                     .build());
         }
     }
@@ -122,10 +151,10 @@ public class GiftCertificateService {
         if (items == null || items.isEmpty()) {
             throw new BadRequestException("Empty item to create VALUE Gift Certificate");
         } else {
-            for (var itemDto : items) {
+            for (var itemDTO : items) {
                 gc.getItems().add(GiftCertificateItems.builder()
                         .giftCertificates(gc)
-                        .value(itemDto.getValue())
+                        .value(itemDTO.getValue())
                         .build());
             }
         }
@@ -138,8 +167,8 @@ public class GiftCertificateService {
         String userRefNo = usersRepository.findRefNoById(gc.getUserId()).orElse(null);
         String eventRefNo = eventsRepository.findRefNoById(gc.getEventId()).orElse(null);
 
-        CreateGiftCertificateResponseDTO response = giftCertificateMapper.toResponseDto(
-                userRefNo, eventRefNo, gc, mapItems(gc));
+        CreateGiftCertificateResponseDTO response = giftCertificateMapper.toCreateResponseDTO(
+                userRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
 
         response.setStatus(findStatusByCertificate(gc));
         return response;
@@ -174,23 +203,18 @@ public class GiftCertificateService {
         return getListGiftCertificateResponseDTO;
     }
 
-    private List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> mapItems(GiftCertificates gc) {
-        return gc.getItems().stream()
-                .map(this::toItemResponseDto)
-                .collect(Collectors.toList());
-    }
-
     Enums.GiftCertificateStatus findStatusByCertificate(GiftCertificates gc) {
         if (gc.getCancelledAt() != null) return Enums.GiftCertificateStatus.CANCELLED;
         if (gc.getExpiryDate() != null && gc.getExpiryDate().isBefore(LocalDate.now())) {
             return Enums.GiftCertificateStatus.EXPIRED;
         }
-        if (gc.getRemainingQuantity() < 1) return Enums.GiftCertificateStatus.REDEEMED;
+        if (gc.getRemainingQuantity() < 1) return Enums.GiftCertificateStatus.CONSUMED;
         return ACTIVE;
     }
 
+    @Transactional
     public GiftCertificates validateGiftCertificateForBooking(String promoCode, Long userId) throws BadRequestException {
-        GiftCertificates gc = giftCertificatesRepository.findByPromoCode(promoCode)
+        GiftCertificates gc = giftCertificatesRepository.findByPromoCodeWithLock(promoCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Gift certificate not found: " + promoCode));
 
         if (!gc.isUsable()) {
@@ -202,18 +226,14 @@ public class GiftCertificateService {
         return gc;
     }
 
-    public GiftCertificateApplicationResult applyGiftCertificateToMultiEventBooking(
-            Bookings booking, GiftCertificates gc, CreateBookingRequestDTO request, Long userId) {
-
-        if (gc == null) return null;
-
+    public GiftCertificateApplicationResult applyGiftCertificate(
+            GiftCertificates gc, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
         GiftCertificateApplicationResult giftCertificateApplicationResult;
         if (gc.getType() == VALUE) {
             giftCertificateApplicationResult = applyValueType(gc);
         } else {
-            giftCertificateApplicationResult = applyEventType(gc, request);
+            giftCertificateApplicationResult = applyEventType(gc, bookingEventDTOs);
         }
-        confirmRedemption(booking, gc, userId);
         return giftCertificateApplicationResult;
     }
 
@@ -227,12 +247,12 @@ public class GiftCertificateService {
         return new GiftCertificateApplicationResult(gc, List.of(), item.getValue());
     }
 
-    private GiftCertificateApplicationResult applyEventType(GiftCertificates gc, CreateBookingRequestDTO request) {
+    private GiftCertificateApplicationResult applyEventType(GiftCertificates gc, List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents) {
         List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = new ArrayList<>();
 
-        for (CreateBookingRequestDTO.BookingEventDTO eventDto : request.getBookingEvents()) {
-            Long eventId = eventsRepository.findIdByRefNo(eventDto.getEvent().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + eventDto.getEvent().getId()));
+        for (CreateBookingRequestDTO.BookingEventDTO eventDTO : bookingEvents) {
+            Long eventId = eventsRepository.findIdByRefNo(eventDTO.getEvent().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + eventDTO.getEvent().getId()));
 
             if (gc.getEventId() != null && !gc.getEventId().equals(eventId)) {
                 continue;
@@ -241,17 +261,17 @@ public class GiftCertificateService {
             List<GiftCertificateItems> gcItems = giftCertificateItemRepository.getEventCertByGiftCertificateId(gc.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate items not found"));
 
-            for (CreateBookingRequestDTO.TicketTypeDTO ticketDto : eventDto.getTickets()) {
+            for (CreateBookingRequestDTO.TicketTypeDTO ticketDTO : eventDTO.getTickets()) {
                 for (GiftCertificateItems gcItem : gcItems) {
-                    Long ticketTypeId = ticketTypesRepository.findIdByRefNo(ticketDto.getId())
+                    Long ticketTypeId = ticketTypesRepository.findIdByRefNo(ticketDTO.getId())
                             .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found"));
 
                     if (ticketTypeId.equals(gcItem.getTicketTypeId())) {
-                        int redeemedQty = min(ticketDto.getQuantity(), gcItem.getQuantity());
+                        int redeemedQty = min(ticketDTO.getQuantity(), gcItem.getQuantity());
 
                         redeemedTickets.add(CreateBookingRequestDTO.TicketTypeDTO.builder()
-                                .id(ticketDto.getId())
-                                .name(ticketDto.getName())
+                                .id(ticketDTO.getId())
+                                .name(ticketDTO.getName())
                                 .quantity(redeemedQty)
                                 .build());
                     }
@@ -267,7 +287,8 @@ public class GiftCertificateService {
         return new GiftCertificateApplicationResult(gc, redeemedTickets, discount);
     }
 
-    private void confirmRedemption(Bookings booking, GiftCertificates gc, Long userId) {
+    @Transactional
+    public void confirmCertificateRedemption(Bookings booking, GiftCertificates gc, Long userId) {
         GiftCertificateRedemptions giftCertificateRedemptions = new GiftCertificateRedemptions();
         giftCertificateRedemptions.setGiftCertificateId(gc.getId());
         giftCertificateRedemptions.setBookingId(booking.getId());
@@ -278,31 +299,10 @@ public class GiftCertificateService {
     }
 
     private CreateGiftCertificateResponseDTO buildResponse(GiftCertificates gc, String userRefNo, String eventRefNo) {
-        List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> itemDtos = gc.getItems().stream()
-                .map(this::toItemResponseDto)
-                .collect(Collectors.toList());
-
-        CreateGiftCertificateResponseDTO response = giftCertificateMapper.toResponseDto(
-                userRefNo, eventRefNo, gc, itemDtos);
+        CreateGiftCertificateResponseDTO response = giftCertificateMapper.toCreateResponseDTO(
+                userRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
         response.setStatus(findStatusByCertificate(gc));
         return response;
-    }
-
-    private CreateGiftCertificateRequestDTO.GiftCertificateItemDTO toItemResponseDto(GiftCertificateItems item) {
-        if (item.getGiftCertificates().getType() == VALUE) {
-            return CreateGiftCertificateRequestDTO.GiftCertificateItemDTO.builder()
-                    .value(item.getValue())
-                    .build();
-        } else {
-            TicketTypes ticketType = ticketTypesRepository.findById(item.getTicketTypeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found: " + item.getTicketTypeId()));
-
-            return CreateGiftCertificateRequestDTO.GiftCertificateItemDTO.builder()
-                    .ticketTypeId(ticketType.getRefNo())
-                    .ticketTypeName(ticketType.getName())
-                    .quantity(item.getQuantity())
-                    .build();
-        }
     }
 
     public BigDecimal getGiftCertificateDiscount(List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets) {
@@ -347,5 +347,18 @@ public class GiftCertificateService {
         updateGiftCertificateStatusResponseDTO.setPromoCode(promoCode);
         updateGiftCertificateStatusResponseDTO.setTimestamp(actionAt);
         return updateGiftCertificateStatusResponseDTO;
+    }
+
+    @Transactional
+    public GiftCertificateApplicationResult reserveGiftCertificate(Users loggedInUser, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs, String promoCode) throws BadRequestException {
+        if (promoCode == null) {
+            return new GiftCertificateApplicationResult(null, List.of(), BigDecimal.ZERO);
+        }
+
+        Long userId = loggedInUser != null ? loggedInUser.getId() : null;
+
+        GiftCertificates gc = validateGiftCertificateForBooking(promoCode, userId);
+
+        return applyGiftCertificate(gc, bookingEventDTOs);
     }
 }

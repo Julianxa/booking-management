@@ -40,25 +40,32 @@ public class Enums {
         INACTIVE
     }
 
-    public enum BookingStatus {
-        SUCCESS,
-        FAILED,
-        CANCELLED,
-        PENDING
-    }
-
     public enum BookingEventStatus {
-        CHECKED_IN,
+        PENDING,
         AVAILABLE,
+        CHECKED_IN,
         NO_SHOW,
         CANCELLED
     }
 
-    public enum PaymentStatus {
-        PAID,
+    public enum BookingStatus {
         PENDING,
+        PAYMENT_PENDING,
+        PAYMENT_IN_PROGRESS,
+        PAID,
+        SUCCESS,
+        FAILED,
+        CANCELLED,
+        EXPIRED
+    }
+
+    public enum PaymentStatus {
+        PENDING,
+        SUCCEEDED,
+        FAILED,
+        CANCELLED,
         REFUNDED,
-        FAILED
+        EXPIRED
     }
 
     public enum OccupancyStatus {
@@ -85,12 +92,26 @@ public class Enums {
 
     public enum GiftCertificateStatus {
         ACTIVE,
-        REDEEMED,
+        CONSUMED,
         EXPIRED,
         CANCELLED
     }
 
+    public enum GiftCertificateRedemptionStatus {
+        PENDING,
+        SUCCESS,
+        FAILED
+    }
+
     public enum Weekday {
         MON, TUE, WED, THU, FRI, SAT, SUN
+    }
+
+    public enum PaymentPlatform {
+        STRIPE
+    }
+
+    public enum PaymentChannel {
+        CARD, ALIPAY, WECHATPAY
     }
 }

@@ -3,7 +3,6 @@ package com.example.controller;
 import com.example.exception.InvalidIdTokenException;
 import com.example.exception.ResourceNotFoundException;
 import com.example.model.dto.*;
-import com.example.service.AwsService;
 import com.example.service.BookingService;
 import com.example.utils.UserUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -206,6 +205,9 @@ public class BookingController {
             String userSub = userUtils.extractUserSub(authorizationHeader);
 
             CreateBookingResponseDTO createBookingResponseDTO = bookingService.createBooking(userSub, request);
+
+            createBookingResponseDTO.setMessage("Booking created successfully. Please complete payment.");
+            createBookingResponseDTO.setTimestamp(LocalDateTime.now());
             return ResponseEntity.status(HttpStatus.OK).body(createBookingResponseDTO);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(

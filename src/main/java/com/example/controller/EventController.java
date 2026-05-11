@@ -574,7 +574,7 @@ public class EventController {
                             description = "Check-in initiated successfully",
                             content = @Content(
                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(implementation = InitiateCheckinResponseDTO.class)
+                                    schema = @Schema(implementation = InitiateCheckInResponseDTO.class)
                             )
                     ),
                     @ApiResponse(
@@ -600,8 +600,8 @@ public class EventController {
     public ResponseEntity<?> checkin(@RequestParam("token") String token,
                                      @RequestHeader(value = "X-Access-Token", required = false) String accessToken) {
         try {
-            InitiateCheckinResponseDTO initiateCheckinResponseDTO = eventService.initiateCheckin(token);
-            return ResponseEntity.ok(initiateCheckinResponseDTO);
+            InitiateCheckInResponseDTO initiateCheckInResponseDTO = eventService.initiateCheckIn(token);
+            return ResponseEntity.ok(initiateCheckInResponseDTO);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(404).body(
                     ErrorResponseDTO.builder()
@@ -638,9 +638,9 @@ public class EventController {
     )
     @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping("/events/confirm")
-    public ResponseEntity<?> confirmCheckin(@RequestBody ConfirmCheckinRequestDTO request) {
+    public ResponseEntity<?> confirmCheckIn(@RequestBody ConfirmCheckinRequestDTO request) {
         try {
-            ConfirmCheckinResponseDTO response = eventService.confirmCheckin(request);
+            ConfirmCheckinResponseDTO response = eventService.confirmCheckIn(request);
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(404).body(

@@ -20,17 +20,17 @@ public interface OrganizationMapper {
     Organizations toEntity(CreateOrganizationRequestDTO dto);
 
     @Mapping(target = "id", source = "refNo")
-    CreateOrganizationResponseDTO toCreateResponseDto(Organizations entity);
+    CreateOrganizationResponseDTO toCreateResponseDTO(Organizations entity);
 
     @Mapping(target = "id", source = "refNo")
-    UpdateOrganizationResponseDTO toUpdateResponseDto(Organizations entity);
+    UpdateOrganizationResponseDTO toUpdateResponseDTO(Organizations entity);
 
     default GetListOrganizationResponseDTO toGetListResponse(Page<Organizations> page) {
         GetListOrganizationResponseDTO response = new GetListOrganizationResponseDTO();
 
         response.setContent(
                 page.getContent().stream()
-                        .map(this::toCreateResponseDto)
+                        .map(this::toCreateResponseDTO)
                         .toList()
         );
 

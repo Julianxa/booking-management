@@ -47,7 +47,7 @@ public class EmailService {
         EmailTemplates emailTemplate = emailTemplatesRepository.findByRefNo(emailTemplateRefNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Email template not found with code: " + emailTemplateRefNo));
 
-        GetEmailTemplateResponseDTO getEmailTemplateResponseDTO = emailTemplateMapper.toResponseDto(emailTemplate);
+        GetEmailTemplateResponseDTO getEmailTemplateResponseDTO = emailTemplateMapper.toResponseDTO(emailTemplate);
 
         getEmailTemplateResponseDTO.setMessage("Retrieve Email Templates successfully.");
         getEmailTemplateResponseDTO.setTimestamp(LocalDateTime.now());
@@ -58,7 +58,7 @@ public class EmailService {
         Page<EmailTemplates> emailTemplatesPage = emailTemplatesRepository.findAllActive(pageable);
 
         List<GetEmailTemplateResponseDTO> content = emailTemplatesPage.getContent().stream()
-                .map(emailTemplateMapper::toResponseDto)
+                .map(emailTemplateMapper::toResponseDTO)
                 .toList();
 
         GetListEmailTemplatesResponseDTO getListEmailTemplatesResponseDTO = emailTemplateMapper.toGetListResponse(emailTemplatesPage, content);
@@ -80,7 +80,7 @@ public class EmailService {
         if(updateEmailTemplatesRequestDTO.getContactBody() != null) template.setContactBody(updateEmailTemplatesRequestDTO.getContactBody());
         template = emailTemplatesRepository.save(template);
 
-        return emailTemplateMapper.toUpdateResponseDto(template);
+        return emailTemplateMapper.toUpdateResponseDTO(template);
     }
 
     @Async
@@ -94,6 +94,7 @@ public class EmailService {
         context.setVariable("bookingId", booking.getRefNo());
         context.setVariable("grandTotal", booking.getTotalPaidPrice());
         context.setVariable("finalAmount", booking.getFinalPaidAmount());
+        context.setVariable("currency", booking.getCurrency());
 
         context.setVariable("firstName", user.getFirstName());
 
@@ -115,11 +116,11 @@ public class EmailService {
     }
 
     @Async
-    public void sendBookingConfirmationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDto,
+    public void sendBookingConfirmationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
                                              Bookings booking,
                                              BookingEvents bookingEvent,
-                                             List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDtos,
-                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDtos) throws MessagingException {
+                                             List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDTOs,
+                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) throws MessagingException {
         Context context = new Context();
         String checkInUrl = appProperties.getBaseUrl()
                 + appProperties.getCheckin().getPath()
@@ -130,15 +131,15 @@ public class EmailService {
 
         EmailTemplates templates = emailTemplatesRepository.findBookingConfirmationEmailTemplate();
 
-        String ticketSummary = buildTicketSummary(ticketsDtos);
+        String ticketSummary = buildTicketSummary(ticketsDTOs);
 
-        context.setVariable("attendees", attendeeDtos);
+        context.setVariable("attendees", attendeeDTOs);
 
         context.setVariable("ticketSummary", ticketSummary);
 
         context.setVariable("bookingId", booking.getRefNo());
 
-        context.setVariable("firstName", attendeeDto.getFirstName());
+        context.setVariable("firstName", attendeeDTO.getFirstName());
 
         context.setVariable("eventName", bookingEvent.getEvent().getName());
         context.setVariable("eventDate", bookingEvent.getEventDate());
@@ -153,30 +154,30 @@ public class EmailService {
 
         String template = templateEngine.process("booking-confirmation-email-template", context);
 
-        sendEmail(attendeeDto.getEmail(), "Confirm Your Booking", template, inlineImages);
+        sendEmail(attendeeDTO.getEmail(), "Confirm Your Booking", template, inlineImages);
     }
 
     @Async
-    public void sendBookingCancellationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDto,
+    public void sendBookingCancellationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
                                              Bookings booking,
                                              BookingEvents bookingEvent,
-                                             List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDtos,
-                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDtos) throws MessagingException {
+                                             List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDTOs,
+                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) throws MessagingException {
         Context context = new Context();
 
         Map<String, String> inlineImages = embedInlineImages();
 
         EmailTemplates templates = emailTemplatesRepository.findBookingCancellationEmailTemplate();
 
-        String ticketSummary = buildTicketSummary(ticketsDtos);
+        String ticketSummary = buildTicketSummary(ticketsDTOs);
 
-        context.setVariable("attendees", attendeeDtos);
+        context.setVariable("attendees", attendeeDTOs);
 
         context.setVariable("ticketSummary", ticketSummary);
 
         context.setVariable("bookingId", booking.getRefNo());
 
-        context.setVariable("firstName", attendeeDto.getFirstName());
+        context.setVariable("firstName", attendeeDTO.getFirstName());
 
         context.setVariable("eventName", bookingEvent.getEvent().getName());
         context.setVariable("eventDate", bookingEvent.getEventDate());
@@ -191,15 +192,15 @@ public class EmailService {
 
         String template = templateEngine.process("booking-cancellation-email-template", context);
 
-        sendEmail(attendeeDto.getEmail(), "Cancel Your Booking", template, inlineImages);
+        sendEmail(attendeeDTO.getEmail(), "Cancel Your Booking", template, inlineImages);
     }
 
-    public String buildTicketSummary(List<CreateBookingRequestDTO.TicketTypeDTO> ticketTypesDto) {
-        if (ticketTypesDto == null || ticketTypesDto.isEmpty()) {
+    public String buildTicketSummary(List<CreateBookingRequestDTO.TicketTypeDTO> ticketTypesDTOs) {
+        if (ticketTypesDTOs == null || ticketTypesDTOs.isEmpty()) {
             return "No tickets selected";
         }
 
-        return ticketTypesDto.stream()
+        return ticketTypesDTOs.stream()
                 .filter(dto -> dto.getQuantity() > 0)
                 .map(dto -> {
 

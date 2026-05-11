@@ -9,7 +9,7 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface GiftCertificateMapper {
-    default CreateGiftCertificateResponseDTO toResponseDto(String userRefNo, String eventId, GiftCertificates giftCertificates, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> giftCertificateItemDtos) {
+    default CreateGiftCertificateResponseDTO toCreateResponseDTO(String userRefNo, String eventId, GiftCertificates giftCertificates, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> giftCertificateItemDTOs) {
         return CreateGiftCertificateResponseDTO.builder()
                 .promoCode(giftCertificates.getPromoCode())
                 .type(giftCertificates.getType())
@@ -21,7 +21,7 @@ public interface GiftCertificateMapper {
                 .messageToRecipient(giftCertificates.getMessageToRecipient())
                 .createdAt(giftCertificates.getCreatedAt())
                 .updatedAt(giftCertificates.getUpdatedAt())
-                .items(giftCertificateItemDtos)
+                .items(giftCertificateItemDTOs)
                 .build();
     }
 
