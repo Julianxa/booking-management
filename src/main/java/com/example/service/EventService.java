@@ -32,10 +32,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.example.constant.Enums.BookingEventStatus.*;
@@ -71,33 +68,15 @@ public class EventService {
         event.setAvailableDays(new HashSet<>());
         event.setMatchTicketQuantityWithAttendees(request.getMatchTicketQuantityWithAttendees());
 
-        if (request.getAvailableDays() != null) {
-            request.getAvailableDays().forEach(dayDTO ->
-                    dayDTO.getStartTimes().stream()
-                            .map(startTime -> EventDayScheduleId.builder()
-                                    .day(dayDTO.getDay())
-                                    .startTime(startTime)
-                                    .build())
-                            .map(id -> EventDaySchedules.builder()
-                                    .id(id)
-                                    .event(event)
-                                    .build())
-                            .forEach(event.getAvailableDays()::add)
-            );
-        }
+        addAvailableDaysToEvent(event, request.getAvailableDays());
 
         Events savedEvent = eventsRepository.save(event);
 
+        String eventPicUrl = null;
         if (eventPic != null && !eventPic.isEmpty()) {
-            String eventPicKey = awsService.uploadFile(savedEvent.getRefNo(), eventPic);
-            savedEvent.setEventPicKey(eventPicKey);
-            eventsRepository.save(savedEvent);
+            eventPicUrl = uploadEventPicture(savedEvent, eventPic);
         }
 
-        String eventPicUrl = null;
-        if (savedEvent.getEventPicKey() != null) {
-            eventPicUrl = awsService.getFileFromS3(savedEvent.getEventPicKey());
-        }
         CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(savedEvent);
         createEventResponseDTO.setStatus(Enums.EventStatus.OPEN);
         createEventResponseDTO.setEventPicUrl(eventPicUrl);
@@ -139,20 +118,7 @@ public class EventService {
             dto.getAvailableDays().forEach(day -> event.updateDay(event.getId(), day.getDay(), day.getStartTimes()));
         }
 
-        if (eventPic != null && !eventPic.isEmpty()) {
-            if (event.getEventPicKey() != null) {
-                awsService.deleteFile(event.getEventPicKey());
-            }
-            String eventPicKey = awsService.uploadFile(event.getRefNo(), eventPic);
-            if (eventPicKey != null) {
-                event.setEventPicKey(eventPicKey);
-            }
-        } else if (eventPic == null) {
-            if (event.getEventPicKey() != null) {
-                awsService.deleteFile(event.getEventPicKey());
-                event.setEventPicKey(null);
-            }
-        }
+        handleEventPictureUpdate(event, eventPic);
 
         Events updatedEvent = eventsRepository.save(event);
 
@@ -586,6 +552,56 @@ public class EventService {
 
         if (eventStartTime.isBefore(LocalDateTime.now())) {
             throw new InvalidVerificationTokenException("Ticket has expired");
+        }
+    }
+
+    private void addAvailableDaysToEvent(Events event, Set<AvailableDayDTO> availableDays) {
+        if (availableDays == null || availableDays.isEmpty()) {
+            return;
+        }
+
+        for (AvailableDayDTO dayDTO : availableDays) {
+            if (dayDTO.getStartTimes() == null) continue;
+
+            for (String startTime : dayDTO.getStartTimes()) {
+                EventDayScheduleId id = EventDayScheduleId.builder()
+                        .day(dayDTO.getDay())
+                        .startTime(startTime)
+                        .build();
+
+                EventDaySchedules schedule = EventDaySchedules.builder()
+                        .id(id)
+                        .event(event)
+                        .build();
+
+                event.getAvailableDays().add(schedule);
+            }
+        }
+    }
+
+    private String uploadEventPicture(Events savedEvent, MultipartFile eventPic) throws IOException {
+        String eventPicKey = awsService.uploadFile(savedEvent.getRefNo(), eventPic);
+
+        savedEvent.setEventPicKey(eventPicKey);
+        eventsRepository.save(savedEvent);
+
+        return awsService.getFileFromS3(eventPicKey);
+    }
+
+    private void handleEventPictureUpdate(Events event, MultipartFile eventPic) throws IOException {
+        if (eventPic != null && !eventPic.isEmpty()) {
+            if (event.getEventPicKey() != null) {
+                awsService.deleteFile(event.getEventPicKey());
+            }
+            String eventPicKey = awsService.uploadFile(event.getRefNo(), eventPic);
+            if (eventPicKey != null) {
+                event.setEventPicKey(eventPicKey);
+            }
+        } else if (eventPic == null) {
+            if (event.getEventPicKey() != null) {
+                awsService.deleteFile(event.getEventPicKey());
+                event.setEventPicKey(null);
+            }
         }
     }
 }

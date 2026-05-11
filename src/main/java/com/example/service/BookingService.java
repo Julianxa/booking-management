@@ -411,7 +411,8 @@ public class BookingService {
 
         List<EventBookingStats> bookingData = eventService.getBookingPercentageByDateForEvent(true, event.getId(), bookingEventDTO.getEvent().getEventDate(), dayValueForDate);
         List<EventTimeSlotException> exceptions = eventTimeSlotExceptionsRepository.findExceptionTimeByEventIdAndExceptionDate(event.getId(), bookingEventDTO.getEvent().getEventDate());
-        CreateEventResponseDTO.OccupancyDTO occupancyDTO = eventMapper.toEventOccupancyMap(event.getRefNo(),
+        CreateEventResponseDTO.OccupancyDTO occupancyDTO = eventMapper.toEventOccupancyDTO(
+                event.getRefNo(),
                 bookingEventDTO.getEvent().getEventDate(),
                 bookingEventDTO.getEvent().getEventTime(),
                 bookingData,

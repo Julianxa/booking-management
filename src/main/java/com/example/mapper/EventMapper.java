@@ -250,14 +250,14 @@ public interface EventMapper {
         for (EventDailySlot slot : allSlots) {
             String evtId = eventId == null ? slot.eventRef() : eventId;
             CreateEventResponseDTO.OccupancyDTO occ;
-            occ = toEventOccupancyMap(evtId, filterDate, slot.eventTime(), bookingData, eventTimeSlotExceptionsByDate);
+            occ = toEventOccupancyDTO(evtId, filterDate, slot.eventTime(), bookingData, eventTimeSlotExceptionsByDate);
             occupancyMap.computeIfAbsent(evtId, k -> new ArrayList<>()).add(occ);
         }
         return occupancyMap;
     }
 
 
-    default CreateEventResponseDTO.OccupancyDTO toEventOccupancyMap(
+    default CreateEventResponseDTO.OccupancyDTO toEventOccupancyDTO(
             String eventId,
             LocalDate filterDate,
             String eventTime,
