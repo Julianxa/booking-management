@@ -70,23 +70,26 @@ public class WebhookService {
     public void confirmPayment(String sessionId, String paymentIntent, String paymentMethod, LocalDateTime paidAt) {
         Payments payment = paymentsRepository.findBySessionId(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        updatePaymentRecord(payment, paymentIntent, paymentMethod, paidAt);
+
         Bookings booking = bookingsRepository.findById(payment.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        updateBookingStatus(booking, Enums.BookingStatus.PAID);
+
         Users user = usersRepository.findById(booking.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents =
                 bookingsConverter.toBookingEventDTOs(booking, null);
 
-        // 1. Handle gift certificate (if any)
         GiftCertificateApplicationResult result = handleGiftCertificateRedemption(booking, giftCertificate, user.getId());
-        // 2. Update payment record
-        updatePaymentRecord(payment, paymentIntent, paymentMethod, paidAt);
-        // 3. Update booking status
-        updateBookingToPaid(booking);
-        // 4. Process booking events + prepare emails
+
         List<WebhookService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
-        // 5. Publish domain event
+
+        updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
+
         publishBookingConfirmedEvent(user, booking, bookingEvents, result, emailPayloads);
     }
 
@@ -110,8 +113,8 @@ public class WebhookService {
         paymentsRepository.save(payment);
     }
 
-    private void updateBookingToPaid(Bookings booking) {
-        booking.setStatus(Enums.BookingStatus.PAID);
+    private void updateBookingStatus(Bookings booking, Enums.BookingStatus status) {
+        booking.setStatus(status);
         bookingsRepository.save(booking);
     }
 

@@ -13,6 +13,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 import static com.example.constant.Enums.PaymentPlatform.STRIPE;
+import static com.stripe.param.checkout.SessionCreateParams.PaymentMethodOptions.WechatPay.Client.WEB;
 
 @Service
 @RequiredArgsConstructor
@@ -31,11 +33,29 @@ public class PaymentService {
 
     @Transactional
     public String createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) throws StripeException, SQLException {
+        SessionCreateParams.PaymentMethodOptions paymentMethodOptions =
+                SessionCreateParams.PaymentMethodOptions.builder()
+                        .setWechatPay(
+                                SessionCreateParams.PaymentMethodOptions.WechatPay.builder()
+                                        .setClient(WEB)
+                                        .build()
+                        )
+                        .setCard(
+                                SessionCreateParams.PaymentMethodOptions.Card.builder()
+                                        .setRequestThreeDSecure(
+                                                SessionCreateParams.PaymentMethodOptions.Card.RequestThreeDSecure.CHALLENGE)
+                                        .build()
+                        )
+                        .build();
+
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(request.getSuccessUrl())
+                .setSuccessUrl(appendSessionIdToUrl(request.getSuccessUrl()))
                 .setCancelUrl(request.getCancelUrl())
-//                .setCustomerEmail(getUserEmail(userSub))
+                .addPaymentMethodType(SessionCreateParams.PaymentMethodType.CARD)
+                .addPaymentMethodType(SessionCreateParams.PaymentMethodType.ALIPAY)
+                .addPaymentMethodType(SessionCreateParams.PaymentMethodType.WECHAT_PAY)
+                .setPaymentMethodOptions(paymentMethodOptions)
                 .addLineItem(SessionCreateParams.LineItem.builder()
                         .setQuantity(1L)
                         .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
@@ -69,5 +89,21 @@ public class PaymentService {
         bookingsRepository.save(booking);
 
         return session.getUrl();
+    }
+
+    private String appendSessionIdToUrl(String baseUrl) {
+        if (StringUtils.isBlank(baseUrl)) {
+            throw new IllegalArgumentException("Success URL is required");
+        }
+
+        String cleanUrl = baseUrl.strip();
+
+        if (cleanUrl.endsWith("/")) {
+            cleanUrl = cleanUrl.substring(0, cleanUrl.length() - 1);
+        }
+
+        String separator = cleanUrl.contains("?") ? "&" : "?";
+
+        return cleanUrl + separator + "session_id={CHECKOUT_SESSION_ID}";
     }
 }
