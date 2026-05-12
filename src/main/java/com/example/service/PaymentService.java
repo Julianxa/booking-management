@@ -2,7 +2,9 @@ package com.example.service;
 
 
 import com.example.constant.Enums;
+import com.example.exception.ResourceNotFoundException;
 import com.example.model.dto.CreateBookingRequestDTO;
+import com.example.model.dto.GetPaymentDetailsResponseDTO;
 import com.example.model.entity.Bookings;
 import com.example.model.entity.Payments;
 import com.example.repository.BookingsRepository;
@@ -105,5 +107,25 @@ public class PaymentService {
         String separator = cleanUrl.contains("?") ? "&" : "?";
 
         return cleanUrl + separator + "session_id={CHECKOUT_SESSION_ID}";
+    }
+
+    public GetPaymentDetailsResponseDTO getPaymentDetails(String sessionId) {
+        Payments payment = paymentsRepository.findBySessionId(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        Bookings booking = bookingsRepository.findById(payment.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        return GetPaymentDetailsResponseDTO.builder()
+                .message("Payment details retrieved successfully")
+                .bookingId(booking.getRefNo())
+                .paymentId(payment.getRefNo())
+                .paymentPlatform(payment.getPaymentPlatform())
+                .paymentChannel(payment.getPaymentChannel())
+                .amount(payment.getAmount())
+                .currency(payment.getCurrency())
+                .paymentStatus(payment.getPaymentStatus())
+                .paidAt(payment.getPaidAt())
+                .build();
     }
 }
