@@ -112,6 +112,6 @@ public class Enums {
     }
 
     public enum PaymentChannel {
-        CARD, ALIPAY, WECHATPAY
+        CARD, ALIPAY, WECHAT_PAY
     }
 }
