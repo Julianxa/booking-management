@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaymentController {
     private final PaymentService paymentService;
 
-    @PostMapping("/details")
+    @PostMapping("/payments/details")
     public ResponseEntity<?> getPaymentDetails(
             @RequestBody GetPaymentDetailsRequestDTO request) {
 

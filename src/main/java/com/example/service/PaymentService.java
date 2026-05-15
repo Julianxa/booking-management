@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
-
 import static com.example.constant.Enums.PaymentPlatform.STRIPE;
 import static com.stripe.param.checkout.SessionCreateParams.PaymentMethodOptions.WechatPay.Client.WEB;
 
@@ -69,25 +68,17 @@ public class PaymentService {
                                         .build())
                                 .build())
                         .build())
-                .putMetadata("bookingRefNo", booking.getRefNo())
-                .putMetadata("userSub", userSub)
+                .setPaymentIntentData(
+                        SessionCreateParams.PaymentIntentData.builder()
+                                .putMetadata("bookingRefNo", booking.getRefNo())
+                                .putMetadata("userSub", userSub)
+                                .build()
+                )
                 .build();
 
         Session session = stripeClient.v1().checkout().sessions().create(params);
 
-        Payments payments = Payments.builder()
-                .refNo(referenceNoGenerator.generatePaymentReference())
-                .bookingId(booking.getId())
-                .amount(booking.getFinalPaidAmount())
-                .currency(booking.getCurrency())
-                .paymentPlatform(STRIPE)
-                .sessionId(session.getId())
-                .paymentIntentId(session.getPaymentIntent())
-                .paymentStatus(Enums.PaymentStatus.PENDING)
-                .build();
-        paymentsRepository.save(payments);
-
-        booking.setStatus(Enums.BookingStatus.PAYMENT_PENDING);
+        booking.setStatus(Enums.BookingStatus.AWAITING_PAYMENT);
         bookingsRepository.save(booking);
 
         return session.getUrl();
@@ -127,5 +118,32 @@ public class PaymentService {
                 .paymentStatus(payment.getPaymentStatus())
                 .paidAt(payment.getPaidAt())
                 .build();
+    }
+
+    @Transactional
+    public Payments findOrCreatePaymentByPaymentIntentId(String sessionId, String intentId, Bookings booking) {
+        return paymentsRepository.findByPaymentIntentId(intentId)
+                .orElseGet(() -> {
+                    try {
+                        return createNewPaymentRecord(sessionId, intentId, booking);
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+    }
+
+    @Transactional
+    public Payments createNewPaymentRecord(String sessionId, String intentId, Bookings booking) throws SQLException {
+        Payments payments = Payments.builder()
+                .refNo(referenceNoGenerator.generatePaymentReference())
+                .bookingId(booking.getId())
+                .amount(booking.getFinalPaidAmount())
+                .currency(booking.getCurrency())
+                .paymentPlatform(STRIPE)
+                .paymentIntentId(intentId)
+                .sessionId(sessionId)
+                .paymentStatus(Enums.PaymentStatus.INITIATED)
+                .build();
+        return paymentsRepository.save(payments);
     }
 }

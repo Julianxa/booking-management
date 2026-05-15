@@ -9,17 +9,15 @@ import com.example.model.entity.Bookings;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
-
 import java.util.List;
-
-import static com.example.constant.Enums.BookingStatus.SUCCESS;
 
 @Mapper(componentModel = "spring")
 public interface BookingMapper {
     default CreateBookingResponseDTO toCreateResponseDTO(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> eventList, String promoCode, String checkoutUrl) {
         CreateBookingResponseDTO createBookingResponseDTO = new CreateBookingResponseDTO();
         createBookingResponseDTO.setId(booking.getRefNo());
-        createBookingResponseDTO.setStatus(SUCCESS);
+        createBookingResponseDTO.setType(booking.getType());
+        createBookingResponseDTO.setStatus(booking.getStatus());
         createBookingResponseDTO.setBookingEvents(eventList);
         createBookingResponseDTO.setTotalPaidAmount(booking.getTotalPaidPrice());
         createBookingResponseDTO.setDiscount(booking.getDiscount());

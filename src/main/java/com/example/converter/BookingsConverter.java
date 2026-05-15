@@ -43,6 +43,7 @@ public class BookingsConverter {
 
         return CreateBookingResponseDTO.builder()
                 .id(booking.getRefNo())
+                .type(booking.getType())
                 .totalPaidAmount(booking.getTotalPaidPrice())
                 .discount(booking.getDiscount())
                 .finalPaidAmount(booking.getFinalPaidAmount())

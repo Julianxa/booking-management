@@ -53,6 +53,7 @@ public class BookingService {
     private final EventService eventService;
     private final PaymentService paymentService;
     private final EmailService emailService;
+    private final WebhookService webhookService;
     private final GiftCertificateService giftCertificateService;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final QRCodeGenerator qRCodeGenerator;
@@ -74,7 +75,7 @@ public class BookingService {
     public record BookingCancelledEvent(
             Users loggedInUser,
             Bookings booking,
-            List<WebhookService.BookingEmailPayload> emailPayloads
+            List<EmailService.BookingEmailPayload> emailPayloads
     ) {
     }
 
@@ -91,13 +92,11 @@ public class BookingService {
 
         GiftCertificateApplicationResult gcResult = giftCertificateService.reserveGiftCertificate(loggedInUser, booking, request.getBookingEvents(), request.getPromoCode());
 
-        updateBookingWithPaymentDetails(booking, grandTotal, gcResult);
-
-        String checkoutUrl = paymentService.createCheckoutSession(userSub, request, booking);
+        applyGiftCertificateToBooking(booking, grandTotal, gcResult);
 
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
-        return bookingMapper.toCreateResponseDTO(booking, bookingEventDTOs, request.getPromoCode(), checkoutUrl);
+        return handlePostBookingProcessing(loggedInUser, booking, request, bookingEventDTOs);
     }
 
     @Transactional
@@ -146,24 +145,9 @@ public class BookingService {
         Bookings booking = bookingsRepository.findById(bookingEvent.getBooking().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
-        List<WebhookService.BookingEmailPayload> emailPayloads = prepareEmailPayloads(bookingEvent);
+        List<EmailService.BookingEmailPayload> emailPayloads = prepareEmailPayloads(bookingEvent);
 
-        if (dto.getStatus() != null) {
-            bookingEvent.setStatus(dto.getStatus());
-            bookingEvent.setUpdatedAt(LocalDateTime.now());
-            if (dto.getStatus() == AVAILABLE) {
-                bookingEvent.setCancelledAt(null);
-                bookingEvent = bookingEventsRepository.save(bookingEvent);
-                applicationEventPublisher.publishEvent(new WebhookService.BookingReConfirmedEvent(loggedInUser, booking, emailPayloads));
-            } else if (dto.getStatus() == CANCELLED) {
-                bookingEvent.setCancelledAt(LocalDateTime.now());
-                bookingEvent = bookingEventsRepository.save(bookingEvent);
-                applicationEventPublisher.publishEvent(new BookingCancelledEvent(loggedInUser, booking, emailPayloads));
-            } else {
-                throw new IllegalArgumentException("Invalid BookingEventStatus: " + dto.getStatus() +
-                        ". Allowed values are: CHECKED_IN, AVAILABLE, NO_SHOW, CANCELLED");
-            }
-        }
+        updateEventStatusAndPublishEvent(bookingEvent, dto.getStatus(), loggedInUser, booking, emailPayloads);
 
         return UpdateBookingEventStatusResponseDTO.builder()
                 .bookingId(bookingEvent.getBooking().getRefNo())
@@ -223,6 +207,7 @@ public class BookingService {
 
         return CreateBookingResponseDTO.builder()
                 .id(booking.getRefNo())
+                .type(booking.getType())
                 .totalPaidAmount(booking.getTotalPaidPrice())
                 .discount(booking.getDiscount())
                 .finalPaidAmount(booking.getFinalPaidAmount())
@@ -369,7 +354,7 @@ public class BookingService {
         }
     }
 
-    private void updateBookingWithPaymentDetails(Bookings booking,
+    private void applyGiftCertificateToBooking(Bookings booking,
                                                  BigDecimal grandTotal,
                                                  GiftCertificateApplicationResult gcResult) {
 
@@ -499,7 +484,7 @@ public class BookingService {
         return grandTotal;
     }
 
-    private List<WebhookService.BookingEmailPayload> prepareEmailPayloads(BookingEvents bookingEvent) {
+    private List<EmailService.BookingEmailPayload> prepareEmailPayloads(BookingEvents bookingEvent) {
         List<CreateBookingRequestDTO.AttendeeDTO> attendees =
                 bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
 
@@ -507,7 +492,58 @@ public class BookingService {
         List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItemsConverter.toTicketTypeDTOs(items);
 
         return attendees.stream()
-                .map(att -> new WebhookService.BookingEmailPayload(att, bookingEvent, ticketDTOs, attendees))
+                .map(att -> new EmailService.BookingEmailPayload(att, bookingEvent, ticketDTOs, attendees))
                 .toList();
+    }
+
+    private CreateBookingResponseDTO handlePostBookingProcessing(Users user, Bookings booking,
+                                                                 CreateBookingRequestDTO request,
+                                                                 List<CreateBookingRequestDTO.BookingEventDTO> eventDTOs)
+            throws StripeException, SQLException {
+
+        if (user == null) { // Public user
+            String checkoutUrl = paymentService.createCheckoutSession(null, request, booking);
+            booking.setType(Enums.BookingType.ONLINE_PAYMENT);
+            bookingsRepository.save(booking);
+            return bookingMapper.toCreateResponseDTO(booking, eventDTOs, request.getPromoCode(), checkoutUrl);
+        }
+
+        // Admin/Agent flow
+        GiftCertificates gc = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
+        GiftCertificateApplicationResult result =
+                giftCertificateService.handleGiftCertificateRedemption(booking, gc, user.getId());
+
+        List<EmailService.BookingEmailPayload> emailPayloads = webhookService.activateBookingEvents(eventDTOs);
+
+        booking.setStatus(Enums.BookingStatus.SUCCESS);
+        booking.setType(Enums.BookingType.OFFLINE_PAYMENT);
+        bookingsRepository.save(booking);
+
+        webhookService.updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
+        webhookService.publishBookingConfirmedEvent(user, booking, eventDTOs, result, emailPayloads);
+
+        return bookingMapper.toCreateResponseDTO(booking, eventDTOs, request.getPromoCode(), null);
+    }
+
+    private void updateEventStatusAndPublishEvent(BookingEvents event, Enums.BookingEventStatus newStatus,
+                                                  Users user, Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
+
+        event.setStatus(newStatus);
+        event.setUpdatedAt(LocalDateTime.now());
+
+        if (newStatus == AVAILABLE) {
+            event.setCancelledAt(null);
+            bookingEventsRepository.save(event);
+            applicationEventPublisher.publishEvent(new EmailService.BookingReConfirmedEvent(user, booking, payloads));
+        }
+        else if (newStatus == CANCELLED) {
+            event.setCancelledAt(LocalDateTime.now());
+            bookingEventsRepository.save(event);
+            applicationEventPublisher.publishEvent(new BookingCancelledEvent(user, booking, payloads));
+        }
+        else {
+            throw new IllegalArgumentException("Invalid status: " + newStatus +
+                    ". Allowed: CHECKED_IN, AVAILABLE, NO_SHOW, CANCELLED");
+        }
     }
 }

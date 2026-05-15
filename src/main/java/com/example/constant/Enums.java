@@ -50,17 +50,19 @@ public class Enums {
 
     public enum BookingStatus {
         PENDING,
-        PAYMENT_PENDING,
+        AWAITING_PAYMENT,
         PAYMENT_IN_PROGRESS,
         PAID,
         SUCCESS,
         FAILED,
         CANCELLED,
-        EXPIRED
+        EXPIRED,
+        REFUNDED
     }
 
     public enum PaymentStatus {
-        PENDING,
+        INITIATED,
+        REQUIRES_ACTION,
         SUCCEEDED,
         FAILED,
         CANCELLED,
@@ -113,5 +115,9 @@ public class Enums {
 
     public enum PaymentChannel {
         CARD, ALIPAY, WECHAT_PAY
+    }
+
+    public enum BookingType {
+        OFFLINE_PAYMENT, ONLINE_PAYMENT
     }
 }

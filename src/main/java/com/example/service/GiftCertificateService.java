@@ -366,4 +366,15 @@ public class GiftCertificateService {
 
         return applyGiftCertificate(gc, bookingEventDTOs);
     }
+
+    GiftCertificateApplicationResult handleGiftCertificateRedemption(
+            Bookings booking, GiftCertificates giftCertificate, Long userId) {
+
+        if (giftCertificate == null) {
+            return null;
+        }
+
+        confirmCertificateRedemption(booking, giftCertificate, userId);
+        return getCertificateRedemptionResult(booking);
+    }
 }

@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.example.constant.Enums.UserRole.AGENT;
+
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +45,31 @@ public class EmailService {
     private final EmailTemplateMapper emailTemplateMapper;
     @Value("${app.mail.from}")
     String senderEmail;
+
+    public record BookingEmailPayload(
+            CreateBookingRequestDTO.AttendeeDTO attendee,
+            BookingEvents bookingEvent,
+            List<CreateBookingRequestDTO.TicketTypeDTO> tickets,
+            List<CreateBookingRequestDTO.AttendeeDTO> allAttendees
+    ) {
+    }
+
+    public record BookingCreatedEvent(
+            Users loggedInUser,
+            Bookings booking,
+            List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents,
+            String promoCode,
+            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
+            List<BookingEmailPayload> emailPayloads
+    ) {
+    }
+
+    public record BookingReConfirmedEvent(
+            Users loggedInUser,
+            Bookings booking,
+            List<BookingEmailPayload> emailPayloads
+    ) {
+    }
 
     public GetEmailTemplateResponseDTO getEmailTemplate(String emailTemplateRefNo) {
         EmailTemplates emailTemplate = emailTemplatesRepository.findByRefNo(emailTemplateRefNo)
@@ -250,5 +277,57 @@ public class EmailService {
         inlineImages.put("ig", "images/email/ig.png");
         inlineImages.put("yt", "images/email/yt.png");
         return inlineImages;
+    }
+
+    public void sendBookingConfirmationEmailsAsync(Bookings booking, List<BookingEmailPayload> payloads) {
+        for (BookingEmailPayload payload : payloads) {
+            try {
+                sendBookingConfirmationEmail(
+                        payload.attendee(),
+                        booking,
+                        payload.bookingEvent(),
+                        payload.tickets(),
+                        payload.allAttendees()
+                );
+            } catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    void sendBookingOrderSummaryEmailsAsync(Users loggedInUser,
+                                            Bookings booking,
+                                            List<CreateBookingRequestDTO.BookingEventDTO> eventList,
+                                            String promoCode,
+                                            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
+                                            List<BookingEmailPayload> payloads) throws MessagingException {
+        if (loggedInUser != null && loggedInUser.getRole() == AGENT) {
+            sendBookingOrderSummaryEmail(loggedInUser, booking, eventList, promoCode, redeemedTickets);
+        } else {
+            for (BookingEmailPayload payload : payloads) {
+                if (payload.attendee().getSequence() == 1) {
+                    Users guestAttendee = new Users();
+                    guestAttendee.setEmail(payload.attendee().getEmail());
+                    guestAttendee.setFirstName(payload.attendee.getFirstName());
+                    sendBookingOrderSummaryEmail(guestAttendee, booking, eventList, promoCode, redeemedTickets);
+                }
+            }
+        }
+    }
+
+    void sendBookingCancellationEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
+        for (EmailService.BookingEmailPayload payload : payloads) {
+            try {
+                sendBookingCancellationEmail(
+                        payload.attendee(),
+                        booking,
+                        payload.bookingEvent(),
+                        payload.tickets(),
+                        payload.allAttendees()
+                );
+            } catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

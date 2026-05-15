@@ -20,6 +20,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CreateBookingResponseDTO {
     private String id;
+    private Enums.BookingType type;
     @Schema(description = "List of all bookings created in this operation")
     @JsonProperty("booking_events")
     private List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents;

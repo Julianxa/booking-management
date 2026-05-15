@@ -8,10 +8,9 @@ import com.example.model.entity.*;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
 import com.example.utils.DateUtils;
+import com.example.utils.StatusTransitioner;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
-import com.stripe.model.checkout.Session;
-import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,8 +23,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.example.constant.Enums.UserRole.AGENT;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -36,171 +33,105 @@ public class WebhookService {
     private final BookingsRepository bookingsRepository;
     private final BookingEventsRepository bookingEventsRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final PaymentService paymentService;
     private final EmailService emailService;
     private final BookingsConverter bookingsConverter;
     private final GiftCertificateService giftCertificateService;
     private final DateUtils dateUtils;
-
-    public record BookingCreatedEvent(
-            Users loggedInUser,
-            Bookings booking,
-            List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents,
-            String promoCode,
-            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
-            List<BookingEmailPayload> emailPayloads
-    ) {
-    }
-
-    public record BookingEmailPayload(
-            CreateBookingRequestDTO.AttendeeDTO attendee,
-            BookingEvents bookingEvent,
-            List<CreateBookingRequestDTO.TicketTypeDTO> tickets,
-            List<CreateBookingRequestDTO.AttendeeDTO> allAttendees
-    ) {
-    }
-
-    public record BookingReConfirmedEvent(
-            Users loggedInUser,
-            Bookings booking,
-            List<BookingEmailPayload> emailPayloads
-    ) {
-    }
+    private final StatusTransitioner statusTransitioner;
 
     @Transactional
-    public void confirmPayment(String sessionId, String paymentIntent, String paymentMethod, LocalDateTime paidAt) {
-        Payments payment = paymentsRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
-
-        updatePaymentRecord(payment, paymentIntent, paymentMethod, paidAt);
+    public void confirmPayment(Payments payment, String paymentIntent, String paymentMethod, LocalDateTime paidAt) {
+        updatePaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
 
         Bookings booking = bookingsRepository.findById(payment.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
 
-        Users user = usersRepository.findById(booking.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        Users user = null;
+        if(booking.getUserId() != null) {
+            user = usersRepository.findById(booking.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        }
         GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents =
                 bookingsConverter.toBookingEventDTOs(booking, null);
 
-        GiftCertificateApplicationResult result = handleGiftCertificateRedemption(booking, giftCertificate, user.getId());
+        GiftCertificateApplicationResult result = giftCertificateService.handleGiftCertificateRedemption(booking, giftCertificate, user != null ? user.getId() : null);
 
-        List<WebhookService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
+        List<EmailService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
 
         updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
 
         publishBookingConfirmedEvent(user, booking, bookingEvents, result, emailPayloads);
     }
 
-    private GiftCertificateApplicationResult handleGiftCertificateRedemption(
-            Bookings booking, GiftCertificates giftCertificate, Long userId) {
+    public List<EmailService.BookingEmailPayload> activateBookingEvents(List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
+        List<EmailService.BookingEmailPayload> emailPayloads = new ArrayList<>();
 
-        if (giftCertificate == null) {
-            return null;
-        }
-
-        giftCertificateService.confirmCertificateRedemption(booking, giftCertificate, userId);
-        return giftCertificateService.getCertificateRedemptionResult(booking);
-    }
-
-    private void updatePaymentRecord(Payments payment, String paymentIntent,
-                                     String paymentMethod, LocalDateTime paidAt) {
-        payment.setPaymentIntentId(paymentIntent);
-        payment.setPaymentChannel(Enums.PaymentChannel.valueOf(paymentMethod.toUpperCase()));
-        payment.setPaidAt(paidAt);
-        payment.setPaymentStatus(Enums.PaymentStatus.SUCCEEDED);
-        paymentsRepository.save(payment);
-    }
-
-    private void updateBookingStatus(Bookings booking, Enums.BookingStatus status) {
-        booking.setStatus(status);
-        bookingsRepository.save(booking);
-    }
-
-    private List<WebhookService.BookingEmailPayload> activateBookingEvents(List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents) {
-        List<WebhookService.BookingEmailPayload> emailPayloads = new ArrayList<>();
-
-        for (CreateBookingRequestDTO.BookingEventDTO eventDTO : bookingEvents) {
-            if (eventDTO.getAttendees() != null) {
-                BookingEvents savedBookingEvent = bookingEventsRepository.findByRefNo(eventDTO.getId())
+        for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
+            if (bookingEventDTO.getAttendees() != null) {
+                BookingEvents savedBookingEvent = bookingEventsRepository.findByRefNo(bookingEventDTO.getId())
                         .orElseThrow(() -> new ResourceNotFoundException("Booking event not found"));
 
                 savedBookingEvent.setStatus(Enums.BookingEventStatus.AVAILABLE);
                 bookingEventsRepository.save(savedBookingEvent);
 
-                for (CreateBookingRequestDTO.AttendeeDTO attendee : eventDTO.getAttendees()) {
-                    emailPayloads.add(new WebhookService.BookingEmailPayload(
-                            attendee, savedBookingEvent, eventDTO.getTickets(), eventDTO.getAttendees()));
+                bookingEventDTO.setStatus(Enums.BookingEventStatus.AVAILABLE);
+
+                for (CreateBookingRequestDTO.AttendeeDTO attendee : bookingEventDTO.getAttendees()) {
+                    emailPayloads.add(new EmailService.BookingEmailPayload(
+                            attendee, savedBookingEvent, bookingEventDTO.getTickets(), bookingEventDTO.getAttendees()));
                 }
             }
         }
         return emailPayloads;
     }
 
-    private void publishBookingConfirmedEvent(Users user, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents,
-                                              GiftCertificateApplicationResult giftResult,
-                                              List<WebhookService.BookingEmailPayload> emailPayloads) {
+    public void publishBookingConfirmedEvent(Users user, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents,
+                                      GiftCertificateApplicationResult giftResult,
+                                      List<EmailService.BookingEmailPayload> emailPayloads) {
 
         String promoCode = giftResult != null ? giftResult.certificate().getPromoCode() : null;
         List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets =
                 giftResult != null ? giftResult.redeemedTicketTypes() : null;
 
         applicationEventPublisher.publishEvent(
-                new BookingCreatedEvent(user, booking, bookingEvents, promoCode, redeemedTickets, emailPayloads)
+                new EmailService.BookingCreatedEvent(user, booking, bookingEvents, promoCode, redeemedTickets, emailPayloads)
         );
     }
 
-    private void sendBookingOrderSummaryEmailsAsync(Users loggedInUser,
-                                                    Bookings booking,
-                                                    List<CreateBookingRequestDTO.BookingEventDTO> eventList,
-                                                    String promoCode,
-                                                    List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
-                                                    List<WebhookService.BookingEmailPayload> payloads) throws MessagingException {
-        if (loggedInUser != null && loggedInUser.getRole() == AGENT) {
-            emailService.sendBookingOrderSummaryEmail(loggedInUser, booking, eventList, promoCode, redeemedTickets);
-        } else {
-            for (WebhookService.BookingEmailPayload payload : payloads) {
-                if (payload.attendee().getSequence() == 1) {
-                    Users guestAttendee = new Users();
-                    guestAttendee.setEmail(payload.attendee().getEmail());
-                    guestAttendee.setFirstName(payload.attendee.getFirstName());
-                    emailService.sendBookingOrderSummaryEmail(guestAttendee, booking, eventList, promoCode, redeemedTickets);
-                }
-            }
-        }
+    private PaymentIntent getPaymentIntentFromEvent(Event event) {
+        return (PaymentIntent) event.getDataObjectDeserializer()
+                .getObject()
+                .orElseThrow(() -> new IllegalStateException("Failed to deserialize PaymentIntent"));
     }
 
-    private void sendBookingConfirmationEmailsAsync(Bookings booking, List<WebhookService.BookingEmailPayload> payloads) {
-        for (WebhookService.BookingEmailPayload payload : payloads) {
-            try {
-                emailService.sendBookingConfirmationEmail(
-                        payload.attendee(),
-                        booking,
-                        payload.bookingEvent(),
-                        payload.tickets(),
-                        payload.allAttendees()
-                );
-            } catch (MessagingException e) {
-                e.printStackTrace();
-            }
-        }
+    // Customer opens the cashier page and starts checkout
+    @Transactional
+    public void processPaymentIntentCreated(Event event) {
+        PaymentIntent intent = getPaymentIntentFromEvent(event);
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                        .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+        paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+
+        updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
     }
 
-    private void sendBookingCancellationEmailsAsync(Bookings booking, List<WebhookService.BookingEmailPayload> payloads) {
-        for (WebhookService.BookingEmailPayload payload : payloads) {
-            try {
-                emailService.sendBookingCancellationEmail(
-                        payload.attendee(),
-                        booking,
-                        payload.bookingEvent(),
-                        payload.tickets(),
-                        payload.allAttendees()
-                );
-            } catch (MessagingException e) {
-                e.printStackTrace();
-            }
-        }
+    @Transactional
+    public void processPaymentRequiresAction(Event event) {
+        PaymentIntent intent = getPaymentIntentFromEvent(event);
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+
+        updatePaymentStatus(payment, Enums.PaymentStatus.REQUIRES_ACTION);
+        updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
     }
 
     @Transactional
@@ -208,31 +139,26 @@ public class WebhookService {
         PaymentIntent intent = getPaymentIntentFromEvent(event);
         String sessionId = intent.getPaymentDetails().getOrderReference();
 
-        Payments payment = paymentsRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
-        payment.setPaymentStatus(Enums.PaymentStatus.FAILED);
-        paymentsRepository.save(payment);
-
-        Bookings booking = bookingsRepository.findById(payment.getBookingId())
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+        updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
+
         booking.setStatus(Enums.BookingStatus.FAILED);
         bookingsRepository.save(booking);
     }
 
     @Transactional
-    public void processPaymentIntentCreated(Event event) {
-        PaymentIntent intent = getPaymentIntentFromEvent(event);
-        updateBookingStatus(intent.getPaymentDetails().getOrderReference(),
-                Enums.BookingStatus.PAYMENT_IN_PROGRESS,
-                intent.getId());
-    }
-
-    @Transactional
     public void processPaymentIntentCanceled(Event event) {
         PaymentIntent intent = getPaymentIntentFromEvent(event);
-        updateBookingStatus(intent.getPaymentDetails().getOrderReference(),
-                Enums.BookingStatus.CANCELLED,
-                intent.getId());
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+        updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
     }
 
     @Transactional
@@ -242,7 +168,13 @@ public class WebhookService {
         String paymentMethod = intent.getPaymentMethodTypes().get(0);
         String paymentIntent = intent.getId();
         LocalDateTime paidAt = dateUtils.convertToLocalDateTime(intent.getCreated());
-        confirmPayment(sessionId, paymentIntent, paymentMethod, paidAt);
+
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+
+        confirmPayment(payment, paymentIntent, paymentMethod, paidAt);
     }
 
     @Transactional
@@ -262,19 +194,19 @@ public class WebhookService {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleBookingCreatedEvent(WebhookService.BookingCreatedEvent event) {
+    public void handleBookingCreatedEvent(EmailService.BookingCreatedEvent event) {
         try {
-            sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.bookingEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
-            sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+            emailService.sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.bookingEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
+            emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleBookingReConfirmedEvent(WebhookService.BookingReConfirmedEvent event) {
+    public void handleBookingReConfirmedEvent(EmailService.BookingReConfirmedEvent event) {
         try {
-            sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+            emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -283,41 +215,34 @@ public class WebhookService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCancelledEvent(BookingService.BookingCancelledEvent event) {
         try {
-            sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads());
+            emailService.sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private PaymentIntent getPaymentIntentFromEvent(Event event) {
-        return (PaymentIntent) event.getDataObjectDeserializer()
-                .getObject()
-                .orElseThrow(() -> new IllegalStateException("Failed to deserialize PaymentIntent"));
-    }
-
-    private Session getSessionFromEvent(Event event) {
-        return (Session) event.getDataObjectDeserializer()
-                .getObject()
-                .orElseThrow(() -> new IllegalStateException("Failed to deserialize Stripe Session"));
-    }
-
-    private void updateBookingStatus(String sessionId,
-                                     Enums.BookingStatus newStatus,
-                                     String paymentIntentId) {
-
-        Payments payment = paymentsRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
-
-        if (paymentIntentId != null) {
-            payment.setPaymentIntentId(paymentIntentId);
+    void updateBookingStatus(Bookings booking, Enums.BookingStatus status) {
+        if(statusTransitioner.shouldUpdateBookingStatus(booking.getStatus(), status)) {
+            booking.setStatus(status);
+            bookingsRepository.save(booking);
         }
+    }
 
-        Bookings booking = bookingsRepository.findById(payment.getBookingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + payment.getBookingId()));
+    public void updatePaymentRecord(Payments payment, String paymentIntent,
+                                    String paymentMethod, Enums.PaymentStatus status, LocalDateTime paidAt) {
+        updatePaymentStatus(payment, status);
+        payment.setPaymentIntentId(paymentIntent);
+        payment.setPaymentChannel(Enums.PaymentChannel.valueOf(paymentMethod.toUpperCase()));
+        payment.setPaidAt(paidAt);
+        paymentsRepository.save(payment);
+    }
 
-        booking.setStatus(newStatus);
-
-        bookingsRepository.save(booking);
-        log.info("Booking {} updated to status: {}", payment.getBookingId(), newStatus);
+    void updatePaymentStatus(Payments payment, Enums.PaymentStatus status) {
+        if (status != null) {
+            if(statusTransitioner.shouldUpdatePaymentStatus(payment.getPaymentStatus(), status)) {
+                payment.setPaymentStatus(status);
+                paymentsRepository.save(payment);
+            }
+        }
     }
 }

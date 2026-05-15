@@ -44,6 +44,7 @@ public class WebhookController {
         try {
             switch (event.getType()) {
                 case "payment_intent.created" -> webhookService.processPaymentIntentCreated(event);
+                case "payment_intent.requires_action" -> webhookService.processPaymentRequiresAction(event);
                 case "payment_intent.canceled" -> webhookService.processPaymentIntentCanceled(event);
                 case "payment_intent.succeeded", "checkout.session.async_payment_succeeded" ->
                         webhookService.processSuccessfulPayment(event);

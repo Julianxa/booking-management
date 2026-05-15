@@ -23,6 +23,10 @@ public class Bookings {
     @Column(name = "ref_no", unique = true, nullable = false)
     private String refNo;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
+    private Enums.BookingType type;
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
