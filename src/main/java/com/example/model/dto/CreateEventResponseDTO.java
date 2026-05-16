@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 
 @Data
 @Builder
@@ -68,7 +67,7 @@ public class CreateEventResponseDTO {
 
     @Schema(description = "Explicit list of allowed days. ['MON','TUE','WED','THU','FRI','SAT','SUN']")
     @JsonProperty("available_days")
-    private Set<AvailableDayDTO> availableDays;
+    private List<AvailableDayDTO> availableDays;
 
     @JsonProperty("ticket_types")
     List<CreateBookingRequestDTO.TicketTypeDTO> ticketTypes;

@@ -19,8 +19,6 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.toList;
-
 @Mapper(componentModel = "spring")
 public interface EventMapper {
     @Mapping(target = "id", ignore = true)
@@ -65,25 +63,51 @@ public interface EventMapper {
         return dto;
     }
 
-    default Set<AvailableDayDTO> mapAvailableDays(Set<EventDaySchedules> availableDays) {
+    default List<AvailableDayDTO> mapAvailableDays(Set<EventDaySchedules> availableDays) {
         if (availableDays == null || availableDays.isEmpty()) {
-            return null;
+            return Collections.emptyList();
         }
 
         return availableDays.stream()
                 .collect(Collectors.groupingBy(
-                        s -> s.getId().getDay(),
+                        EventDaySchedules::getDay,
                         Collectors.mapping(
                                 s -> s.getId().getStartTime(),
-                                toList()           // Recommended
+                                Collectors.toList()
                         )
                 ))
                 .entrySet().stream()
                 .map(entry -> AvailableDayDTO.builder()
                         .day(entry.getKey())
-                        .startTimes(entry.getValue())
+                        .startTimes(sortStartTimes(entry.getValue()))
                         .build())
-                .collect(Collectors.toSet());
+                .sorted(Comparator.comparingInt(dto -> getWeekdayOrder(dto.getDay())))
+                .collect(Collectors.toList());
+    }
+
+    default List<String> sortStartTimes(List<String> times) {
+        if (times == null || times.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return times.stream()
+                .sorted(Comparator.naturalOrder())   // String comparison works well for "HH:mm" format
+                .collect(Collectors.toList());
+    }
+
+    default int getWeekdayOrder(String day) {
+        if (day == null) return 99;
+        String d = day.toUpperCase().trim();
+        return switch (d) {
+            case "MON", "MONDAY" -> 1;
+            case "TUE", "TUESDAY" -> 2;
+            case "WED", "WEDNESDAY" -> 3;
+            case "THU", "THURSDAY" -> 4;
+            case "FRI", "FRIDAY" -> 5;
+            case "SAT", "SATURDAY" -> 6;
+            case "SUN", "SUNDAY" -> 7;
+            default -> 99;
+        };
     }
 
     default List<CreateBookingRequestDTO.TicketTypeDTO> mapTicketTypes(List<TicketTypes> ticketTypes) {
@@ -99,26 +123,8 @@ public interface EventMapper {
     @Mapping(target = "id", source = "entity.refNo")
     EventAvailabilityDTO toAvailabilityResponseDTO(Events entity);
 
-    @Mapping(target = "availableDays",
-            expression = """
-                    java( entity.getAvailableDays() != null ?
-                        entity.getAvailableDays().stream()
-                            .collect(java.util.stream.Collectors.groupingBy(
-                                s -> s.getWeekday().name(),
-                                java.util.stream.Collectors.mapping(
-                                    s -> s.getId().getStartTime(),
-                                    java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new)
-                                )
-                            ))
-                            .entrySet().stream()
-                            .map(entry -> AvailableDayDTO.builder()
-                                .day(entry.getKey())
-                                .startTimes(new java.util.ArrayList<>(entry.getValue()))
-                                .build())
-                            .collect(java.util.stream.Collectors.toSet())
-                        : null )
-                    """)
     @Mapping(target = "id", source = "entity.refNo")
+    @Mapping(target = "availableDays", expression = "java(mapAvailableDays(entity.getAvailableDays()))")
     UpdateEventResponseDTO toUpdateResponseDTO(Events entity);
 
     default CreateBookingRequestDTO.EventDTO toEventDTO(Events event,

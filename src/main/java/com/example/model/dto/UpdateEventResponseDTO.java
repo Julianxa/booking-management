@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 
 @Data
 @Builder
@@ -64,7 +64,7 @@ public class UpdateEventResponseDTO {
 
     @Schema(description = "Explicit list of allowed days. ['MON','TUE','WED','THU','FRI','SAT','SUN']")
     @JsonProperty("available_days")
-    private Set<AvailableDayDTO> availableDays;
+    private List<AvailableDayDTO> availableDays;
 
     @Schema(description = "Required equipment")
     @JsonProperty("equipment")
