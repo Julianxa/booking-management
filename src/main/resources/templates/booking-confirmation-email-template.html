@@ -270,7 +270,7 @@
                                     <td
                                             style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
                                     >
-                                        <strong style="color: #1a1a1a">Telephone:</strong> +852
+                                        <strong style="color: #1a1a1a">Telephone:</strong>
                                         <span th:text="${attendee.phone}"/>
                                     </td>
                                 </tr>
@@ -284,7 +284,7 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 13px; color: #444444; line-height: 2">
-                                        <strong style="color: #1a1a1a">Gender:</strong> <span th:text="${attendee.gender}"/>
+                                        <strong style="color: #1a1a1a">Gender:</strong> <span th:text="${attendee.gender} ?: 'Prefer Not to Say'"></span>
                                     </td>
                                 </tr>
                             </table>
