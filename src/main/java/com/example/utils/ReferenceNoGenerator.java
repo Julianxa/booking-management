@@ -20,6 +20,7 @@ public class ReferenceNoGenerator {
     private final PaymentsRepository paymentsRepository;
     private final GiftCertificatesRepository giftCertificatesRepository;
     private final OrganizationsRepository organizationsRepository;
+    private final RefundsRepository refundsRepository;
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String SAFE_CHARS = "2346789ACDEFGHJKLMPQRTUVXY";
     private final TicketTypesRepository ticketTypesRepository;
@@ -31,6 +32,10 @@ public class ReferenceNoGenerator {
             case AGENT -> generateUniqueReference("A-", 10, usersRepository);
             default -> generateUniqueReference("U-", 10, usersRepository);
         };
+    }
+
+    public String generateRefundReference() throws SQLException {
+        return generateUniqueReference("R-", 10, refundsRepository);
     }
 
     public String generateOrganizationReference() throws SQLException {

@@ -87,6 +87,9 @@ public class UpdateEventRequestDTO {
     @JsonProperty("additional_info")
     private String additionalInfo;
 
+    @JsonProperty("match_ticket_quantity_with_attendees")
+    private Boolean matchTicketQuantityWithAttendees;
+
     @Schema(description = "Whether the event should be immediately visible")
     @JsonProperty("is_publish")
     private Boolean isPublish;

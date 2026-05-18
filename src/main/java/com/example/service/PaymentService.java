@@ -5,14 +5,20 @@ import com.example.constant.Enums;
 import com.example.exception.ResourceNotFoundException;
 import com.example.model.dto.CreateBookingRequestDTO;
 import com.example.model.dto.GetPaymentDetailsResponseDTO;
+import com.example.model.dto.RefundRequestDTO;
+import com.example.model.dto.RefundResponseDTO;
 import com.example.model.entity.Bookings;
 import com.example.model.entity.Payments;
+import com.example.model.entity.Refunds;
 import com.example.repository.BookingsRepository;
 import com.example.repository.PaymentsRepository;
+import com.example.repository.RefundsRepository;
 import com.example.utils.ReferenceNoGenerator;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
+import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -21,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.Instant;
+
 import static com.example.constant.Enums.PaymentPlatform.STRIPE;
 import static com.stripe.param.checkout.SessionCreateParams.PaymentMethodOptions.WechatPay.Client.WEB;
 
@@ -30,6 +38,7 @@ public class PaymentService {
     private final StripeClient stripeClient;
     private final PaymentsRepository paymentsRepository;
     private final BookingsRepository bookingsRepository;
+    private final RefundsRepository refundsRepository;
     private final ReferenceNoGenerator referenceNoGenerator;
 
     @Transactional
@@ -57,6 +66,7 @@ public class PaymentService {
                 .addPaymentMethodType(SessionCreateParams.PaymentMethodType.ALIPAY)
                 .addPaymentMethodType(SessionCreateParams.PaymentMethodType.WECHAT_PAY)
                 .setPaymentMethodOptions(paymentMethodOptions)
+                .setExpiresAt(Instant.now().plusSeconds(30 * 60).getEpochSecond())
                 .addLineItem(SessionCreateParams.LineItem.builder()
                         .setQuantity(1L)
                         .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
@@ -74,6 +84,8 @@ public class PaymentService {
                                 .putMetadata("userSub", userSub)
                                 .build()
                 )
+                .putMetadata("bookingRefNo", booking.getRefNo())
+                .putMetadata("userSub", userSub)
                 .build();
 
         Session session = stripeClient.v1().checkout().sessions().create(params);
@@ -82,22 +94,6 @@ public class PaymentService {
         bookingsRepository.save(booking);
 
         return session.getUrl();
-    }
-
-    private String appendSessionIdToUrl(String baseUrl) {
-        if (StringUtils.isBlank(baseUrl)) {
-            throw new IllegalArgumentException("Success URL is required");
-        }
-
-        String cleanUrl = baseUrl.strip();
-
-        if (cleanUrl.endsWith("/")) {
-            cleanUrl = cleanUrl.substring(0, cleanUrl.length() - 1);
-        }
-
-        String separator = cleanUrl.contains("?") ? "&" : "?";
-
-        return cleanUrl + separator + "session_id={CHECKOUT_SESSION_ID}";
     }
 
     public GetPaymentDetailsResponseDTO getPaymentDetails(String sessionId) {
@@ -121,19 +117,82 @@ public class PaymentService {
     }
 
     @Transactional
-    public Payments findOrCreatePaymentByPaymentIntentId(String sessionId, String intentId, Bookings booking) {
-        return paymentsRepository.findByPaymentIntentId(intentId)
-                .orElseGet(() -> {
-                    try {
-                        return createNewPaymentRecord(sessionId, intentId, booking);
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+    public RefundResponseDTO refundBooking(RefundRequestDTO requestDTO)
+            throws StripeException, SQLException {
+        Bookings booking = bookingsRepository.findByRefNo(requestDTO.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (refundsRepository.findByBookingIdAndSuccessOrProcessingStatus(booking.getId()) != null) {
+            throw new IllegalStateException("This payment has already been fully refunded/processing refund");
+        }
+
+        if(!booking.getCurrency().equals(requestDTO.getRefundCurrency())) {
+            throw new IllegalArgumentException("Invalid currency for this refund");
+        }
+
+        Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        Refunds r = new Refunds();
+        r.setRefNo(referenceNoGenerator.generateRefundReference());
+        r.setBookingId(booking.getId());
+        r.setCurrency(requestDTO.getRefundCurrency());
+        r.setAmount(requestDTO.getRefundAmount());
+
+        if(requestDTO.getIsFullRefund() && booking.getType().equals(Enums.BookingType.ONLINE_PAYMENT)) {
+            if (booking.getFinalPaidAmount().compareTo(requestDTO.getRefundAmount()) != 0) {
+                throw new RuntimeException("Invalid amount for full amount");
+            }
+            RefundCreateParams.Builder refundParams = RefundCreateParams.builder()
+                    .setPaymentIntent(payment.getPaymentIntentId())
+                    .setAmount(payment.getAmount().longValue())
+                    .putMetadata("bookingRefNo", booking.getRefNo())
+                    .putMetadata("paymentIntentId", payment.getPaymentIntentId());
+
+            Refund refund = stripeClient.v1().refunds().create(refundParams.build());
+
+            r.setType(Enums.RefundType.ONLINE_REFUND);
+            r.setStatus(Enums.RefundStatus.PENDING);
+            refundsRepository.save(r);
+        } else {
+            booking.setStatus(Enums.BookingStatus.REFUNDED);
+            bookingsRepository.save(booking);
+
+            payment.setPaymentStatus(Enums.PaymentStatus.REFUNDED);
+            paymentsRepository.save(payment);
+
+            r.setType(Enums.RefundType.OFFLINE_REFUND);
+            r.setStatus(Enums.RefundStatus.SUCCESS);
+            refundsRepository.save(r);
+        }
+
+        return RefundResponseDTO.builder()
+                .id(r.getRefNo())
+                .refundType(r.getType())
+                .refundAmount(r.getAmount())
+                .refundCurrency(r.getCurrency())
+                .status(r.getStatus())
+                .build();
     }
 
     @Transactional
-    public Payments createNewPaymentRecord(String sessionId, String intentId, Bookings booking) throws SQLException {
+    public Payments findOrCreatePaymentByPaymentIntentId(String sessionId, String intentId, Bookings booking) throws SQLException {
+        if(intentId == null) {
+            return createNewPaymentRecord(sessionId, null, booking);
+        } else {
+            return paymentsRepository.findByPaymentIntentId(intentId)
+                    .orElseGet(() -> {
+                        try {
+                            return createNewPaymentRecord(sessionId, intentId, booking);
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        }
+    }
+
+    @Transactional
+    private Payments createNewPaymentRecord(String sessionId, String intentId, Bookings booking) throws SQLException {
         Payments payments = Payments.builder()
                 .refNo(referenceNoGenerator.generatePaymentReference())
                 .bookingId(booking.getId())
@@ -145,5 +204,21 @@ public class PaymentService {
                 .paymentStatus(Enums.PaymentStatus.INITIATED)
                 .build();
         return paymentsRepository.save(payments);
+    }
+
+    private String appendSessionIdToUrl(String baseUrl) {
+        if (StringUtils.isBlank(baseUrl)) {
+            throw new IllegalArgumentException("Success URL is required");
+        }
+
+        String cleanUrl = baseUrl.strip();
+
+        if (cleanUrl.endsWith("/")) {
+            cleanUrl = cleanUrl.substring(0, cleanUrl.length() - 1);
+        }
+
+        String separator = cleanUrl.contains("?") ? "&" : "?";
+
+        return cleanUrl + separator + "session_id={CHECKOUT_SESSION_ID}";
     }
 }

@@ -83,6 +83,13 @@ public class Enums {
         CLOSE_WITH_BOOKINGS
     }
 
+    public enum RefundStatus {
+        PENDING,
+        PROCESSING,
+        SUCCESS,
+        FAILED
+    }
+
     public enum TicketTypeStatus {
         OPEN,
         CLOSE
@@ -119,5 +126,9 @@ public class Enums {
 
     public enum BookingType {
         OFFLINE_PAYMENT, ONLINE_PAYMENT
+    }
+
+    public enum RefundType {
+        OFFLINE_REFUND, ONLINE_REFUND
     }
 }

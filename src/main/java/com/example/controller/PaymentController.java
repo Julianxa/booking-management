@@ -1,7 +1,6 @@
 package com.example.controller;
 
-import com.example.model.dto.GetPaymentDetailsRequestDTO;
-import com.example.model.dto.GetPaymentDetailsResponseDTO;
+import com.example.model.dto.*;
 import com.example.service.PaymentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
 
 @Tag(name = "Payments", description = "Payment management APIs")
 @RequestMapping("/api/v1")
@@ -30,5 +31,22 @@ public class PaymentController {
 
         GetPaymentDetailsResponseDTO response = paymentService.getPaymentDetails(request.getSessionId());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/payments/refund")
+    public ResponseEntity<?> refund(
+            @RequestBody RefundRequestDTO request) {
+
+        try {
+            RefundResponseDTO response = paymentService.refundBooking(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    ErrorResponseDTO.builder()
+                            .message(e.getMessage())
+                            .timestamp(LocalDateTime.now().toString())
+                            .build()
+            );
+        }
     }
 }

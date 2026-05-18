@@ -51,6 +51,9 @@ public class WebhookController {
                 case "payment_intent.payment_failed", "checkout.session.async_payment_failed" ->
                         webhookService.processFailedPayment(event);
                 case "checkout.session.expired" -> webhookService.processExpiredPayment(event);
+                case "refund.created" -> webhookService.processRefundCreated(event);
+                case "refund.updated" -> webhookService.processRefundUpdated(event);
+                case "refund.failed" -> webhookService.processRefundFailed(event);
                 default -> log.info("Unhandled Stripe event type: {}", event.getType());
             }
         } catch (Exception e) {

@@ -89,4 +89,29 @@ public class StatusTransitioner {
             default -> true;
         };
     }
+
+    public boolean shouldUpdateRefundStatus(Enums.RefundStatus current, Enums.RefundStatus newStatus) {
+        if (current == null) {
+            return true;
+        }
+
+        if (current == newStatus) {
+            return false;
+        }
+
+        return switch (current) {
+            case FAILED, SUCCESS -> false;
+
+            case PENDING ->
+                    newStatus == Enums.RefundStatus.PROCESSING ||
+                            newStatus == Enums.RefundStatus.SUCCESS ||
+                            newStatus == Enums.RefundStatus.FAILED;
+
+            case PROCESSING ->
+                    newStatus == Enums.RefundStatus.SUCCESS ||
+                            newStatus == Enums.RefundStatus.FAILED;
+
+            default -> true;
+        };
+    }
 }
