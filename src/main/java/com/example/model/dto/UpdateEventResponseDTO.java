@@ -89,6 +89,9 @@ public class UpdateEventResponseDTO {
     @JsonProperty("additional_info")
     private String additionalInfo;
 
+    @JsonProperty("cancellation_policy")
+    private String cancellationPolicy;
+
     @JsonProperty("match_ticket_quantity_with_attendees")
     private Boolean matchTicketQuantityWithAttendees;
 

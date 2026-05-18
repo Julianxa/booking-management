@@ -51,6 +51,7 @@ public interface EventMapper {
         dto.setMaxCapacity(entity.getMaxCapacity());
         dto.setPrivateBookings(entity.getPrivateBookings());
         dto.setAdditionalInfo(entity.getAdditionalInfo());
+        dto.setCancellationPolicy(entity.getCancellationPolicy());
         dto.setMatchTicketQuantityWithAttendees(entity.getMatchTicketQuantityWithAttendees());
         dto.setIsPublish(entity.getIsPublish());
         dto.setMinActivityThresholdTime(entity.getMinActivityThresholdTime());

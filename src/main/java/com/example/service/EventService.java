@@ -105,6 +105,7 @@ public class EventService {
         if (dto.getMaxCapacity() != null) event.setMaxCapacity(dto.getMaxCapacity());
         if (dto.getPrivateBookings() != null) event.setPrivateBookings(dto.getPrivateBookings());
         if (dto.getAdditionalInfo() != null) event.setAdditionalInfo(dto.getAdditionalInfo());
+        if (dto.getCancellationPolicy() != null) event.setCancellationPolicy(dto.getCancellationPolicy());
         if (dto.getMatchTicketQuantityWithAttendees() != null) event.setMatchTicketQuantityWithAttendees(dto.getMatchTicketQuantityWithAttendees());
         if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
         if (dto.getMinActivityThresholdTime() != null)
