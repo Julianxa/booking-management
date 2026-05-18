@@ -82,11 +82,15 @@ public class GiftCertificateService {
         if (dto.getMessageToRecipient() != null) {
             giftCertificates.setMessageToRecipient(dto.getMessageToRecipient());
         }
+        if (dto.getEffectiveDate() != null) {
+            giftCertificates.setEffectiveDate(dto.getEffectiveDate());
+        }
         giftCertificatesRepository.save(giftCertificates);
 
         UpdateGiftCertificateResponseDTO updateGiftCertificateResponseDTO = new UpdateGiftCertificateResponseDTO();
         updateGiftCertificateResponseDTO.setId(giftCertificates.getRefNo());
         updateGiftCertificateResponseDTO.setPromoCode(giftCertificates.getPromoCode());
+        updateGiftCertificateResponseDTO.setEffectiveDate(giftCertificates.getEffectiveDate());
         updateGiftCertificateResponseDTO.setExpiryDate(giftCertificates.getExpiryDate());
         updateGiftCertificateResponseDTO.setUpdatedAt(giftCertificates.getUpdatedAt());
         updateGiftCertificateResponseDTO.setMessage("Gift Certificate is updated");

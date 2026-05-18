@@ -14,6 +14,8 @@ import java.time.LocalDate;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UpdateGiftCertificateRequestDTO {
+    @JsonProperty("effective_date")
+    private LocalDate effectiveDate;
     @FutureOrPresent(message = "Expiry date cannot be in the past")
     @JsonProperty("expiry_date")
     private LocalDate expiryDate;

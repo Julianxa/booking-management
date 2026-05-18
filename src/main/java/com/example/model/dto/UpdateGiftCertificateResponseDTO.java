@@ -19,6 +19,8 @@ public class UpdateGiftCertificateResponseDTO {
     private String id;
     @JsonProperty("promo_code")
     private String promoCode;
+    @JsonProperty("effective_date")
+    private LocalDate effectiveDate;
     @FutureOrPresent(message = "Expiry date cannot be in the past")
     @JsonProperty("expiry_date")
     private LocalDate expiryDate;
