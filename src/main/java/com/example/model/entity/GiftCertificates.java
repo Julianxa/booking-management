@@ -34,6 +34,9 @@ public class GiftCertificates {
     @Column(nullable = false, length = 20)
     private Enums.GiftCertificateType type;
 
+    @Column(name = "effective_date")
+    private LocalDate effectiveDate;
+
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
 
@@ -67,14 +70,12 @@ public class GiftCertificates {
     @Builder.Default
     private List<GiftCertificateItems> items = new ArrayList<>();
 
-    public boolean isUsable() {
-        if (cancelledAt != null) return false;
-        if (remainingQuantity < 1) return false;
-        return expiryDate == null || !expiryDate.isBefore(LocalDate.now());
-    }
-
     public boolean isExpired() {
         return expiryDate != null && expiryDate.isBefore(LocalDate.now());
+    }
+
+    public boolean isEffective() {
+        return effectiveDate != null && effectiveDate.isBefore(LocalDate.now());
     }
 
     public boolean isCancelled() {

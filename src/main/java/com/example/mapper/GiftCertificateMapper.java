@@ -16,6 +16,7 @@ public interface GiftCertificateMapper {
                 .promoCode(giftCertificates.getPromoCode())
                 .type(giftCertificates.getType())
                 .expiryDate(giftCertificates.getExpiryDate())
+                .effectiveDate(giftCertificates.getEffectiveDate())
                 .eventId(eventId)
                 .userId(userRefNo)
                 .quantity(giftCertificates.getQuantity())

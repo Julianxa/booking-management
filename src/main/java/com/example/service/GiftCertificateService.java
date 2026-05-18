@@ -125,6 +125,7 @@ public class GiftCertificateService {
                 .eventId(eventId)
                 .userId(userId)
                 .type(dto.getType())
+                .effectiveDate(dto.getEffectiveDate())
                 .expiryDate(dto.getExpiryDate())
                 .quantity(dto.getQuantity())
                 .remainingQuantity(dto.getQuantity())
@@ -222,12 +223,10 @@ public class GiftCertificateService {
         GiftCertificates gc = giftCertificatesRepository.findByPromoCodeWithLock(promoCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Gift certificate not found: " + promoCode));
 
-        if (!gc.isUsable()) {
-            if (gc.isCancelled()) throw new BadRequestException("Gift certificate has been cancelled");
-            if (gc.getRemainingQuantity() < 1) throw new BadRequestException("Gift certificate already redeemed");
-            if (gc.isExpired()) throw new BadRequestException("Gift certificate has expired");
-            throw new BadRequestException("Gift certificate is not usable");
-        }
+        if (gc.isCancelled()) throw new BadRequestException("Gift certificate has been cancelled");
+        if (gc.getRemainingQuantity() < 1) throw new BadRequestException("Gift certificate already redeemed");
+        if (gc.isExpired()) throw new BadRequestException("Gift certificate has expired");
+        if (!gc.isEffective()) throw new BadRequestException("Gift certificate has not been effective");
         return gc;
     }
 

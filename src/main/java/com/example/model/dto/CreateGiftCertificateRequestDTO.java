@@ -31,6 +31,9 @@ public class CreateGiftCertificateRequestDTO {
     @JsonProperty("type")
     private Enums.GiftCertificateType type;
 
+    @JsonProperty("effective_date")
+    private LocalDate effectiveDate;
+
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Expiry Date is required")
     @FutureOrPresent(message = "Expiry date cannot be in the past")
