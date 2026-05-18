@@ -223,10 +223,10 @@ public class GiftCertificateService {
         GiftCertificates gc = giftCertificatesRepository.findByPromoCodeWithLock(promoCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Gift certificate not found: " + promoCode));
 
-        if (gc.isCancelled()) throw new BadRequestException("Gift certificate has been cancelled");
-        if (gc.getRemainingQuantity() < 1) throw new BadRequestException("Gift certificate already redeemed");
-        if (gc.isExpired()) throw new BadRequestException("Gift certificate has expired");
-        if (!gc.isEffective()) throw new BadRequestException("Gift certificate has not been effective");
+        if (gc.isCancelled()) throw new BadRequestException("The gift certificate has been cancelled");
+        if (gc.getRemainingQuantity() < 1) throw new BadRequestException("The gift certificate already redeemed");
+        if (gc.isExpired()) throw new BadRequestException("The gift certificate has expired");
+        if (!gc.isEffective()) throw new BadRequestException("This gift certificate is not effective");
         return gc;
     }
 
