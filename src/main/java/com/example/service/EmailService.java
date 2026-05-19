@@ -155,12 +155,10 @@ public class EmailService {
                                              List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDTOs,
                                              List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) throws MessagingException {
         Context context = new Context();
-        String checkInUrl = appProperties.getBaseUrl()
-                + appProperties.getCheckin().getPath()
-                + bookingEvent.getVerificationToken();
+        String checkInToken = bookingEvent.getVerificationToken();
 
         Map<String, String> inlineImages = embedInlineImages();
-        inlineImages.put("qr", checkInUrl);
+        inlineImages.put("qr", checkInToken);
 
         EmailTemplates templates = emailTemplatesRepository.findBookingConfirmationEmailTemplate();
 

@@ -77,10 +77,8 @@ public class BookingsConverter {
 
         List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
 
-        String checkInUrl = appProperties.getBaseUrl()
-                + appProperties.getCheckin().getPath()
-                + bookingEvent.getVerificationToken();
-        String qrCodeBase64 = qRCodeGenerator.generateQrCodeBase64(checkInUrl);
+        String checkInToken = bookingEvent.getVerificationToken();
+        String qrCodeBase64 = qRCodeGenerator.generateQrCodeBase64(checkInToken);
 
         CreateBookingRequestDTO.EventDTO eventDTO;
         if (eventRefNo != null) {
