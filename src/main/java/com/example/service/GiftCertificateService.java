@@ -255,12 +255,12 @@ public class GiftCertificateService {
         return new GiftCertificateApplicationResult(gc, List.of(), item.getValue());
     }
 
-    private GiftCertificateApplicationResult applyEventType(GiftCertificates gc, List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents) {
+    private GiftCertificateApplicationResult applyEventType(GiftCertificates gc, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
         List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = new ArrayList<>();
 
-        for (CreateBookingRequestDTO.BookingEventDTO eventDTO : bookingEvents) {
-            Long eventId = eventsRepository.findIdByRefNo(eventDTO.getEvent().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + eventDTO.getEvent().getId()));
+        for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
+            Long eventId = eventsRepository.findIdByRefNo(bookingEventDTO.getEvent().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + bookingEventDTO.getEvent().getId()));
 
             if (gc.getEventId() != null && !gc.getEventId().equals(eventId)) {
                 continue;
@@ -269,7 +269,7 @@ public class GiftCertificateService {
             List<GiftCertificateItems> gcItems = giftCertificateItemRepository.getEventCertByGiftCertificateId(gc.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate items not found"));
 
-            for (CreateBookingRequestDTO.TicketTypeDTO ticketDTO : eventDTO.getTickets()) {
+            for (CreateBookingRequestDTO.TicketTypeDTO ticketDTO : bookingEventDTO.getTickets()) {
                 for (GiftCertificateItems gcItem : gcItems) {
                     Long ticketTypeId = ticketTypesRepository.findIdByRefNo(ticketDTO.getId())
                             .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found"));

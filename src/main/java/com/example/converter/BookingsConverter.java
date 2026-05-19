@@ -32,7 +32,7 @@ public class BookingsConverter {
 
 
     public CreateBookingResponseDTO toCreateBookingResponseDTO(Bookings booking, String eventRefNo) {
-        List<CreateBookingRequestDTO.BookingEventDTO> events = toBookingEventDTOs(booking, eventRefNo);
+        List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = toBookingEventDTOs(booking, eventRefNo);
 
         String giftCertificatePromoCode = null;
         if (booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
@@ -51,7 +51,7 @@ public class BookingsConverter {
                 .promoCode(giftCertificatePromoCode)
                 .status(booking.getStatus())
                 .createdAt(booking.getCreatedAt())
-                .bookingEvents(events)
+                .bookingEvents(bookingEventDTOs)
                 .build();
     }
 
