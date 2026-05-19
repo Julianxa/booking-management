@@ -19,6 +19,7 @@ public interface BookingEventsMapper {
     @Mapping(target = "id", source = "bookingEvent.refNo")
     @Mapping(target = "status", source = "bookingEvent.status")
     @Mapping(target = "notes", source = "bookingEvent.notes")
+    @Mapping(target = "answer", source = "bookingEvent.answer")
     @Mapping(target = "qrCodeBase64", source = "qrCodeBase64")
     @Mapping(target = "tickets", source = "dto.tickets")
     @Mapping(target = "event", source = "dto.event")

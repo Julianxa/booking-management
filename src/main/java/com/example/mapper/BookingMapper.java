@@ -13,12 +13,12 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface BookingMapper {
-    default CreateBookingResponseDTO toCreateResponseDTO(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> eventList, String promoCode, String checkoutUrl) {
+    default CreateBookingResponseDTO toCreateResponseDTO(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs, String promoCode, String checkoutUrl) {
         CreateBookingResponseDTO createBookingResponseDTO = new CreateBookingResponseDTO();
         createBookingResponseDTO.setId(booking.getRefNo());
         createBookingResponseDTO.setType(booking.getType());
         createBookingResponseDTO.setStatus(booking.getStatus());
-        createBookingResponseDTO.setBookingEvents(eventList);
+        createBookingResponseDTO.setBookingEvents(bookingEventDTOs);
         createBookingResponseDTO.setTotalPaidAmount(booking.getTotalPaidPrice());
         createBookingResponseDTO.setDiscount(booking.getDiscount());
         createBookingResponseDTO.setFinalPaidAmount(booking.getFinalPaidAmount());

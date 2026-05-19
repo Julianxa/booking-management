@@ -90,6 +90,9 @@ public class UpdateEventRequestDTO {
     @JsonProperty("cancellation_policy")
     private String cancellationPolicy;
 
+    @JsonProperty("custom_question")
+    private String customQuestion;
+
     @JsonProperty("match_ticket_quantity_with_attendees")
     private Boolean matchTicketQuantityWithAttendees;
 

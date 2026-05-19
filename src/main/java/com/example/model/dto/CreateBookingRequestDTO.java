@@ -70,7 +70,11 @@ public class CreateBookingRequestDTO {
         @Schema(accessMode = Schema.AccessMode.READ_ONLY)
         private BigDecimal total;
 
+        @JsonProperty("notes")
         private String notes;
+
+        @JsonProperty("answer")
+        private String answer;
 
         @JsonProperty("qr_code_base64")
         @Schema(accessMode = Schema.AccessMode.READ_ONLY)

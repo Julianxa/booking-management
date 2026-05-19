@@ -89,6 +89,9 @@ public class UpdateEventResponseDTO {
     @JsonProperty("additional_info")
     private String additionalInfo;
 
+    @JsonProperty("custom_question")
+    private String customQuestion;
+
     @JsonProperty("cancellation_policy")
     private String cancellationPolicy;
 

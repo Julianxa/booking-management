@@ -41,6 +41,9 @@ public class BookingEvents {
     @Column(name = "notes")
     private String notes;
 
+    @Column(name = "answer")
+    private String answer;
+
     @Column(name = "total")
     private BigDecimal total;
 

@@ -102,6 +102,7 @@ public class BookingsConverter {
                 .total(bookingEvent.getTotal())
                 .status(bookingEvent.getStatus())
                 .notes(bookingEvent.getNotes())
+                .answer(bookingEvent.getAnswer())
                 .attendees(attendeeDTOs)
                 .tickets(ticketDTOs)
                 .qrCodeBase64(qrCodeBase64)

@@ -67,6 +67,8 @@ public class Events {
     private String additionalInfo;
     @Column(name = "cancellation_policy")
     private String cancellationPolicy;
+    @Column(name = "custom_question")
+    private String customQuestion;
     @Column(name = "match_ticket_quantity_with_attendees")
     private Boolean matchTicketQuantityWithAttendees;
     @Column(name = "is_publish")

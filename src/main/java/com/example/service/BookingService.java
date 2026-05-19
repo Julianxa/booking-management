@@ -304,6 +304,10 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Active Event not found with reference no: " + bookingEventDTO.getEvent().getId()));
 
+        if(event.getCustomQuestion() != null && bookingEventDTO.getAnswer() == null) {
+            throw new RuntimeException("Please provide an answer to the question");
+        }
+
         // 2. Validate Schedule
         String dayValue = dateUtils.getDayValueForDate(bookingEventDTO.getEvent().getEventDate());
 
@@ -466,6 +470,7 @@ public class BookingService {
                 .eventDate(bookingEventDTO.getEvent().getEventDate())
                 .eventTime(bookingEventDTO.getEvent().getEventTime())
                 .notes(bookingEventDTO.getNotes())
+                .answer(bookingEventDTO.getAnswer())
                 .verificationToken(qRCodeGenerator.generateVerificationToken())
                 .status(PENDING)
                 .build();
@@ -498,31 +503,30 @@ public class BookingService {
 
     private CreateBookingResponseDTO handlePostBookingProcessing(Users user, Bookings booking,
                                                                  CreateBookingRequestDTO request,
-                                                                 List<CreateBookingRequestDTO.BookingEventDTO> eventDTOs)
+                                                                 List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs)
             throws StripeException, SQLException {
 
         if (user == null) { // Public user
             String checkoutUrl = paymentService.createCheckoutSession(null, request, booking);
             booking.setType(Enums.BookingType.ONLINE_PAYMENT);
             bookingsRepository.save(booking);
-            return bookingMapper.toCreateResponseDTO(booking, eventDTOs, request.getPromoCode(), checkoutUrl);
+            return bookingMapper.toCreateResponseDTO(booking, bookingEventDTOs, request.getPromoCode(), checkoutUrl);
+        } else { // Admin/Agent flow
+            GiftCertificates gc = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
+            GiftCertificateApplicationResult result =
+                    giftCertificateService.handleGiftCertificateRedemption(booking, gc, user.getId());
+
+            List<EmailService.BookingEmailPayload> emailPayloads = webhookService.activateBookingEvents(bookingEventDTOs);
+
+            booking.setStatus(Enums.BookingStatus.SUCCESS);
+            booking.setType(Enums.BookingType.OFFLINE_PAYMENT);
+            bookingsRepository.save(booking);
+
+            webhookService.updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
+            webhookService.publishBookingConfirmedEvent(user, booking, bookingEventDTOs, result, emailPayloads);
+
+            return bookingMapper.toCreateResponseDTO(booking, bookingEventDTOs, request.getPromoCode(), null);
         }
-
-        // Admin/Agent flow
-        GiftCertificates gc = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
-        GiftCertificateApplicationResult result =
-                giftCertificateService.handleGiftCertificateRedemption(booking, gc, user.getId());
-
-        List<EmailService.BookingEmailPayload> emailPayloads = webhookService.activateBookingEvents(eventDTOs);
-
-        booking.setStatus(Enums.BookingStatus.SUCCESS);
-        booking.setType(Enums.BookingType.OFFLINE_PAYMENT);
-        bookingsRepository.save(booking);
-
-        webhookService.updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
-        webhookService.publishBookingConfirmedEvent(user, booking, eventDTOs, result, emailPayloads);
-
-        return bookingMapper.toCreateResponseDTO(booking, eventDTOs, request.getPromoCode(), null);
     }
 
     private void updateEventStatusAndPublishEvent(BookingEvents event, Enums.BookingEventStatus newStatus,
