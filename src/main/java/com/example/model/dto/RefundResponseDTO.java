@@ -33,4 +33,7 @@ public class RefundResponseDTO {
 
     @JsonProperty("status")
     private Enums.RefundStatus status;
+
+    @JsonProperty("remarks")
+    private String remarks;
 }

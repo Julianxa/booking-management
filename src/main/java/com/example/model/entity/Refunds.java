@@ -42,6 +42,9 @@ public class Refunds {
     @Column(name = "status")
     private Enums.RefundStatus status;
 
+    @Column(name = "remarks")
+    private String remarks;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

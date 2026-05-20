@@ -21,4 +21,6 @@ public class RefundRequestDTO {
     private String refundCurrency;
     @JsonProperty("is_full_refund")
     private Boolean isFullRefund;
+    @JsonProperty("remarks")
+    private String remarks;
 }

@@ -138,6 +138,7 @@ public class PaymentService {
         r.setBookingId(booking.getId());
         r.setCurrency(requestDTO.getRefundCurrency());
         r.setAmount(requestDTO.getRefundAmount());
+        r.setRemarks(requestDTO.getRemarks());
 
         if(requestDTO.getIsFullRefund() && booking.getType().equals(Enums.BookingType.ONLINE_PAYMENT)) {
             if (booking.getFinalPaidAmount().compareTo(requestDTO.getRefundAmount()) != 0) {
@@ -145,7 +146,7 @@ public class PaymentService {
             }
             RefundCreateParams.Builder refundParams = RefundCreateParams.builder()
                     .setPaymentIntent(payment.getPaymentIntentId())
-                    .setAmount(payment.getAmount().longValue())
+                    .setAmount(payment.getAmount().longValue() * 100)
                     .putMetadata("bookingRefNo", booking.getRefNo())
                     .putMetadata("paymentIntentId", payment.getPaymentIntentId());
 
@@ -154,7 +155,14 @@ public class PaymentService {
             r.setType(Enums.RefundType.ONLINE_REFUND);
             r.setStatus(Enums.RefundStatus.PENDING);
             refundsRepository.save(r);
-        } else {
+        } else if (booking.getType().equals(Enums.BookingType.OFFLINE_PAYMENT)) { // Offline Payment with Offline Refund
+            booking.setStatus(Enums.BookingStatus.REFUNDED);
+            bookingsRepository.save(booking);
+
+            r.setType(Enums.RefundType.OFFLINE_REFUND);
+            r.setStatus(Enums.RefundStatus.SUCCESS);
+            refundsRepository.save(r);
+        } else { // Online Payment but Offline Refund
             booking.setStatus(Enums.BookingStatus.REFUNDED);
             bookingsRepository.save(booking);
 
@@ -172,6 +180,7 @@ public class PaymentService {
                 .refundAmount(r.getAmount())
                 .refundCurrency(r.getCurrency())
                 .status(r.getStatus())
+                .remarks(r.getRemarks())
                 .build();
     }
 
