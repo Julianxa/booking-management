@@ -17,11 +17,9 @@ import java.time.LocalDate;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UpdateEventStatusRequestDTO {
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Event Date is required")
     @JsonProperty("event_date")
     private LocalDate eventDate;
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Event Time is required")
     @JsonProperty("event_time")
     private String eventTime;

@@ -340,7 +340,11 @@ public class EventController {
     public ResponseEntity<?> updateEventStatus(@PathVariable String id,
                                                @RequestBody UpdateEventStatusRequestDTO request) {
         try {
-            UpdateEventStatusResponseDTO updateEventStatusResponseDTO = eventService.updateEventStatus(id, request);
+            UpdateEventStatusResponseDTO updateEventStatusResponseDTO;
+            if(request.getEventDate() != null && request.getEventTime() != null) // update the status of an event's specific time slot
+                updateEventStatusResponseDTO = eventService.updateEventStatusByDateAndTime(id, request);
+            else // update the status of an event
+                updateEventStatusResponseDTO = eventService.updateEventStatus(id, request);
             return ResponseEntity.ok(updateEventStatusResponseDTO);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(404).body(

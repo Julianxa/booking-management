@@ -83,11 +83,29 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
             WHERE event_id = :eventId
               AND event_date = :eventDate
               AND event_time = :eventTime
+              AND status = :currentStatus
             """, nativeQuery = true)
     void updateCancelStatusBookingsByEventTimeSlot(
             @Param("eventId") Long eventId,
             @Param("eventDate") LocalDate eventDate,
             @Param("eventTime") String eventTime,
+            @Param("currentStatus") String currentStatus,
+            @Param("status") String status,
+            @Param("cancelledAt") LocalDateTime cancelledAt);
+
+    @Modifying
+    @Transactional
+    @Query(value = """
+            UPDATE booking_events
+            SET status = :status,
+                cancelled_at = :cancelledAt,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE event_id = :eventId
+              AND status = :currentStatus
+            """, nativeQuery = true)
+    void updateCancelStatusBookingsByEventId(
+            @Param("eventId") Long eventId,
+            @Param("currentStatus") String currentStatus,
             @Param("status") String status,
             @Param("cancelledAt") LocalDateTime cancelledAt);
 }

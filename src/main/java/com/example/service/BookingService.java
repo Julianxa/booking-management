@@ -304,11 +304,22 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Active Event not found with reference no: " + bookingEventDTO.getEvent().getId()));
 
+        // 2. Validate a specific time slot availability of event
+        List<EventTimeSlotException> exceptions = eventTimeSlotExceptionsRepository.findByEventIdAndExceptionDateAndTime(event.getId(), bookingEventDTO.getEvent().getEventDate(), bookingEventDTO.getEvent().getEventTime());
+        if(exceptions.size() > 0)
+            throw new BadRequestException(
+                    String.format("The time slot %s at %s is not available for '%s'",
+                            bookingEventDTO.getEvent().getEventDate(),
+                            bookingEventDTO.getEvent().getEventTime(),
+                            event.getName())
+            );
+
+        // 3. Validate the answer if question is required
         if(event.getCustomQuestion() != null && bookingEventDTO.getAnswer() == null) {
             throw new RuntimeException("Please provide an answer to the question");
         }
 
-        // 2. Validate Schedule
+        // 4. Validate Schedule
         String dayValue = dateUtils.getDayValueForDate(bookingEventDTO.getEvent().getEventDate());
 
         eventDaySchedulesRepository.findByEventIdAndDayAndStartTime(
@@ -317,23 +328,23 @@ public class BookingService {
                         String.format("Schedule not found for event %s on %s at %s",
                                 event.getName(), dayValue, bookingEventDTO.getEvent().getEventTime())));
 
-        // 3. Capacity Check
+        // 5. Capacity Check
         checkEventTimeSlotQuota(dayValue, event, bookingEventDTO);
 
-        // 4. Create Booking Event
+        // 6. Create Booking Event
         BookingEvents bookingEvent = registerBookingEvent(booking, event, bookingEventDTO);
 
-        // 5. Register Items + Calculate Total
+        // 7. Register Items + Calculate Total
         BigDecimal bookingEventTotal = registerBookingItemsForBookingEvent(bookingEventDTO, bookingEvent);
 
-        // 6. Update total
+        // 8. Update total
         bookingEvent.setTotal(bookingEventTotal);
         bookingEvent = bookingEventsRepository.save(bookingEvent);
 
-        // 7. Register Attendees
+        // 9. Register Attendees
         registerAttendeesForEvent(bookingEventDTO, bookingEvent);
 
-        // 8. Enrich ticket names (this is the right place)
+        // 10. Enrich ticket names (this is the right place)
         enrichTicketNames(bookingEventDTO.getTickets());
 
         CreateBookingRequestDTO.BookingEventDTO responseEventDTO =
@@ -482,6 +493,7 @@ public class BookingService {
 
         BigDecimal grandTotal = BigDecimal.ZERO;
 
+        // book event one by one
         for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
             BookingEventProcessingResult result = processSingleBookingEvent(booking, bookingEventDTO);
             grandTotal = grandTotal.add(result.total());

@@ -22,6 +22,7 @@ public interface EventTimeSlotExceptionsRepository extends JpaRepository<EventTi
     @Query(value = """
             SELECT
                 e.ref_no AS event_id,
+                etse.exception_date AS event_date,
                 etse.exception_time AS event_time
             FROM events e
             INNER JOIN event_time_slot_exceptions etse ON e.id = etse.event_id
@@ -34,6 +35,7 @@ public interface EventTimeSlotExceptionsRepository extends JpaRepository<EventTi
     @Query(value = """
             SELECT
                 e.ref_no AS event_id,
+                etse.exception_date AS event_date,
                 etse.exception_time AS event_time
             FROM events e
             INNER JOIN event_time_slot_exceptions etse ON e.id = etse.event_id
@@ -41,4 +43,18 @@ public interface EventTimeSlotExceptionsRepository extends JpaRepository<EventTi
               AND etse.exception_date = :exceptionDate
             """, nativeQuery = true)
     List<EventTimeSlotException> findExceptionTimeByExceptionDate(LocalDate exceptionDate);
+
+    @Query(value = """
+            SELECT
+                e.ref_no AS event_id,
+                etse.exception_date AS event_date,
+                etse.exception_time AS event_time
+            FROM events e
+            INNER JOIN event_time_slot_exceptions etse ON e.id = etse.event_id
+            WHERE e.deleted_at IS NULL
+              AND e.id = :eventId
+              AND etse.exception_date = :exceptionDate
+              AND etse.exception_time = :exceptionTime
+            """, nativeQuery = true)
+    List<EventTimeSlotException> findByEventIdAndExceptionDateAndTime(Long eventId, LocalDate exceptionDate, String exceptionTime);
 }

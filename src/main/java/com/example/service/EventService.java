@@ -138,7 +138,7 @@ public class EventService {
     }
 
     @Transactional
-    public UpdateEventStatusResponseDTO updateEventStatus(String eventRefNo, UpdateEventStatusRequestDTO updateEventStatusRequestDTO) {
+    public UpdateEventStatusResponseDTO updateEventStatusByDateAndTime(String eventRefNo, UpdateEventStatusRequestDTO updateEventStatusRequestDTO) {
         Events event = eventsRepository.findByRefNo(eventRefNo)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
 
@@ -158,6 +158,7 @@ public class EventService {
             bookingEventsRepository.updateCancelStatusBookingsByEventTimeSlot(event.getId(),
                     updateEventStatusRequestDTO.getEventDate(),
                     updateEventStatusRequestDTO.getEventTime(),
+                    AVAILABLE.toString(),
                     CANCELLED.toString(),
                     actionAt);
 
@@ -178,6 +179,68 @@ public class EventService {
             bookingEventsRepository.updateCancelStatusBookingsByEventTimeSlot(event.getId(),
                     updateEventStatusRequestDTO.getEventDate(),
                     updateEventStatusRequestDTO.getEventTime(),
+                    CANCELLED.toString(),
+                    AVAILABLE.toString(),
+                    null);
+
+            updateEventStatusResponseDTO.setStatus(OPEN);
+            updateEventStatusResponseDTO.setMessage("Event opened and related bookings are restored successfully");
+        } else {
+            throw new IllegalArgumentException("Invalid EventStatus: " + updateEventStatusRequestDTO.getStatus() +
+                    ". Allowed values are: OPEN, CLOSE, OPEN_WITH_BOOKINGS, CLOSE_WITH_BOOKINGS");
+        }
+
+        updateEventStatusResponseDTO.setEventRefNo(eventRefNo);
+        updateEventStatusResponseDTO.setTimestamp(actionAt);
+        return updateEventStatusResponseDTO;
+    }
+
+    @Transactional
+    public UpdateEventStatusResponseDTO updateEventStatus(String eventRefNo, UpdateEventStatusRequestDTO updateEventStatusRequestDTO) {
+        Events event = eventsRepository.findByRefNo(eventRefNo)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+
+        LocalDateTime actionAt = LocalDateTime.now();
+        UpdateEventStatusResponseDTO updateEventStatusResponseDTO = new UpdateEventStatusResponseDTO();
+        if (updateEventStatusRequestDTO.getStatus() == CLOSE) {
+            event.setStatus(CLOSE);
+            event.setDeletedAt(actionAt);
+            event.setUpdatedAt(actionAt);
+            eventsRepository.save(event);
+
+            updateEventStatusResponseDTO.setStatus(CLOSE);
+            updateEventStatusResponseDTO.setClosedAt(actionAt);
+            updateEventStatusResponseDTO.setMessage("Event closed successfully");
+        } else if (updateEventStatusRequestDTO.getStatus() == CLOSE_WITH_BOOKINGS) {
+            event.setStatus(CLOSE);
+            event.setDeletedAt(actionAt);
+            event.setUpdatedAt(actionAt);
+            eventsRepository.save(event);
+
+            bookingEventsRepository.updateCancelStatusBookingsByEventId(event.getId(),
+                    AVAILABLE.toString(),
+                    CANCELLED.toString(),
+                    actionAt);
+
+            updateEventStatusResponseDTO.setStatus(CLOSE);
+            updateEventStatusResponseDTO.setClosedAt(actionAt);
+            updateEventStatusResponseDTO.setMessage("Event closed and related bookings are cancelled successfully");
+        } else if (updateEventStatusRequestDTO.getStatus() == OPEN) {
+            event.setStatus(OPEN);
+            event.setDeletedAt(null);
+            event.setUpdatedAt(actionAt);
+            eventsRepository.save(event);
+
+            updateEventStatusResponseDTO.setStatus(OPEN);
+            updateEventStatusResponseDTO.setMessage("Event opened successfully");
+        } else if (updateEventStatusRequestDTO.getStatus() == OPEN_WITH_BOOKINGS) {
+            event.setStatus(OPEN);
+            event.setDeletedAt(null);
+            event.setUpdatedAt(actionAt);
+            eventsRepository.save(event);
+
+            bookingEventsRepository.updateCancelStatusBookingsByEventId(event.getId(),
+                    CANCELLED.toString(),
                     AVAILABLE.toString(),
                     null);
 
