@@ -1,9 +1,9 @@
 package com.example.service;
 
 import com.example.constant.Enums;
-import com.example.exception.InvalidEmailPasswordException;
-import com.example.exception.ResourceNotFoundException;
-import com.example.exception.UnverifiedEmailException;
+import com.example.exception.user.InvalidEmailPasswordException;
+import com.example.exception.email.UnverifiedEmailException;
+import com.example.exception.user.UserNotFoundException;
 import com.example.model.dto.*;
 import com.example.model.entity.Users;
 import com.example.model.entity.UsersLoginHistory;
@@ -11,7 +11,6 @@ import com.example.repository.UsersLoginHistoryRepository;
 import com.example.repository.UsersRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.GlobalSignOutResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
@@ -25,13 +24,12 @@ import static com.example.constant.Enums.UserStatus.CONFIRMED;
 @RequiredArgsConstructor
 public class TokenService {
     private final AwsService awsService;
-    private final UserService userService;
     private final UsersRepository usersRepository;
     private final UsersLoginHistoryRepository usersLoginHistoryRepository;
 
-    public LoginResponseDTO login(LoginRequestDTO loginRequestDTO, HttpServletRequest httpServletRequest) throws UnverifiedEmailException, InvalidEmailPasswordException, BadRequestException {
+    public LoginResponseDTO login(LoginRequestDTO loginRequestDTO, HttpServletRequest httpServletRequest) {
         Users user = usersRepository.findByEmail(loginRequestDTO.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("User not found with email %s", loginRequestDTO.getEmail())));
         try {
             InitiateAuthResponse res = awsService.login(loginRequestDTO);
 
@@ -58,7 +56,7 @@ public class TokenService {
 
     public TokenRenewalResponseDTO refresh(TokenRenewalRequestDTO tokenRenewalRequestDTO) {
         Users user = usersRepository.findByEmailAndStatus(tokenRenewalRequestDTO.getEmail(), CONFIRMED)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         if (user != null) {
             tokenRenewalRequestDTO.setUserSub(user.getUserSub());
             InitiateAuthResponse res = awsService.refresh(tokenRenewalRequestDTO);

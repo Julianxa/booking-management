@@ -1,6 +1,6 @@
 package com.example.controller;
 
-import com.example.exception.ResourceNotFoundException;
+
 import com.example.model.dto.*;
 import com.example.service.EventService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,20 +66,9 @@ public class EventController {
                     type = "string",
                     implementation = CreateEventRequestDTO.class,
                     format = "textarea") String createEventRequestDTOJson) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.registerModule(new JavaTimeModule());
-            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-            CreateEventRequestDTO createEventRequestDTO = mapper.readValue(createEventRequestDTOJson, CreateEventRequestDTO.class);
-            return ResponseEntity.ok(eventService.createEvent(createEventRequestDTO, eventPic));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+
+
+        return ResponseEntity.ok(eventService.createEvent(createEventRequestDTOJson, eventPic));
     }
 
     @Operation(
@@ -103,24 +92,8 @@ public class EventController {
     )
     @GetMapping("/events/{id}")
     public ResponseEntity<?> getEvent(@PathVariable String id) {
-        try {
-            CreateEventResponseDTO createEventResponseDTO = eventService.getEvent(id);
-            return ResponseEntity.ok(createEventResponseDTO);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        CreateEventResponseDTO createEventResponseDTO = eventService.getEvent(id);
+        return ResponseEntity.ok(createEventResponseDTO);
     }
 
     @Operation(
@@ -148,25 +121,9 @@ public class EventController {
                                                   )
                                                   @RequestParam(required = false)
                                                   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        try {
-            EventAvailabilityDTO events = eventService.getAvailability(isPublishedOnly, id, date);
+        EventAvailabilityDTO events = eventService.getAvailability(isPublishedOnly, id, date);
 
-            return ResponseEntity.ok(events);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(events);
     }
 
     @Operation(
@@ -199,27 +156,11 @@ public class EventController {
             )
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            GetListEventAvailabilityResponseDTO events = eventService.getAllAvailabilities(isPublishedOnly, pageable, search, date);
+        GetListEventAvailabilityResponseDTO events = eventService.getAllAvailabilities(isPublishedOnly, pageable, search, date);
 
-            return ResponseEntity.ok(events);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(events);
     }
 
     @Operation(
@@ -245,27 +186,11 @@ public class EventController {
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
             @RequestParam(required = false) String search) {
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            GetListEventResponseDTO events = eventService.getAllEvents(isPublishedOnly, pageable, search);
+        GetListEventResponseDTO events = eventService.getAllEvents(isPublishedOnly, pageable, search);
 
-            return ResponseEntity.ok(events);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(events);
     }
 
     @Operation(
@@ -300,22 +225,8 @@ public class EventController {
                                             implementation = UpdateEventRequestDTO.class,
                                             format = "textarea") String updateEventRequestDTOJson
     ) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.registerModule(new JavaTimeModule());
-            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-            UpdateEventRequestDTO updateEventRequestDTO = mapper.readValue(updateEventRequestDTOJson, UpdateEventRequestDTO.class);
-
-            UpdateEventResponseDTO updateEventResponseDTO = eventService.updateEvent(id, updateEventRequestDTO, eventPic);
-            return ResponseEntity.ok(updateEventResponseDTO);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        UpdateEventResponseDTO updateEventResponseDTO = eventService.updateEvent(id, updateEventRequestDTOJson, eventPic);
+        return ResponseEntity.ok(updateEventResponseDTO);
     }
 
     @Operation(
@@ -339,28 +250,12 @@ public class EventController {
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<?> updateEventStatus(@PathVariable String id,
                                                @RequestBody UpdateEventStatusRequestDTO request) {
-        try {
-            UpdateEventStatusResponseDTO updateEventStatusResponseDTO;
-            if(request.getEventDate() != null && request.getEventTime() != null) // update the status of an event's specific time slot
-                updateEventStatusResponseDTO = eventService.updateEventStatusByDateAndTime(id, request);
-            else // update the status of an event
-                updateEventStatusResponseDTO = eventService.updateEventStatus(id, request);
-            return ResponseEntity.ok(updateEventStatusResponseDTO);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        UpdateEventStatusResponseDTO updateEventStatusResponseDTO;
+        if(request.getEventDate() != null && request.getEventTime() != null) // update the status of an event's specific time slot
+            updateEventStatusResponseDTO = eventService.updateEventStatusByDateAndTime(id, request);
+        else // update the status of an event
+            updateEventStatusResponseDTO = eventService.updateEventStatus(id, request);
+        return ResponseEntity.ok(updateEventStatusResponseDTO);
     }
 
     @Operation(
@@ -401,17 +296,8 @@ public class EventController {
             @PathVariable("id") String id,
             @RequestBody CreateTicketTypeRequestDTO dto) {
 
-        try {
-            CreateTicketTypeResponseDTO response = eventService.createTicketType(id, dto);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        CreateTicketTypeResponseDTO response = eventService.createTicketType(id, dto);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -452,17 +338,8 @@ public class EventController {
             @PathVariable String ticketTypeId,
             @Valid @RequestBody UpdateTicketTypeRequestDTO dto) {
 
-        try {
-            UpdateTicketTypeResponseDTO response = eventService.updateTicketType(id, ticketTypeId, dto);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        UpdateTicketTypeResponseDTO response = eventService.updateTicketType(id, ticketTypeId, dto);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -502,17 +379,8 @@ public class EventController {
             @PathVariable String id,
             @PathVariable String ticketTypeId,
             @RequestBody UpdateTicketTypeStatusRequestDTO request) {
-        try {
-            UpdateTicketTypeStatusResponseDTO updateTicketTypeStatusResponseDTO = eventService.updateTicketTypeStatus(id, ticketTypeId, request);
-            return ResponseEntity.ok(updateTicketTypeStatusResponseDTO);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        UpdateTicketTypeStatusResponseDTO updateTicketTypeStatusResponseDTO = eventService.updateTicketTypeStatus(id, ticketTypeId, request);
+        return ResponseEntity.ok(updateTicketTypeStatusResponseDTO);
     }
 
     @Operation(
@@ -548,25 +416,8 @@ public class EventController {
     )
     @GetMapping("/events/{id}/ticket-types")
     public ResponseEntity<?> getTicketTypesByEvent(@PathVariable String id) {
-
-        try {
-            List<CreateTicketTypeResponseDTO> ticketTypes = eventService.getTicketTypesByEventId(id);
-            return ResponseEntity.ok(ticketTypes);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        List<CreateTicketTypeResponseDTO> ticketTypes = eventService.getTicketTypesByEventId(id);
+        return ResponseEntity.ok(ticketTypes);
     }
 
     @Operation(
@@ -603,24 +454,8 @@ public class EventController {
     @GetMapping("/events/checkin")
     public ResponseEntity<?> checkin(@RequestParam("token") String token,
                                      @RequestHeader(value = "X-Access-Token", required = false) String accessToken) {
-        try {
-            InitiateCheckInResponseDTO initiateCheckInResponseDTO = eventService.initiateCheckIn(token);
-            return ResponseEntity.ok(initiateCheckInResponseDTO);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        InitiateCheckInResponseDTO initiateCheckInResponseDTO = eventService.initiateCheckIn(token);
+        return ResponseEntity.ok(initiateCheckInResponseDTO);
     }
 
     @Operation(
@@ -640,26 +475,10 @@ public class EventController {
                     @ApiResponse(responseCode = "401", description = "Unauthorized")
             }
     )
-    @PreAuthorize("hasRole('EMPLOYEE')")
+//    @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping("/events/confirm")
     public ResponseEntity<?> confirmCheckIn(@RequestBody ConfirmCheckinRequestDTO request) {
-        try {
-            ConfirmCheckinResponseDTO response = eventService.confirmCheckIn(request);
-            return ResponseEntity.ok(response);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        ConfirmCheckinResponseDTO response = eventService.confirmCheckIn(request);
+        return ResponseEntity.ok(response);
     }
 }

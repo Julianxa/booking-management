@@ -1,7 +1,8 @@
 package com.example.converter;
 
 import com.example.config.AppProperties;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.event.EventNotFoundException;
+import com.example.exception.giftCertificate.GCRedemptionNotFoundException;
 import com.example.mapper.EventMapper;
 import com.example.model.dto.CreateBookingRequestDTO;
 import com.example.model.dto.CreateBookingResponseDTO;
@@ -37,7 +38,7 @@ public class BookingsConverter {
         String giftCertificatePromoCode = null;
         if (booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
             GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate Redemption not found by booking refNo: " + booking.getRefNo()));
+                    .orElseThrow(() -> new GCRedemptionNotFoundException(String.format("Gift Certificate Redemption not found with booking ID %s", booking.getRefNo())));
             giftCertificatePromoCode = giftCertificatesRepository.findPromoCodeById(redemption.getGiftCertificateId());
         }
 
@@ -83,11 +84,11 @@ public class BookingsConverter {
         CreateBookingRequestDTO.EventDTO eventDTO;
         if (eventRefNo != null) {
             Events event = eventsRepository.findByRefNo(eventRefNo)
-                    .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+                    .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
             eventDTO = eventMapper.toEventDTO(event, bookingEvent);
         } else {
             Events event = eventsRepository.findById(bookingEvent.getEvent().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+                    .orElseThrow(() -> new EventNotFoundException("Event not found"));
             eventDTO = eventMapper.toEventDTO(event, bookingEvent);
         }
 

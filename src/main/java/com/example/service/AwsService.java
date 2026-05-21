@@ -2,7 +2,8 @@ package com.example.service;
 
 import com.example.config.AwsConfig;
 import com.example.exception.InvalidIdTokenException;
-import com.example.exception.UnverifiedEmailException;
+import com.example.exception.general.MissingRequiredFieldException;
+import com.example.exception.user.UnverifiedEmailException;
 import com.example.model.dto.*;
 import com.example.utils.CognitoJwtParser;
 import com.example.utils.FileUtils;
@@ -171,7 +172,7 @@ public class AwsService {
         cognitoClient.initiateAuth(authRequest);
     }
 
-    public InitiateAuthResponse login(LoginRequestDTO loginRequestDTO) throws UnverifiedEmailException {
+    public InitiateAuthResponse login(LoginRequestDTO loginRequestDTO) {
         boolean isEmailVerified = isEmailVerified(loginRequestDTO.getEmail());
 
         if (!isEmailVerified) {
@@ -209,7 +210,7 @@ public class AwsService {
         return cognitoClient.initiateAuth(authRequest);
     }
 
-    public void forgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO) throws UnverifiedEmailException {
+    public void forgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO) {
         boolean isEmailVerified = isEmailVerified(forgotPasswordRequestDTO.getEmail());
 
         if (!isEmailVerified) {
@@ -410,7 +411,7 @@ public class AwsService {
 
     public void deleteFile(String key) {
         if (key == null || key.isEmpty()) {
-            throw new IllegalArgumentException("File key cannot be null or empty");
+            throw new MissingRequiredFieldException("File key cannot be null or empty");
         }
 
         DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()

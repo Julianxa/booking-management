@@ -1,6 +1,5 @@
 package com.example.controller;
 
-import com.example.exception.ResourceNotFoundException;
 import com.example.model.dto.*;
 import com.example.service.GiftCertificateService;
 import com.example.utils.UserUtils;
@@ -51,26 +50,10 @@ public class GiftCertificateController {
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @RequestHeader(value = "X-Access-Token", required = false) String accessToken,
             @Valid @RequestBody CreateGiftCertificateRequestDTO createGiftCertificateRequestDTO) {
-        try {
-            String userSub = userUtils.extractUserSub(authorizationHeader);
+        String userSub = userUtils.extractUserSub(authorizationHeader);
 
-            CreateGiftCertificateResponseDTO response = giftCertificateService.createCertificate(userSub, createGiftCertificateRequestDTO);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        CreateGiftCertificateResponseDTO response = giftCertificateService.createCertificate(userSub, createGiftCertificateRequestDTO);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -96,18 +79,9 @@ public class GiftCertificateController {
             @RequestHeader(value = "X-Access-Token", required = false) String accessToken,
             @Valid @RequestBody UpdateGiftCertificateRequestDTO request) {
 
-        try {
-            String userSub = userUtils.extractUserSub(authorizationHeader);
-            UpdateGiftCertificateResponseDTO response = giftCertificateService.updateCertificate(promoCode, request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        String userSub = userUtils.extractUserSub(authorizationHeader);
+        UpdateGiftCertificateResponseDTO response = giftCertificateService.updateCertificate(promoCode, request);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -128,22 +102,7 @@ public class GiftCertificateController {
     )
     @GetMapping("/gift-certificates/{promoCode}")
     public ResponseEntity<?> getCertificate(@PathVariable String promoCode) {
-        try {
-            return ResponseEntity.ok(giftCertificateService.getCertificate(promoCode));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build());
-        }
+        return ResponseEntity.ok(giftCertificateService.getCertificate(promoCode));
     }
 
     @Operation(
@@ -171,29 +130,12 @@ public class GiftCertificateController {
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
 
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            GetListGiftCertificateResponseDTO certificates =
-                    giftCertificateService.getGiftCertificates(pageable, eventId);
+        GetListGiftCertificateResponseDTO certificates =
+                giftCertificateService.getGiftCertificates(pageable, eventId);
 
-            return ResponseEntity.ok(certificates);
-
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(certificates);
     }
 
     @Operation(
@@ -219,29 +161,12 @@ public class GiftCertificateController {
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
 
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            GetListGiftCertificateResponseDTO certificates =
-                    giftCertificateService.getGiftCertificates(pageable, null);
+        GetListGiftCertificateResponseDTO certificates =
+                giftCertificateService.getGiftCertificates(pageable, null);
 
-            return ResponseEntity.ok(certificates);
-
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(certificates);
     }
 
     @Operation(
@@ -265,23 +190,7 @@ public class GiftCertificateController {
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<?> updateGiftCertificateStatus(@PathVariable String promoCode,
                                                          @RequestBody UpdateGiftCertificateStatusRequestDTO request) {
-        try {
-            UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatusResponseDTO = giftCertificateService.updateGiftCertificateStatus(promoCode, request);
-            return ResponseEntity.ok(updateGiftCertificateStatusResponseDTO);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatusResponseDTO = giftCertificateService.updateGiftCertificateStatus(promoCode, request);
+        return ResponseEntity.ok(updateGiftCertificateStatusResponseDTO);
     }
 }

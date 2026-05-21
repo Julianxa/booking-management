@@ -2,8 +2,12 @@ package com.example.service;
 
 import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
-import com.example.exception.InvalidVerificationTokenException;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.general.FileUploadException;
+import com.example.exception.ticket.InvalidVerificationTokenException;
+import com.example.exception.bookingEvent.BookingEventNotFoundException;
+import com.example.exception.event.EventNotFoundException;
+import com.example.exception.general.InvalidJsonFormatException;
+import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.BookingEventsMapper;
 import com.example.mapper.EventMapper;
 import com.example.mapper.EventTimeSlotExceptionsMapper;
@@ -18,6 +22,9 @@ import com.example.repository.*;
 import com.example.utils.DataUtils;
 import com.example.utils.DateUtils;
 import com.example.utils.ReferenceNoGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
@@ -28,7 +35,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -61,86 +67,106 @@ public class EventService {
 
     // ====================== Public API ======================
     @Transactional
-    public CreateEventResponseDTO createEvent(CreateEventRequestDTO request, MultipartFile eventPic) throws SQLException, IOException {
-        Events event = eventMapper.toEntity(request);
-        event.setStatus(Enums.EventStatus.OPEN);
-        event.setRefNo(referenceNoGenerator.generateEventReference());
-        event.setAvailableDays(new HashSet<>());
-        event.setMatchTicketQuantityWithAttendees(request.getMatchTicketQuantityWithAttendees());
+    public CreateEventResponseDTO createEvent(String createEventRequestDTOJson, MultipartFile eventPic) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            CreateEventRequestDTO request = mapper.readValue(createEventRequestDTOJson, CreateEventRequestDTO.class);
 
-        addAvailableDaysToEvent(event, request.getAvailableDays());
 
-        Events savedEvent = eventsRepository.save(event);
+            Events event = eventMapper.toEntity(request);
+            event.setStatus(Enums.EventStatus.OPEN);
+            event.setRefNo(referenceNoGenerator.generateEventReference());
+            event.setAvailableDays(new HashSet<>());
+            event.setMatchTicketQuantityWithAttendees(request.getMatchTicketQuantityWithAttendees());
 
-        String eventPicUrl = null;
-        if (eventPic != null && !eventPic.isEmpty()) {
-            eventPicUrl = uploadEventPicture(savedEvent, eventPic);
+            addAvailableDaysToEvent(event, request.getAvailableDays());
+
+            Events savedEvent = eventsRepository.save(event);
+
+            String eventPicUrl = null;
+            if (eventPic != null && !eventPic.isEmpty()) {
+                eventPicUrl = uploadEventPicture(savedEvent, eventPic);
+            }
+
+            CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(savedEvent);
+            createEventResponseDTO.setStatus(Enums.EventStatus.OPEN);
+            createEventResponseDTO.setEventPicUrl(eventPicUrl);
+            createEventResponseDTO.setMessage("Create Event successfully");
+            createEventResponseDTO.setTimestamp(LocalDateTime.now());
+            return createEventResponseDTO;
+        } catch (IOException e) {
+            throw new InvalidJsonFormatException("Failed to parse event data");
         }
-
-        CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(savedEvent);
-        createEventResponseDTO.setStatus(Enums.EventStatus.OPEN);
-        createEventResponseDTO.setEventPicUrl(eventPicUrl);
-        createEventResponseDTO.setMessage("Create Event successfully");
-        createEventResponseDTO.setTimestamp(LocalDateTime.now());
-        return createEventResponseDTO;
     }
 
     @Transactional
-    public UpdateEventResponseDTO updateEvent(String eventRefNo, UpdateEventRequestDTO dto, MultipartFile eventPic) throws IOException {
-        Events event = eventsRepository.findByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+    public UpdateEventResponseDTO updateEvent(String eventRefNo, String updateEventRequestDTOJson, MultipartFile eventPic) {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        try {
+            UpdateEventRequestDTO dto = mapper.readValue(updateEventRequestDTOJson, UpdateEventRequestDTO.class);
 
-        if (dto.getName() != null) event.setName(dto.getName());
-        if (dto.getType() != null) event.setType(dto.getType());
-        if (dto.getCategory() != null) event.setCategory(dto.getCategory());
-        if (dto.getDescription() != null) event.setDescription(dto.getDescription());
-        if (dto.getLocation() != null) event.setLocation(dto.getLocation());
-        if (dto.getDuration() != null) event.setDuration(dto.getDuration());
-        if (dto.getBadge() != null) event.setBadge(dto.getBadge());
-        if (dto.getStartDate() != null) event.setStartDate(dto.getStartDate());
-        if (dto.getEndDate() != null) event.setEndDate(dto.getEndDate());
-        if (dto.getEquipment() != null) event.setEquipment(dto.getEquipment());
-        if (dto.getAvailabilityToEmployeeRatio() != null)
-            event.setAvailabilityToEmployeeRatio(dto.getAvailabilityToEmployeeRatio());
-        if (dto.getMaxCapacity() != null) event.setMaxCapacity(dto.getMaxCapacity());
-        if (dto.getPrivateBookings() != null) event.setPrivateBookings(dto.getPrivateBookings());
-        if (dto.getAdditionalInfo() != null) event.setAdditionalInfo(dto.getAdditionalInfo());
-        if (dto.getCancellationPolicy() != null) event.setCancellationPolicy(dto.getCancellationPolicy());
-        if (dto.getCustomQuestion() != null) event.setCustomQuestion(dto.getCustomQuestion());
-        if (dto.getMatchTicketQuantityWithAttendees() != null) event.setMatchTicketQuantityWithAttendees(dto.getMatchTicketQuantityWithAttendees());
-        if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
-        if (dto.getMinActivityThresholdTime() != null)
-            event.setMinActivityThresholdTime(dto.getMinActivityThresholdTime());
-        if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
-        if (dto.getMaxActivityThresholdTime() != null)
-            event.setMaxActivityThresholdTime(dto.getMaxActivityThresholdTime());
-//        if (dto.getCreatedBy() != null) event.setCreatedBy(dto.getCreatedBy());
-//        if (dto.getUpdatedBy() != null) event.setUpdatedBy(dto.getUpdatedBy());
-        if (dto.getAvailableDays() != null) {
-            event.getAvailableDays().clear();
-            dto.getAvailableDays().forEach(day -> event.updateDay(event.getId(), day.getDay(), day.getStartTimes()));
+            Events event = eventsRepository.findByRefNo(eventRefNo)
+                    .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
+
+            if (dto.getName() != null) event.setName(dto.getName());
+            if (dto.getType() != null) event.setType(dto.getType());
+            if (dto.getCategory() != null) event.setCategory(dto.getCategory());
+            if (dto.getDescription() != null) event.setDescription(dto.getDescription());
+            if (dto.getLocation() != null) event.setLocation(dto.getLocation());
+            if (dto.getDuration() != null) event.setDuration(dto.getDuration());
+            if (dto.getBadge() != null) event.setBadge(dto.getBadge());
+            if (dto.getStartDate() != null) event.setStartDate(dto.getStartDate());
+            if (dto.getEndDate() != null) event.setEndDate(dto.getEndDate());
+            if (dto.getEquipment() != null) event.setEquipment(dto.getEquipment());
+            if (dto.getAvailabilityToEmployeeRatio() != null)
+                event.setAvailabilityToEmployeeRatio(dto.getAvailabilityToEmployeeRatio());
+            if (dto.getMaxCapacity() != null) event.setMaxCapacity(dto.getMaxCapacity());
+            if (dto.getPrivateBookings() != null) event.setPrivateBookings(dto.getPrivateBookings());
+            if (dto.getAdditionalInfo() != null) event.setAdditionalInfo(dto.getAdditionalInfo());
+            if (dto.getCancellationPolicy() != null) event.setCancellationPolicy(dto.getCancellationPolicy());
+            if (dto.getCustomQuestion() != null) event.setCustomQuestion(dto.getCustomQuestion());
+            if (dto.getMatchTicketQuantityWithAttendees() != null) event.setMatchTicketQuantityWithAttendees(dto.getMatchTicketQuantityWithAttendees());
+            if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
+            if (dto.getMinActivityThresholdTime() != null)
+                event.setMinActivityThresholdTime(dto.getMinActivityThresholdTime());
+            if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
+            if (dto.getMaxActivityThresholdTime() != null)
+                event.setMaxActivityThresholdTime(dto.getMaxActivityThresholdTime());
+    //        if (dto.getCreatedBy() != null) event.setCreatedBy(dto.getCreatedBy());
+    //        if (dto.getUpdatedBy() != null) event.setUpdatedBy(dto.getUpdatedBy());
+            if (dto.getAvailableDays() != null) {
+                event.getAvailableDays().clear();
+                dto.getAvailableDays().forEach(day -> event.updateDay(event.getId(), day.getDay(), day.getStartTimes()));
+            }
+
+            handleEventPictureUpdate(event, eventPic);
+
+            Events updatedEvent = eventsRepository.save(event);
+
+            String eventPicUrl = null;
+            if (updatedEvent.getEventPicKey() != null) {
+                eventPicUrl = awsService.getFileFromS3(updatedEvent.getEventPicKey());
+            }
+
+            UpdateEventResponseDTO updateEventResponseDTO = eventMapper.toUpdateResponseDTO(updatedEvent);
+            updateEventResponseDTO.setEventPicUrl(eventPicUrl);
+            updateEventResponseDTO.setMessage("Event updated successfully");
+            updateEventResponseDTO.setTimestamp(LocalDateTime.now());
+            return updateEventResponseDTO;
+        } catch(IOException e) {
+            throw new InvalidJsonFormatException("Failed to parse event data");
         }
 
-        handleEventPictureUpdate(event, eventPic);
-
-        Events updatedEvent = eventsRepository.save(event);
-
-        String eventPicUrl = null;
-        if (updatedEvent.getEventPicKey() != null) {
-            eventPicUrl = awsService.getFileFromS3(updatedEvent.getEventPicKey());
-        }
-
-        UpdateEventResponseDTO updateEventResponseDTO = eventMapper.toUpdateResponseDTO(updatedEvent);
-        updateEventResponseDTO.setEventPicUrl(eventPicUrl);
-        updateEventResponseDTO.setMessage("Event updated successfully");
-        updateEventResponseDTO.setTimestamp(LocalDateTime.now());
-        return updateEventResponseDTO;
     }
 
     @Transactional
     public UpdateEventStatusResponseDTO updateEventStatusByDateAndTime(String eventRefNo, UpdateEventStatusRequestDTO updateEventStatusRequestDTO) {
         Events event = eventsRepository.findByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
         LocalDateTime actionAt = LocalDateTime.now();
         UpdateEventStatusResponseDTO updateEventStatusResponseDTO = new UpdateEventStatusResponseDTO();
@@ -198,7 +224,7 @@ public class EventService {
     @Transactional
     public UpdateEventStatusResponseDTO updateEventStatus(String eventRefNo, UpdateEventStatusRequestDTO updateEventStatusRequestDTO) {
         Events event = eventsRepository.findByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
         LocalDateTime actionAt = LocalDateTime.now();
         UpdateEventStatusResponseDTO updateEventStatusResponseDTO = new UpdateEventStatusResponseDTO();
@@ -258,7 +284,7 @@ public class EventService {
 
     public CreateEventResponseDTO getEvent(String eventRefNo) {
         Events event = eventsRepository.findByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventRefNo));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
         String eventPicUrl = null;
         if (event.getEventPicKey() != null) {
             eventPicUrl = awsService.getFileFromS3(event.getEventPicKey());
@@ -308,7 +334,7 @@ public class EventService {
         String dayValue = dateUtils.getDayValueForDate(filterDate);
 
         Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
         Events event = eventsRepository.findByDateAndId(eventId, filterDate);
 
         if (event == null) return eventMapper.toGetAvailabilityResponse(event, Collections.emptyMap());
@@ -358,12 +384,9 @@ public class EventService {
     }
 
     @Transactional
-    public CreateTicketTypeResponseDTO createTicketType(String eventRefNo, CreateTicketTypeRequestDTO request) throws SQLException {
-        Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
-
-        Events event = eventsRepository.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("Event not found with id: " + eventId));
+    public CreateTicketTypeResponseDTO createTicketType(String eventRefNo, CreateTicketTypeRequestDTO request) {
+        Events event = eventsRepository.findByRefNo(eventRefNo)
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
         TicketTypes ticketTypes = ticketTypeMapper.toEntity(request);
         ticketTypes.setRefNo(referenceNoGenerator.generateTicketTypeReference());
@@ -407,13 +430,11 @@ public class EventService {
 
     @Transactional
     public UpdateTicketTypeResponseDTO updateTicketType(String eventRefNo, String ticketTypeRefNo, UpdateTicketTypeRequestDTO request) {
-        Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+        Events event = eventsRepository.findByRefNo(eventRefNo)
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
         TicketTypes ticketTypes = ticketTypesRepository.findByRefNo(ticketTypeRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found: " + ticketTypeRefNo));
-        Events event = eventsRepository.findById(eventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+                .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticketTypeRefNo)));
 
         if (request.hasPeriods()) {
             List<TicketPricePeriods> newPeriods = request.getPeriods().stream()
@@ -444,7 +465,7 @@ public class EventService {
     @Transactional
     public UpdateTicketTypeStatusResponseDTO updateTicketTypeStatus(String eventRefNo, String ticketTypeRefNo, UpdateTicketTypeStatusRequestDTO updateTicketTypeStatusRequestDTO) {
         Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
         UpdateTicketTypeStatusResponseDTO updateTicketTypeStatusResponseDTO = new UpdateTicketTypeStatusResponseDTO();
         if (updateTicketTypeStatusRequestDTO.getStatus() == Enums.TicketTypeStatus.CLOSE) {
@@ -469,7 +490,7 @@ public class EventService {
 
     public List<CreateTicketTypeResponseDTO> getTicketTypesByEventId(String eventRefNo) {
         Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
         if (!eventsRepository.existsById(eventId)) {
             throw new IllegalArgumentException("Event not found with id: " + eventId);
         }
@@ -488,9 +509,9 @@ public class EventService {
         }
 
         BookingEvents bookingEvent = bookingEventsRepository.findByVerificationToken(token)
-                .orElseThrow(() -> new ResourceNotFoundException("Invalid Verification token"));
+                .orElseThrow(() -> new BookingEventNotFoundException(String.format("Booking Event not found with token %s", token)));
         Events event = eventsRepository.findById(bookingEvent.getEvent().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", bookingEvent.getEvent().getId())));
 
         List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
 
@@ -511,7 +532,7 @@ public class EventService {
     }
 
     @Transactional
-    public ConfirmCheckinResponseDTO confirmCheckIn(ConfirmCheckinRequestDTO request) throws InvalidVerificationTokenException {
+    public ConfirmCheckinResponseDTO confirmCheckIn(ConfirmCheckinRequestDTO request) {
         BookingEvents bookingEvent = bookingEventsRepository
                 .findByBooking_RefNoAndEvent_RefNoAndEventDateAndEventTime(
                         request.getBookingId(),
@@ -654,20 +675,24 @@ public class EventService {
         return awsService.getFileFromS3(eventPicKey);
     }
 
-    private void handleEventPictureUpdate(Events event, MultipartFile eventPic) throws IOException {
-        if (eventPic != null && !eventPic.isEmpty()) {
-            if (event.getEventPicKey() != null) {
-                awsService.deleteFile(event.getEventPicKey());
+    private void handleEventPictureUpdate(Events event, MultipartFile eventPic) {
+        try {
+            if (eventPic != null && !eventPic.isEmpty()) {
+                if (event.getEventPicKey() != null) {
+                    awsService.deleteFile(event.getEventPicKey());
+                }
+                String eventPicKey = awsService.uploadFile(event.getRefNo(), eventPic);
+                if (eventPicKey != null) {
+                    event.setEventPicKey(eventPicKey);
+                }
+            } else if (eventPic == null) {
+                if (event.getEventPicKey() != null) {
+                    awsService.deleteFile(event.getEventPicKey());
+                    event.setEventPicKey(null);
+                }
             }
-            String eventPicKey = awsService.uploadFile(event.getRefNo(), eventPic);
-            if (eventPicKey != null) {
-                event.setEventPicKey(eventPicKey);
-            }
-        } else if (eventPic == null) {
-            if (event.getEventPicKey() != null) {
-                awsService.deleteFile(event.getEventPicKey());
-                event.setEventPicKey(null);
-            }
+        } catch(IOException e) {
+            throw new FileUploadException("Failed to upload file");
         }
     }
 }

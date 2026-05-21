@@ -1,7 +1,7 @@
 package com.example.controller;
 
 import com.example.exception.InvalidIdTokenException;
-import com.example.exception.UnverifiedEmailException;
+import com.example.exception.email.UnverifiedEmailException;
 import com.example.model.dto.*;
 import com.example.service.UserService;
 import com.example.utils.UserUtils;
@@ -48,17 +48,8 @@ public class UserController {
     )
     @PostMapping(value = "/users", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> signUp(@RequestBody UserRegistrationRequestDTO clientUserRegistrationRequest) {
-        try {
-            UserRegistrationResponseDTO userRegistrationResponseDTO = userService.register(clientUserRegistrationRequest);
-            return ResponseEntity.ok(userRegistrationResponseDTO);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        UserRegistrationResponseDTO userRegistrationResponseDTO = userService.register(clientUserRegistrationRequest);
+        return ResponseEntity.ok(userRegistrationResponseDTO);
     }
 
     @Operation(
@@ -79,17 +70,8 @@ public class UserController {
     @PostMapping(value = "/users/confirmation", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> confirmUser(
             @RequestBody ConfirmUserRegistrationRequestDTO confirmSignUpRequest) {
-        try {
-            ConfirmUserRegistrationResponseDTO confirmSignUpResponseDTO = userService.confirmSignUp(confirmSignUpRequest);
-            return ResponseEntity.ok(confirmSignUpResponseDTO);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        ConfirmUserRegistrationResponseDTO confirmSignUpResponseDTO = userService.confirmSignUp(confirmSignUpRequest);
+        return ResponseEntity.ok(confirmSignUpResponseDTO);
     }
 
     @Operation(
@@ -110,24 +92,8 @@ public class UserController {
     @PostMapping("/users/forgot-password")
     public ResponseEntity<?> forgotPassword(
             @RequestBody ForgotPasswordRequestDTO forgotPasswordRequest) {
-        try {
-            ForgotPasswordResponseDTO forgotPasswordResponseDTO = userService.forgotPassword(forgotPasswordRequest);
-            return ResponseEntity.ok(forgotPasswordResponseDTO);
-        } catch (UnverifiedEmailException e) {
-            return ResponseEntity.status(403).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        ForgotPasswordResponseDTO forgotPasswordResponseDTO = userService.forgotPassword(forgotPasswordRequest);
+        return ResponseEntity.ok(forgotPasswordResponseDTO);
     }
 
     @Operation(
@@ -148,17 +114,8 @@ public class UserController {
     @PostMapping("/users/forgot-password-confirmation")
     public ResponseEntity<?> confirmForgotPassword(
             @RequestBody ConfirmForgotPasswordRequestDTO confirmForgotPasswordRequestDTO) {
-        try {
-            ConfirmForgotPasswordResponseDTO confirmForgotPasswordResponseDTO = userService.confirmForgotPassword(confirmForgotPasswordRequestDTO);
-            return ResponseEntity.ok(confirmForgotPasswordResponseDTO);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        ConfirmForgotPasswordResponseDTO confirmForgotPasswordResponseDTO = userService.confirmForgotPassword(confirmForgotPasswordRequestDTO);
+        return ResponseEntity.ok(confirmForgotPasswordResponseDTO);
     }
 
     @Operation(
@@ -252,24 +209,8 @@ public class UserController {
     @PostMapping("/users/reset-password")
     public ResponseEntity<?> resetPassword(
             @Valid @RequestBody ResetPasswordRequestDTO resetPasswordRequestDTO) {
-        try {
-            ResetPasswordResponseDTO responseDTO = userService.resetPassword(resetPasswordRequestDTO);
-            return ResponseEntity.ok(responseDTO);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(
-                    ErrorResponseDTO.builder()
-                            .message("Internal server error: " + e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        ResetPasswordResponseDTO responseDTO = userService.resetPassword(resetPasswordRequestDTO);
+        return ResponseEntity.ok(responseDTO);
     }
 
     @Operation(
@@ -312,13 +253,6 @@ public class UserController {
                                 .build()
                 );
             }
-        } catch (InvalidIdTokenException e) {
-            return ResponseEntity.status(401).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
                     ErrorResponseDTO.builder()
@@ -342,19 +276,8 @@ public class UserController {
     public ResponseEntity<?> deleteUserById(
             @PathVariable String userId,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-
-        try {
-            DeleteUserResponseDTO response = userService.deleteUserById(userId);
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        DeleteUserResponseDTO response = userService.deleteUserById(userId);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -375,19 +298,9 @@ public class UserController {
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
             @RequestParam(required = false) String search) {
-
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-            GetListUserResponseDTO users = userService.getAllUsers(pageable, search, ADMIN, null);
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        GetListUserResponseDTO users = userService.getAllUsers(pageable, search, ADMIN, null);
+        return ResponseEntity.ok(users);
     }
 
     @Operation(
@@ -409,18 +322,9 @@ public class UserController {
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
             @RequestParam(required = false) String search) {
 
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-            GetListUserResponseDTO users = userService.getAllUsers(pageable, search, EMPLOYEE, null);
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        GetListUserResponseDTO users = userService.getAllUsers(pageable, search, EMPLOYEE, null);
+        return ResponseEntity.ok(users);
     }
 
     @Operation(
@@ -443,18 +347,9 @@ public class UserController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String orgId) {
 
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-            GetListUserResponseDTO users = userService.getAllUsers(pageable, search, AGENT, orgId);
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        GetListUserResponseDTO users = userService.getAllUsers(pageable, search, AGENT, orgId);
+        return ResponseEntity.ok(users);
     }
 
     @Operation(
@@ -471,25 +366,8 @@ public class UserController {
     @GetMapping("/users/{id}")
     public ResponseEntity<?> getUserById(
             @PathVariable String id) {
-
-        try {
-            GetUserResponseDTO user = userService.getUserByIdAndRole(id, USER);
-            return ResponseEntity.ok(user);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        GetUserResponseDTO user = userService.getUserByIdAndRole(id, USER);
+        return ResponseEntity.ok(user);
     }
 
     @Operation(
@@ -511,18 +389,9 @@ public class UserController {
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
             @RequestParam(required = false) String search) {
 
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-            GetListUserResponseDTO users = userService.getAllUsers(pageable, search, USER, null);
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        GetListUserResponseDTO users = userService.getAllUsers(pageable, search, USER, null);
+        return ResponseEntity.ok(users);
     }
 
     @Operation(
@@ -556,24 +425,8 @@ public class UserController {
     public ResponseEntity<?> updateUserByAdmin(
             @PathVariable String id,
             @Valid @RequestBody UpdateUserRequestDTO dto) {
-        try {
-            GetUserResponseDTO updatedUser = userService.updateUserByAdmin(id, dto);
-            return ResponseEntity.ok(updatedUser);
-        } catch (ResponseStatusException | IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    ErrorResponseDTO.builder()
-                            .message("Internal server error: " + e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        GetUserResponseDTO updatedUser = userService.updateUserByAdmin(id, dto);
+        return ResponseEntity.ok(updatedUser);
     }
 
     @Operation(
@@ -591,24 +444,8 @@ public class UserController {
     public ResponseEntity<?> getAdminUserById(
             @PathVariable String id) {
 
-        try {
-            GetUserResponseDTO user = userService.getUserByIdAndRole(id, ADMIN);
-            return ResponseEntity.ok(user);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        GetUserResponseDTO user = userService.getUserByIdAndRole(id, ADMIN);
+        return ResponseEntity.ok(user);
     }
 
     @Operation(
@@ -626,24 +463,8 @@ public class UserController {
     public ResponseEntity<?> getAgentUserById(
             @PathVariable String id) {
 
-        try {
-            GetUserResponseDTO user = userService.getUserByIdAndRole(id, AGENT);
-            return ResponseEntity.ok(user);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        GetUserResponseDTO user = userService.getUserByIdAndRole(id, AGENT);
+        return ResponseEntity.ok(user);
     }
 
     @Operation(
@@ -660,25 +481,8 @@ public class UserController {
     @GetMapping("/users/employees/{id}")
     public ResponseEntity<?> getEmployeeUserById(
             @PathVariable String id) {
-
-        try {
-            GetUserResponseDTO user = userService.getUserByIdAndRole(id, EMPLOYEE);
-            return ResponseEntity.ok(user);
-        } catch (ResponseStatusException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        GetUserResponseDTO user = userService.getUserByIdAndRole(id, EMPLOYEE);
+        return ResponseEntity.ok(user);
     }
 
     @Operation(
@@ -715,13 +519,6 @@ public class UserController {
                                 .build()
                 );
             }
-        } catch (InvalidIdTokenException e) {
-            return ResponseEntity.status(401).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(
                     ErrorResponseDTO.builder()

@@ -48,6 +48,9 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
     @Query("SELECT u FROM Users u WHERE u.id = :id and u.role = :role and status !='INACTIVE'")
     Optional<Users> findByIdAndRole(Long id, Enums.UserRole role);
 
+    @Query("SELECT u FROM Users u WHERE u.refNo = :userRefNo and u.role = :role and status !='INACTIVE'")
+    Optional<Users> findByRefNoAndRole(String userRefNo, Enums.UserRole role);
+
     @Modifying
     @Query(value = "UPDATE users SET status = 'INACTIVE', updated_at = :timestamp, deleted_at = :timestamp WHERE id = :ownerUserId", nativeQuery = true)
     void updateStatusToInactiveByOwnerUserId(@Param("ownerUserId") Long ownerUserId, @Param("timestamp") LocalDateTime timestamp);

@@ -8,6 +8,7 @@ import lombok.Setter;
 @Setter
 @Builder
 public class ErrorResponseDTO {
+    private String errorCode;
     private String message;
     private String timestamp;
 }

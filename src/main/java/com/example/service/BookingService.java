@@ -3,7 +3,21 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
 import com.example.converter.BookingsConverter;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.*;
+import com.example.exception.booking.BookingNotFoundException;
+import com.example.exception.booking.EventTimeSlotUnavailableException;
+import com.example.exception.booking.TicketQuantityMismatchException;
+import com.example.exception.bookingEvent.BookingEventNotFoundException;
+import com.example.exception.email.EmailProcessException;
+import com.example.exception.event.EventCapacityExceededException;
+import com.example.exception.event.EventDayScheduleNotFoundException;
+import com.example.exception.event.EventNotFoundException;
+import com.example.exception.general.InternalServerException;
+import com.example.exception.general.MissingRequiredFieldException;
+import com.example.exception.giftCertificate.GCRedemptionNotFoundException;
+import com.example.exception.payment.PaymentProcessingException;
+import com.example.exception.ticket.TicketPricePeriodNotFoundException;
+import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.BookingEventsMapper;
 import com.example.mapper.BookingMapper;
 import com.example.mapper.EventMapper;
@@ -20,7 +34,6 @@ import com.example.utils.UserUtils;
 import com.stripe.exception.StripeException;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +41,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -81,22 +93,30 @@ public class BookingService {
 
     // ====================== Public API ======================
     @Transactional
-    public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) throws SQLException, BadRequestException, StripeException {
-        validateTicketQuantityMatchesAttendees(request);
+    public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) {
+        try {
+            validateTicketQuantityMatchesAttendees(request);
 
-        Users loggedInUser = userUtils.getLoggedInUser(userSub);
+            Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
-        Bookings booking = createEmptyBooking(loggedInUser); // PENDING
+            Bookings booking = createEmptyBooking(loggedInUser); // PENDING
 
-        BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
+            BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
 
-        GiftCertificateApplicationResult gcResult = giftCertificateService.reserveGiftCertificate(loggedInUser, booking, request.getBookingEvents(), request.getPromoCode());
+            GiftCertificateApplicationResult gcResult = giftCertificateService.reserveGiftCertificate(loggedInUser, booking, request.getBookingEvents(), request.getPromoCode());
 
-        applyGiftCertificateToBooking(booking, grandTotal, gcResult);
+            applyGiftCertificateToBooking(booking, grandTotal, gcResult);
 
-        List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
+            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
-        return handlePostBookingProcessing(loggedInUser, booking, request, bookingEventDTOs);
+            return handlePostBookingProcessing(loggedInUser, booking, request, bookingEventDTOs);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (StripeException e) {
+            throw new PaymentProcessingException("Failed to create payment session. Please try again.");
+        } catch (Exception e) {
+            throw new InternalServerException("An unexpected error occurred while creating booking");
+        }
     }
 
     @Transactional
@@ -107,8 +127,8 @@ public class BookingService {
         Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
         BookingEvents bookingEvent = bookingEventsRepository.findByRefNo(bookingEventId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Booking event not found for booking: " + bookingEventId));
+                .orElseThrow(() -> new BookingEventNotFoundException(
+                        String.format("Booking event %s not found", bookingEventId)));
 
         bookingAttendeesRepository.deleteByBookingEventId(bookingEvent.getId());
 
@@ -194,14 +214,14 @@ public class BookingService {
 
     public CreateBookingResponseDTO getBookingById(String bookingRefNo) {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingRefNo));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
 
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
 
         String giftCertificatePromoCode = null;
         if (booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
             GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate Redemption not found: " + bookingRefNo));
+                    .orElseThrow(() -> new GCRedemptionNotFoundException("Gift Certificate Redemption not found: " + bookingRefNo));
             giftCertificatePromoCode = giftCertificatesRepository.findPromoCodeById(redemption.getGiftCertificateId());
         }
 
@@ -228,7 +248,7 @@ public class BookingService {
             throw new IllegalArgumentException("Event ID, date and time are required");
         }
         Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + eventRefNo));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
         Page<BookingAttendees> passengers = bookingEventsRepository.findPassengersByEventDateTime(eventId, eventDate, eventTime, pageable);
 
@@ -239,22 +259,22 @@ public class BookingService {
     }
 
     // ====================== Private Helper Methods ======================
-    private void validateTicketQuantityMatchesAttendees(CreateBookingRequestDTO request) throws BadRequestException {
+    private void validateTicketQuantityMatchesAttendees(CreateBookingRequestDTO request) {
         if (request.getBookingEvents() == null) {
             return;
         }
 
         for (CreateBookingRequestDTO.BookingEventDTO bookingEvent : request.getBookingEvents()) {
             Events event = eventsRepository.findByRefNo(bookingEvent.getEvent().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Event not found with reference no: " + bookingEvent.getEvent().getId()));
-            if (Boolean.TRUE.equals(event.getMatchTicketQuantityWithAttendees())) {
+                    .orElseThrow(() -> new EventNotFoundException(String.format("Event not found with event ID: %s", bookingEvent.getEvent().getId())));
 
+            if (Boolean.TRUE.equals(event.getMatchTicketQuantityWithAttendees())) {
                 int attendeeCount = bookingEvent.getAttendees() != null ? bookingEvent.getAttendees().size() : 0;
 
                 int totalTicketQuantity = calculateTotalTicketQuantity(bookingEvent.getTickets());
 
                 if (attendeeCount != totalTicketQuantity) {
-                    throw new BadRequestException(
+                    throw new TicketQuantityMismatchException(
                             String.format("Ticket quantity must match attendee count. " +
                                             "Event: %s | Attendees: %d | Tickets: %d",
                                     bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
@@ -284,7 +304,7 @@ public class BookingService {
                 .sum();
     }
 
-    private Bookings createEmptyBooking(Users loggedInUser) throws SQLException {
+    private Bookings createEmptyBooking(Users loggedInUser) {
         Bookings booking = Bookings.builder()
                 .refNo(referenceNoGenerator.generateBookingReference())
                 .userId(loggedInUser != null ? loggedInUser.getId() : null)
@@ -296,8 +316,7 @@ public class BookingService {
     }
 
     private BookingEventProcessingResult processSingleBookingEvent(Bookings booking,
-                                                                   CreateBookingRequestDTO.BookingEventDTO bookingEventDTO)
-            throws BadRequestException, SQLException {
+                                                                   CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
 
         // 1. Fetch and validate Event
         Events event = eventsRepository.findByRefNoAndOpenStatusAndPublished(bookingEventDTO.getEvent().getId())
@@ -307,7 +326,7 @@ public class BookingService {
         // 2. Validate a specific time slot availability of event
         List<EventTimeSlotException> exceptions = eventTimeSlotExceptionsRepository.findByEventIdAndExceptionDateAndTime(event.getId(), bookingEventDTO.getEvent().getEventDate(), bookingEventDTO.getEvent().getEventTime());
         if(exceptions.size() > 0)
-            throw new BadRequestException(
+            throw new EventTimeSlotUnavailableException(
                     String.format("The time slot %s at %s is not available for '%s'",
                             bookingEventDTO.getEvent().getEventDate(),
                             bookingEventDTO.getEvent().getEventTime(),
@@ -316,7 +335,7 @@ public class BookingService {
 
         // 3. Validate the answer if question is required
         if(event.getCustomQuestion() != null && bookingEventDTO.getAnswer() == null) {
-            throw new RuntimeException("Please provide an answer to the question");
+            throw new MissingRequiredFieldException("Please provide an answer to the question");
         }
 
         // 4. Validate Schedule
@@ -324,7 +343,7 @@ public class BookingService {
 
         eventDaySchedulesRepository.findByEventIdAndDayAndStartTime(
                         event.getId(), dayValue, bookingEventDTO.getEvent().getEventTime())
-                .orElseThrow(() -> new ResourceNotFoundException(
+                .orElseThrow(() -> new EventDayScheduleNotFoundException(
                         String.format("Schedule not found for event %s on %s at %s",
                                 event.getName(), dayValue, bookingEventDTO.getEvent().getEventTime())));
 
@@ -362,7 +381,7 @@ public class BookingService {
         for (CreateBookingRequestDTO.TicketTypeDTO ticket : tickets) {
             if (ticket.getName() == null || ticket.getName().isBlank()) {
                 TicketTypes ticketType = ticketTypesRepository.findByRefNo(ticket.getId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found: " + ticket.getId()));
+                        .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticket.getId())));
 
                 ticket.setName(ticketType.getName());
             }
@@ -402,7 +421,7 @@ public class BookingService {
         bookingAttendeesRepository.save(attendee);
     }
 
-    private void checkEventTimeSlotQuota(String dayValueForDate, Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) throws BadRequestException {
+    private void checkEventTimeSlotQuota(String dayValueForDate, Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
         int requestedParticipants = calculateTotalParticipants(bookingEventDTO.getTickets());
 
         if (requestedParticipants == 0) {
@@ -418,22 +437,27 @@ public class BookingService {
                 bookingData,
                 exceptions);
         if (occupancyDTO.getTotalBooked() + requestedParticipants > event.getMaxCapacity()) {
-            throw new BadRequestException(String.format("Event %s is full on %s at %s", event.getName(), bookingEventDTO.getEvent().getEventDate(), bookingEventDTO.getEvent().getEventTime()));
+            throw new EventCapacityExceededException(String.format("Insufficient capacity for %s on %s at %s. Requested: %d", event.getName(), bookingEventDTO.getEvent().getEventDate(), bookingEventDTO.getEvent().getEventTime(), requestedParticipants));
         }
     }
 
-    public ResendConfirmationEmailResponseDTO reConfirmBooking(String bookinEventId) throws MessagingException {
+    public ResendConfirmationEmailResponseDTO reConfirmBooking(String bookinEventId) {
+
         BookingEvents bookingEvent = bookingEventsRepository.findByRefNo(bookinEventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking event not found"));
+                .orElseThrow(() -> new BookingEventNotFoundException("Booking event not found"));
         Bookings booking = bookingsRepository.findById(bookingEvent.getBooking().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
         List<CreateBookingRequestDTO.AttendeeDTO> attendees = bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
         List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
 
         List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
 
-        for (CreateBookingRequestDTO.AttendeeDTO attendeeDTO : attendees) {
-            emailService.sendBookingConfirmationEmail(attendeeDTO, booking, bookingEvent, ticketDTOs, attendees);
+        try {
+            for (CreateBookingRequestDTO.AttendeeDTO attendeeDTO : attendees) {
+                emailService.sendBookingConfirmationEmail(attendeeDTO, booking, bookingEvent, ticketDTOs, attendees);
+            }
+        } catch(MessagingException e) {
+            throw new EmailProcessException("Failed to send booking confirmation email");
         }
 
         return ResendConfirmationEmailResponseDTO.builder()
@@ -454,10 +478,10 @@ public class BookingService {
         BigDecimal total = BigDecimal.ZERO;
         for (CreateBookingRequestDTO.TicketTypeDTO ticketTypeDTO : bookingEventDTO.getTickets()) {
             Long ticketTypeId = ticketTypesRepository.findIdByRefNo(ticketTypeDTO.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found"));
+                    .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticketTypeDTO.getId())));
 
             TicketPricePeriods periods = ticketPricePeriodsRepository.findActivePrice(ticketTypeId, null)
-                    .orElseThrow(() -> new ResourceNotFoundException("Ticket Price Period not found"));
+                    .orElseThrow(() -> new TicketPricePeriodNotFoundException(String.format("Ticket Price not found with Ticket Type %s", ticketTypeDTO.getId())));
             BigDecimal subtotal = periods.getPrice().multiply(BigDecimal.valueOf(ticketTypeDTO.getQuantity()));
             total = total.add(subtotal);
 
@@ -472,7 +496,7 @@ public class BookingService {
         return total;
     }
 
-    private BookingEvents registerBookingEvent(Bookings booking, Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) throws SQLException {
+    private BookingEvents registerBookingEvent(Bookings booking, Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
         bookingEventDTO.getEvent().setName(event.getName());
         BookingEvents bookingEvent = BookingEvents.builder()
                 .refNo(referenceNoGenerator.generateBookingEventReference())
@@ -488,8 +512,7 @@ public class BookingService {
         return bookingEventsRepository.save(bookingEvent);
     }
 
-    private BigDecimal processBookingEvents(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs)
-            throws BadRequestException, SQLException {
+    private BigDecimal processBookingEvents(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
 
         BigDecimal grandTotal = BigDecimal.ZERO;
 
@@ -516,7 +539,7 @@ public class BookingService {
     private CreateBookingResponseDTO handlePostBookingProcessing(Users user, Bookings booking,
                                                                  CreateBookingRequestDTO request,
                                                                  List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs)
-            throws StripeException, SQLException {
+            throws StripeException {
 
         if (user == null) { // Public user
             String checkoutUrl = paymentService.createCheckoutSession(null, request, booking);

@@ -62,7 +62,7 @@ public class CreateEventRequestDTO {
     @JsonProperty("end_date")
     private LocalDate endDate;
 
-    @Schema(description = "Explicit list of allowed days. ['MON','TUE','WED','THU','FRI','SAT','SUN']")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Explicit list of allowed days. ['MON','TUE','WED','THU','FRI','SAT','SUN']")
     @JsonProperty("available_days")
     private Set<AvailableDayDTO> availableDays;
 
@@ -74,7 +74,7 @@ public class CreateEventRequestDTO {
     @JsonProperty("availability_to_employee_ratio")
     private Integer availabilityToEmployeeRatio;
 
-    @Schema(description = "Overall maximum capacity across all groups")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Overall maximum capacity across all groups")
     @JsonProperty("max_capacity")
     private Integer maxCapacity;
 

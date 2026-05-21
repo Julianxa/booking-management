@@ -2,8 +2,9 @@ package com.example.service;
 
 
 import com.example.constant.Enums;
-import com.example.exception.ResourceNotFoundException;
-import com.example.exception.UnverifiedEmailException;
+import com.example.exception.email.UnverifiedEmailException;
+import com.example.exception.organization.OrganizationNotFoundException;
+import com.example.exception.user.UserNotFoundException;
 import com.example.mapper.UserMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.Users;
@@ -20,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
 
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,7 +36,7 @@ public class UserService {
     private final ReferenceNoGenerator referenceNoGenerator;
     private final OrganizationsRepository organizationsRepository;
 
-    public UserRegistrationResponseDTO register(UserRegistrationRequestDTO userRegistrationRequestDTO) throws SQLException {
+    public UserRegistrationResponseDTO register(UserRegistrationRequestDTO userRegistrationRequestDTO) {
         Users user;
         SignUpResponse res = awsService.signUp(userRegistrationRequestDTO);
 
@@ -50,7 +50,7 @@ public class UserService {
         Long orgId = null;
         if (userRegistrationRequestDTO.getOrgId() != null) {
             orgId = organizationsRepository.findIdByRefNo(userRegistrationRequestDTO.getOrgId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+                    .orElseThrow(() -> new OrganizationNotFoundException(String.format("Organization %s not found", userRegistrationRequestDTO.getOrgId())));
         }
 
         user.setRefNo(referenceNoGenerator.generateUserReference(userRegistrationRequestDTO.getRole()));
@@ -88,7 +88,7 @@ public class UserService {
 
     public ConfirmUserRegistrationResponseDTO confirmSignUp(ConfirmUserRegistrationRequestDTO confirmSignUpRequestDTO) {
         Users user = usersRepository.findByEmailAndStatus(confirmSignUpRequestDTO.getEmail(), Enums.UserStatus.UNCONFIRMED)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("User not found with email %s", confirmSignUpRequestDTO.getEmail())));
         if (user != null) {
             ConfirmSignUpResponse res = awsService.confirmSignUp(confirmSignUpRequestDTO);
             ConfirmUserRegistrationResponseDTO confirmSignUpResponseDTO = new ConfirmUserRegistrationResponseDTO();
@@ -114,7 +114,7 @@ public class UserService {
         }
     }
 
-    public ForgotPasswordResponseDTO forgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO) throws UnverifiedEmailException {
+    public ForgotPasswordResponseDTO forgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO) {
         awsService.forgotPassword(forgotPasswordRequestDTO);
 
         ForgotPasswordResponseDTO forgotPasswordResponseDTO = new ForgotPasswordResponseDTO();
@@ -157,7 +157,7 @@ public class UserService {
     @Transactional
     public DeleteUserResponseDTO deleteUser(String userSub, String accessToken, DeleteUserRequestDTO deleteUserRequestDTO) {
         Users user = usersRepository.findByUserSub(userSub)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userSub)));
         awsService.verifyUserCredentials(user.getEmail(), deleteUserRequestDTO.getPassword());
 
         // inactivate user status
@@ -173,7 +173,7 @@ public class UserService {
     @Transactional
     public DeleteUserResponseDTO deleteUserById(String userRefNo) {
         Users user = usersRepository.findByRefNo(userRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userRefNo)));
 
         // inactivate user status
         usersRepository.updateStatusToInactiveByOwnerUserId(user.getId(), LocalDateTime.now());
@@ -187,7 +187,7 @@ public class UserService {
 
     public GetUserResponseDTO getUserByUserSub(String userSub) {
         Users user = usersRepository.findByUserSub(userSub)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with userSub: " + userSub));
+                .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userSub)));
 
         String orgRefNo = organizationsRepository.findRefNoById(user.getOrgId()).orElse(null);
 
@@ -212,10 +212,8 @@ public class UserService {
     }
 
     public GetUserResponseDTO getUserByIdAndRole(String userRefNo, Enums.UserRole role) {
-        Long userId = usersRepository.findIdByRefNo(userRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with reference no: " + userRefNo));
-        Users user = usersRepository.findByIdAndRole(userId, role)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with code: " + userId));
+        Users user = usersRepository.findByRefNoAndRole(userRefNo, role)
+                .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userRefNo)));
         String orgRefNo = organizationsRepository.findRefNoById(user.getOrgId()).orElse(null);
 
         return GetUserResponseDTO.builder()
@@ -243,7 +241,7 @@ public class UserService {
 
         if (orgRefNo != null) {
             Long orgId = organizationsRepository.findIdByRefNo(orgRefNo)
-                    .orElseThrow(() -> new ResourceNotFoundException("Organization not found with reference no: " + orgRefNo));
+                    .orElseThrow(() -> new OrganizationNotFoundException(String.format("Organization %s not found", orgRefNo)));
 
             usersPage = usersRepository.findByOrganizationIdAndFilters(
                     orgId,

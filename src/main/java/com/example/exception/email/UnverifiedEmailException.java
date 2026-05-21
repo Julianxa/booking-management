@@ -1,4 +1,4 @@
-package com.example.exception;
+package com.example.exception.email;
 
 public class UnverifiedEmailException extends Exception {
     public UnverifiedEmailException(String message) {

@@ -1,12 +1,12 @@
 package com.example.utils;
 
 import com.example.constant.Enums;
+import com.example.exception.general.RandomReferenceNoException;
 import com.example.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -25,7 +25,7 @@ public class ReferenceNoGenerator {
     private static final String SAFE_CHARS = "2346789ACDEFGHJKLMPQRTUVXY";
     private final TicketTypesRepository ticketTypesRepository;
 
-    public String generateUserReference(Enums.UserRole role) throws SQLException {
+    public String generateUserReference(Enums.UserRole role) {
         return switch (role) {
             case ADMIN -> generateUniqueReference("AD-", 10, usersRepository);
             case EMPLOYEE -> generateUniqueReference("E-", 10, usersRepository);
@@ -34,40 +34,40 @@ public class ReferenceNoGenerator {
         };
     }
 
-    public String generateRefundReference() throws SQLException {
+    public String generateRefundReference() {
         return generateUniqueReference("R-", 10, refundsRepository);
     }
 
-    public String generateOrganizationReference() throws SQLException {
+    public String generateOrganizationReference() {
         return generateUniqueReference("O-", 10, organizationsRepository);
     }
 
-    public String generateTicketTypeReference() throws SQLException {
+    public String generateTicketTypeReference() {
         return generateUniqueReference("TT-", 10, ticketTypesRepository);
     }
 
-    public String generateBookingEventReference() throws SQLException {
+    public String generateBookingEventReference() {
         return generateUniqueReference("BE-", 10, bookingEventsRepository);
     }
 
-    public String generateBookingReference() throws SQLException {
+    public String generateBookingReference() {
         String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         return generateUniqueReference("BKG-" + datePart + "-", 10, bookingsRepository);
     }
 
-    public String generateEventReference() throws SQLException {
+    public String generateEventReference() {
         return generateUniqueReference("EVT-", 10, eventsRepository);
     }
 
-    public String generatePaymentReference() throws SQLException {
+    public String generatePaymentReference() {
         return generateUniqueReference("P-", 10, paymentsRepository);
     }
 
-    public String generateGiftCertificateReference() throws SQLException {
+    public String generateGiftCertificateReference() {
         return generateUniqueReference("GC-", 10, giftCertificatesRepository);
     }
 
-    private String generateUniqueReference(String prefix, int randomLength, Object repository) throws SQLException {
+    private String generateUniqueReference(String prefix, int randomLength, Object repository) {
         final int MAX_ATTEMPTS = 10;
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -97,7 +97,7 @@ public class ReferenceNoGenerator {
             }
         }
 
-        throw new SQLException("Failed to generate unique reference number after " + MAX_ATTEMPTS + " attempts.");
+        throw new RandomReferenceNoException("Failed to generate unique reference number after " + MAX_ATTEMPTS + " attempts.");
     }
 
     private String generateRandomString(int length) {

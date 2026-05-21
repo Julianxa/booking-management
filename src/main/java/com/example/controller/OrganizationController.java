@@ -47,16 +47,7 @@ public class OrganizationController {
     )
     @PostMapping("/organizations")
     public ResponseEntity<?> create(@RequestBody CreateOrganizationRequestDTO dto) {
-        try {
-            return ResponseEntity.ok(organizationService.createOrganization(dto));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(organizationService.createOrganization(dto));
     }
 
     @Operation(
@@ -80,17 +71,8 @@ public class OrganizationController {
     )
     @GetMapping("/organizations/{id}")
     public ResponseEntity<?> getOne(@PathVariable String id) {
-        try {
-            CreateOrganizationResponseDTO organizationResponseDTO = organizationService.getOrganization(id);
-            return ResponseEntity.ok(organizationResponseDTO);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        CreateOrganizationResponseDTO organizationResponseDTO = organizationService.getOrganization(id);
+        return ResponseEntity.ok(organizationResponseDTO);
     }
 
     @Operation(
@@ -114,20 +96,11 @@ public class OrganizationController {
                                     @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
                                     @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction,
                                     @RequestParam(required = false) String search) {
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            GetListOrganizationResponseDTO organizations = organizationService.getAllOrganizations(pageable, search);
+        GetListOrganizationResponseDTO organizations = organizationService.getAllOrganizations(pageable, search);
 
-            return ResponseEntity.ok(organizations);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(organizations);
     }
 
     @Operation(
@@ -156,17 +129,8 @@ public class OrganizationController {
     @PutMapping("/organizations/{id}")
     public ResponseEntity<?> update(@PathVariable String id,
                                     @RequestBody CreateOrganizationRequestDTO dto) {
-        try {
-            UpdateOrganizationResponseDTO organizationResponseDTO = organizationService.updateOrganization(id, dto);
-            return ResponseEntity.ok(organizationResponseDTO);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        UpdateOrganizationResponseDTO organizationResponseDTO = organizationService.updateOrganization(id, dto);
+        return ResponseEntity.ok(organizationResponseDTO);
     }
 
     @Operation(
@@ -187,16 +151,7 @@ public class OrganizationController {
     @DeleteMapping("/organizations/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<?> delete(@PathVariable String id) {
-        try {
-            DeleteOrganizationResponseDTO deleteOrganizationResponseDTO = organizationService.deleteOrganization(id);
-            return ResponseEntity.ok(deleteOrganizationResponseDTO);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        DeleteOrganizationResponseDTO deleteOrganizationResponseDTO = organizationService.deleteOrganization(id);
+        return ResponseEntity.ok(deleteOrganizationResponseDTO);
     }
 }

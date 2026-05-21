@@ -1,7 +1,7 @@
 package com.example.service;
 
 import com.example.constant.Enums;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.organization.OrganizationNotFoundException;
 import com.example.mapper.OrganizationMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.Organizations;
@@ -14,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 
 @Service
@@ -25,7 +24,7 @@ public class OrganizationService {
     private final ReferenceNoGenerator referenceNoGenerator;
 
     @Transactional
-    public CreateOrganizationResponseDTO createOrganization(CreateOrganizationRequestDTO dto) throws SQLException {
+    public CreateOrganizationResponseDTO createOrganization(CreateOrganizationRequestDTO dto) {
         Organizations organization = mapper.toEntity(dto);
         organization.setRefNo(referenceNoGenerator.generateOrganizationReference());
         organization.setStatus(Enums.OrganizationStatus.ACTIVE);
@@ -38,10 +37,8 @@ public class OrganizationService {
 
     @Transactional
     public UpdateOrganizationResponseDTO updateOrganization(String orgRefNo, CreateOrganizationRequestDTO dto) {
-        Long orgId = organizationsRepository.findIdByRefNo(orgRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Organization not found with reference no: " + orgRefNo));
-        Organizations organization = organizationsRepository.findById(orgId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organization not found with id: " + orgId));
+        Organizations organization = organizationsRepository.findByRefNo(orgRefNo)
+                .orElseThrow(() -> new OrganizationNotFoundException(String.format("Organization %s not found)", orgRefNo)));
 
         if (dto.getName() != null) organization.setName(dto.getName());
         if (dto.getIndustry() != null) organization.setIndustry(dto.getIndustry());
@@ -58,7 +55,7 @@ public class OrganizationService {
     @Transactional
     public DeleteOrganizationResponseDTO deleteOrganization(String orgRefNo) {
         if (!organizationsRepository.existsByRefNo(orgRefNo)) {
-            throw new ResourceNotFoundException("Organization not found with code: " + orgRefNo);
+            throw new OrganizationNotFoundException(String.format("Organization %s not found)", orgRefNo));
         }
 
         LocalDateTime deletedAt = LocalDateTime.now();
@@ -71,7 +68,7 @@ public class OrganizationService {
 
     public CreateOrganizationResponseDTO getOrganization(String orgRefNo) {
         Organizations organization = organizationsRepository.findByRefNo(orgRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Organization not found with code: " + orgRefNo));
+                .orElseThrow(() -> new OrganizationNotFoundException(String.format("Organization %s not found)", orgRefNo)));
         return mapper.toCreateResponseDTO(organization);
     }
 

@@ -1,7 +1,8 @@
 package com.example.utils;
 
 import com.example.exception.InvalidIdTokenException;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.user.InvalidTokenException;
+import com.example.exception.user.UserNotFoundException;
 import com.example.model.entity.Users;
 import com.example.repository.UsersRepository;
 import com.example.service.AwsService;
@@ -18,16 +19,20 @@ public class UserUtils {
         Users loggedInUser = null;
         if (userSub != null) {
             loggedInUser = usersRepository.findByUserSub(userSub)
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                    .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userSub)));
         }
         return loggedInUser;
     }
 
-    public String extractUserSub(String authorizationHeader) throws InvalidIdTokenException {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return null; // guest
+    public String extractUserSub(String authorizationHeader) {
+        try {
+            if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+                return null; // guest
+            }
+            String idToken = authorizationHeader.replace("Bearer ", "");
+            return awsService.getUserSub(idToken);
+        } catch(InvalidIdTokenException e) {
+            throw new InvalidTokenException("Failed to parse ID token");
         }
-        String idToken = authorizationHeader.replace("Bearer ", "");
-        return awsService.getUserSub(idToken);
     }
 }

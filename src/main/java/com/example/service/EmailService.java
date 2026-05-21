@@ -1,7 +1,8 @@
 package com.example.service;
 
 import com.example.config.AppProperties;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.email.EmailTemplateNotFoundException;
+import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
@@ -73,7 +74,7 @@ public class EmailService {
 
     public GetEmailTemplateResponseDTO getEmailTemplate(String emailTemplateRefNo) {
         EmailTemplates emailTemplate = emailTemplatesRepository.findByRefNo(emailTemplateRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Email template not found with code: " + emailTemplateRefNo));
+                .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", emailTemplateRefNo)));
 
         GetEmailTemplateResponseDTO getEmailTemplateResponseDTO = emailTemplateMapper.toResponseDTO(emailTemplate);
 
@@ -99,7 +100,7 @@ public class EmailService {
     public UpdateEmailTemplatesResponseDTO updateEmailTemplate(String templateRefNo, UpdateEmailTemplatesRequestDTO updateEmailTemplatesRequestDTO) {
 
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Email template not found with code: " + templateRefNo));
+                .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", templateRefNo)));
 
         if (updateEmailTemplatesRequestDTO.getSubject() != null)
             template.setSubject(updateEmailTemplatesRequestDTO.getSubject());
@@ -236,7 +237,7 @@ public class EmailService {
                 .map(dto -> {
 
                     TicketTypes ticketType = ticketTypesRepository.findByRefNo(dto.getId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found: " + dto.getId()));
+                            .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", dto.getId())));
                     String name = ticketType.getName();
                     return name + " x " + dto.getQuantity();
                 })

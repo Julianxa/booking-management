@@ -1,7 +1,6 @@
 package com.example.controller;
 
 
-import com.example.exception.ResourceNotFoundException;
 import com.example.model.dto.*;
 import com.example.service.BookingService;
 import com.example.service.EmailService;
@@ -35,50 +34,15 @@ public class EmailController {
     public ResponseEntity<?> updateTemplate(
             @PathVariable String id,
             @Valid @RequestBody UpdateEmailTemplatesRequestDTO dto) {
-
-        try {
-            UpdateEmailTemplatesResponseDTO response = emailService.updateEmailTemplate(id, dto);
-            return ResponseEntity.ok(response);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        UpdateEmailTemplatesResponseDTO response = emailService.updateEmailTemplate(id, dto);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Resend an email by bookingEventId")
     @PostMapping("/emails/booking/{bookingEventId}/confirmation-resend")
     public ResponseEntity<?> resendConfirmationEmail(@PathVariable String bookingEventId) {
-
-        try {
-            ResendConfirmationEmailResponseDTO response = bookingService.reConfirmBooking(bookingEventId);
-            return ResponseEntity.ok(response);
-
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message("Error resending email: " + e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        ResendConfirmationEmailResponseDTO response = bookingService.reConfirmBooking(bookingEventId);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -114,24 +78,8 @@ public class EmailController {
     )
     @GetMapping("/emails/template/{id}")
     public ResponseEntity<?> getEmailTemplate(@PathVariable String id) {
-        try {
-            GetEmailTemplateResponseDTO emailTemplate = emailService.getEmailTemplate(id);
-            return ResponseEntity.ok(emailTemplate);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        GetEmailTemplateResponseDTO emailTemplate = emailService.getEmailTemplate(id);
+        return ResponseEntity.ok(emailTemplate);
     }
 
     @Operation(
@@ -172,25 +120,9 @@ public class EmailController {
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction
     ) {
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-            GetListEmailTemplatesResponseDTO emailTemplates = emailService.getAllEmailTemplates(pageable);
-            return ResponseEntity.ok(emailTemplates);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        GetListEmailTemplatesResponseDTO emailTemplates = emailService.getAllEmailTemplates(pageable);
+        return ResponseEntity.ok(emailTemplates);
     }
 }

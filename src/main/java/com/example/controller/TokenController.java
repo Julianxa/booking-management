@@ -1,7 +1,5 @@
 package com.example.controller;
 
-import com.example.exception.InvalidEmailPasswordException;
-import com.example.exception.UnverifiedEmailException;
 import com.example.model.dto.*;
 import com.example.service.TokenService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,9 +12,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
-
-import java.time.LocalDateTime;
 
 @Tag(name = "Tokens", description = "Token management APIs")
 @RequiredArgsConstructor
@@ -39,31 +34,8 @@ public class TokenController {
     )
     @PostMapping("/tokens")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDTO request, HttpServletRequest httpRequest) {
-        try {
-            LoginResponseDTO response = tokenService.login(request, httpRequest);
-            return ResponseEntity.ok(response);
-        } catch (UnverifiedEmailException e) {
-            return ResponseEntity.status(403).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (InvalidEmailPasswordException e) {
-            return ResponseEntity.status(400).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        LoginResponseDTO response = tokenService.login(request, httpRequest);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -80,17 +52,8 @@ public class TokenController {
     )
     @PostMapping("/tokens/renewal")
     public ResponseEntity<?> refreshTokens(@RequestBody @Valid TokenRenewalRequestDTO request) {
-        try {
-            TokenRenewalResponseDTO response = tokenService.refresh(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message("Operation failed: " + e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        TokenRenewalResponseDTO response = tokenService.refresh(request);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -108,23 +71,7 @@ public class TokenController {
     @PostMapping(value = "/tokens/revocation")
     public ResponseEntity<?> revokeTokens(
             @RequestHeader(value = "X-Access-Token", required = false) String accessToken) {
-        try {
-            LogoutResponseDTO response = tokenService.logout(accessToken);
-            return ResponseEntity.ok(response);
-        } catch (NotAuthorizedException e) {
-            return ResponseEntity.status(401).body(
-                    ErrorResponseDTO.builder()
-                            .message("Operation failed: " + e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message("Operation failed: " + e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        LogoutResponseDTO response = tokenService.logout(accessToken);
+        return ResponseEntity.ok(response);
     }
 }

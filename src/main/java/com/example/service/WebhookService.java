@@ -2,7 +2,10 @@ package com.example.service;
 
 import com.example.constant.Enums;
 import com.example.converter.BookingsConverter;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.booking.BookingNotFoundException;
+import com.example.exception.bookingEvent.BookingEventNotFoundException;
+import com.example.exception.payment.PaymentNotFoundException;
+import com.example.exception.user.UserNotFoundException;
 import com.example.model.dto.CreateBookingRequestDTO;
 import com.example.model.entity.*;
 import com.example.model.record.GiftCertificateApplicationResult;
@@ -21,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,14 +52,14 @@ public class WebhookService {
         updatePaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
 
         Bookings booking = bookingsRepository.findById(payment.getBookingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", payment.getBookingId())));
 
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
 
         Users user = null;
         if(booking.getUserId() != null) {
             user = usersRepository.findById(booking.getUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                    .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", booking.getUserId())));
         }
         GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents =
@@ -78,7 +80,7 @@ public class WebhookService {
         for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
             if (bookingEventDTO.getAttendees() != null) {
                 BookingEvents savedBookingEvent = bookingEventsRepository.findByRefNo(bookingEventDTO.getId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Booking event not found"));
+                        .orElseThrow(() -> new BookingEventNotFoundException(String.format("Booking event %s not found", bookingEventDTO.getId())));
 
                 savedBookingEvent.setStatus(Enums.BookingEventStatus.AVAILABLE);
                 bookingEventsRepository.save(savedBookingEvent);
@@ -127,11 +129,11 @@ public class WebhookService {
 
     // Customer opens the cashier page and starts checkout
     @Transactional
-    public void processPaymentIntentCreated(Event event) throws SQLException {
+    public void processPaymentIntentCreated(Event event) {
         PaymentIntent intent = getPaymentIntentFromEvent(event);
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                        .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                        .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         String sessionId = intent.getPaymentDetails().getOrderReference();
         paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
 
@@ -143,7 +145,7 @@ public class WebhookService {
         Refund refund = getRefundFromEvent(event);
         String bookingRefNo = refund.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
 
         Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
         updateRefundStatus(r, Enums.RefundStatus.PROCESSING);
@@ -155,9 +157,9 @@ public class WebhookService {
         String bookingRefNo = refund.getMetadata().get("bookingRefNo");
         String paymentIntentId = refund.getMetadata().get("paymentIntentId");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentsRepository.findByPaymentIntentId(paymentIntentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+                .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment %s not found", paymentIntentId)));
         Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
         updateRefundStatus(r, Enums.RefundStatus.SUCCESS);
         updateBookingStatus(booking, Enums.BookingStatus.REFUNDED);
@@ -169,18 +171,18 @@ public class WebhookService {
         Refund refund = getRefundFromEvent(event);
         String bookingRefNo = refund.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
 
         Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
         updateRefundStatus(r, Enums.RefundStatus.FAILED);
     }
 
     @Transactional
-    public void processPaymentRequiresAction(Event event) throws SQLException {
+    public void processPaymentRequiresAction(Event event) {
         PaymentIntent intent = getPaymentIntentFromEvent(event);
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         String sessionId = intent.getPaymentDetails().getOrderReference();
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
 
@@ -189,13 +191,13 @@ public class WebhookService {
     }
 
     @Transactional
-    public void processFailedPayment(Event event) throws SQLException {
+    public void processFailedPayment(Event event) {
         PaymentIntent intent = getPaymentIntentFromEvent(event);
         String sessionId = intent.getPaymentDetails().getOrderReference();
 
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
 
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
@@ -205,18 +207,18 @@ public class WebhookService {
     }
 
     @Transactional
-    public void processPaymentIntentCanceled(Event event) throws SQLException {
+    public void processPaymentIntentCanceled(Event event) {
         PaymentIntent intent = getPaymentIntentFromEvent(event);
         String sessionId = intent.getPaymentDetails().getOrderReference();
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
         updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
     }
 
     @Transactional
-    public void processSuccessfulPayment(Event event) throws SQLException {
+    public void processSuccessfulPayment(Event event) {
         PaymentIntent intent = getPaymentIntentFromEvent(event);
         String sessionId = intent.getPaymentDetails().getOrderReference();
         String paymentMethod = intent.getPaymentMethodTypes().get(0);
@@ -225,20 +227,20 @@ public class WebhookService {
 
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
 
         confirmPayment(payment, paymentIntent, paymentMethod, paidAt);
     }
 
     @Transactional
-    public void processExpiredPayment(Event event) throws SQLException {
+    public void processExpiredPayment(Event event) {
         Session session = getSessionFromEvent(event);
         String sessionId = session.getId();
 
         String bookingRefNo = session.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, null, booking);
 
         payment.setPaymentStatus(Enums.PaymentStatus.EXPIRED);

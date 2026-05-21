@@ -2,7 +2,11 @@ package com.example.service;
 
 
 import com.example.constant.Enums;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.booking.BookingNotFoundException;
+import com.example.exception.payment.AlreadyRefundedException;
+import com.example.exception.payment.CreateRefundException;
+import com.example.exception.payment.MismatchedCurrencyException;
+import com.example.exception.payment.PaymentNotFoundException;
 import com.example.model.dto.CreateBookingRequestDTO;
 import com.example.model.dto.GetPaymentDetailsResponseDTO;
 import com.example.model.dto.RefundRequestDTO;
@@ -26,7 +30,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.time.Instant;
 
 import static com.example.constant.Enums.PaymentPlatform.STRIPE;
@@ -42,7 +45,7 @@ public class PaymentService {
     private final ReferenceNoGenerator referenceNoGenerator;
 
     @Transactional
-    public String createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) throws StripeException, SQLException {
+    public String createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) throws StripeException {
         SessionCreateParams.PaymentMethodOptions paymentMethodOptions =
                 SessionCreateParams.PaymentMethodOptions.builder()
                         .setWechatPay(
@@ -98,10 +101,10 @@ public class PaymentService {
 
     public GetPaymentDetailsResponseDTO getPaymentDetails(String sessionId) {
         Payments payment = paymentsRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+                .orElseThrow(() -> new PaymentNotFoundException("Payment not found"));
 
         Bookings booking = bookingsRepository.findById(payment.getBookingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", payment.getBookingId())));
 
         return GetPaymentDetailsResponseDTO.builder()
                 .message("Payment details retrieved successfully")
@@ -117,21 +120,20 @@ public class PaymentService {
     }
 
     @Transactional
-    public RefundResponseDTO refundBooking(RefundRequestDTO requestDTO)
-            throws StripeException, SQLException {
+    public RefundResponseDTO refundBooking(RefundRequestDTO requestDTO) {
         Bookings booking = bookingsRepository.findByRefNo(requestDTO.getBookingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", requestDTO.getBookingId())));
 
         if (refundsRepository.findByBookingIdAndSuccessOrProcessingStatus(booking.getId()) != null) {
-            throw new IllegalStateException("This payment has already been fully refunded/processing refund");
+            throw new AlreadyRefundedException("This payment has already been fully refunded/processing refund");
         }
 
         if(!booking.getCurrency().equals(requestDTO.getRefundCurrency())) {
-            throw new IllegalArgumentException("Invalid currency for this refund");
+            throw new MismatchedCurrencyException("Invalid currency for this refund");
         }
 
         Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+                .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
 
         Refunds r = new Refunds();
         r.setRefNo(referenceNoGenerator.generateRefundReference());
@@ -149,8 +151,11 @@ public class PaymentService {
                     .setAmount(payment.getAmount().longValue() * 100)
                     .putMetadata("bookingRefNo", booking.getRefNo())
                     .putMetadata("paymentIntentId", payment.getPaymentIntentId());
-
-            Refund refund = stripeClient.v1().refunds().create(refundParams.build());
+            try {
+                Refund refund = stripeClient.v1().refunds().create(refundParams.build());
+            } catch(StripeException e) {
+                throw new CreateRefundException("Failed to create refund");
+            }
 
             r.setType(Enums.RefundType.ONLINE_REFUND);
             r.setStatus(Enums.RefundStatus.PENDING);
@@ -185,23 +190,19 @@ public class PaymentService {
     }
 
     @Transactional
-    public Payments findOrCreatePaymentByPaymentIntentId(String sessionId, String intentId, Bookings booking) throws SQLException {
+    public Payments findOrCreatePaymentByPaymentIntentId(String sessionId, String intentId, Bookings booking) {
         if(intentId == null) {
             return createNewPaymentRecord(sessionId, null, booking);
         } else {
             return paymentsRepository.findByPaymentIntentId(intentId)
                     .orElseGet(() -> {
-                        try {
-                            return createNewPaymentRecord(sessionId, intentId, booking);
-                        } catch (SQLException e) {
-                            throw new RuntimeException(e);
-                        }
+                        return createNewPaymentRecord(sessionId, intentId, booking);
                     });
         }
     }
 
     @Transactional
-    private Payments createNewPaymentRecord(String sessionId, String intentId, Bookings booking) throws SQLException {
+    private Payments createNewPaymentRecord(String sessionId, String intentId, Bookings booking) {
         Payments payments = Payments.builder()
                 .refNo(referenceNoGenerator.generatePaymentReference())
                 .bookingId(booking.getId())

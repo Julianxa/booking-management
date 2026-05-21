@@ -1,7 +1,6 @@
 package com.example.controller;
 
 import com.example.exception.InvalidIdTokenException;
-import com.example.exception.ResourceNotFoundException;
 import com.example.model.dto.*;
 import com.example.service.BookingService;
 import com.example.utils.UserUtils;
@@ -61,24 +60,9 @@ public class BookingController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-            return ResponseEntity.ok(bookingService.getPassengersByEventDateTime(eventId, eventDate, eventTime, pageable));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        return ResponseEntity.ok(bookingService.getPassengersByEventDateTime(eventId, eventDate, eventTime, pageable));
     }
 
     @Operation(
@@ -108,24 +92,8 @@ public class BookingController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-            return ResponseEntity.ok(bookingService.getEventBookings(eventId, pageable));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        return ResponseEntity.ok(bookingService.getEventBookings(eventId, pageable));
     }
 
     @Operation(
@@ -155,24 +123,9 @@ public class BookingController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
-        try {
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-            return ResponseEntity.ok(bookingService.getUserBookings(userId, pageable));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        return ResponseEntity.ok(bookingService.getUserBookings(userId, pageable));
     }
 
     @Operation(
@@ -201,29 +154,13 @@ public class BookingController {
             @RequestHeader(value = "X-Access-Token", required = false) String accessToken,
             @Valid @RequestBody CreateBookingRequestDTO request) throws InvalidIdTokenException {
 
-        try {
-            String userSub = userUtils.extractUserSub(authorizationHeader);
+        String userSub = userUtils.extractUserSub(authorizationHeader);
 
-            CreateBookingResponseDTO createBookingResponseDTO = bookingService.createBooking(userSub, request);
+        CreateBookingResponseDTO createBookingResponseDTO = bookingService.createBooking(userSub, request);
 
-            createBookingResponseDTO.setMessage("Booking created successfully. Please complete payment.");
-            createBookingResponseDTO.setTimestamp(LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.OK).body(createBookingResponseDTO);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        createBookingResponseDTO.setMessage("Booking created successfully. Please complete payment.");
+        createBookingResponseDTO.setTimestamp(LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.OK).body(createBookingResponseDTO);
     }
 
     @Operation(
@@ -255,25 +192,9 @@ public class BookingController {
 
         String userSub = userUtils.extractUserSub(authorizationHeader);
 
-        try {
-            UpdateBookingEventStatusResponseDTO response = bookingService.updateBookingEventStatus(userSub, bookingEventId, request);
+        UpdateBookingEventStatusResponseDTO response = bookingService.updateBookingEventStatus(userSub, bookingEventId, request);
 
-            return ResponseEntity.ok(response);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -305,25 +226,9 @@ public class BookingController {
 
         String userSub = userUtils.extractUserSub(authorizationHeader);
 
-        try {
-            UpdateBookingResponseDTO response = bookingService.updateBooking(userSub, bookingEventId, request);
+        UpdateBookingResponseDTO response = bookingService.updateBooking(userSub, bookingEventId, request);
 
-            return ResponseEntity.ok(response);
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -348,22 +253,6 @@ public class BookingController {
     )
     @GetMapping("/bookings/{id}")
     public ResponseEntity<?> getBooking(@PathVariable String id) {
-        try {
-            return ResponseEntity.ok(bookingService.getBookingById(id));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(404).body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 }

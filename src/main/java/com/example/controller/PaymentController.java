@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
 
 @Tag(name = "Payments", description = "Payment management APIs")
 @RequestMapping("/api/v1")
@@ -81,17 +80,7 @@ public class PaymentController {
     @PostMapping("/payments/refund")
     public ResponseEntity<?> refund(
             @RequestBody RefundRequestDTO request) {
-
-        try {
-            RefundResponseDTO response = paymentService.refundBooking(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(
-                    ErrorResponseDTO.builder()
-                            .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
-                            .build()
-            );
-        }
+        RefundResponseDTO response = paymentService.refundBooking(request);
+        return ResponseEntity.ok(response);
     }
 }

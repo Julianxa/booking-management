@@ -3,7 +3,14 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
 import com.example.converter.GiftCertificateItemsConverter;
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.bookingEvent.BookingEventNotFoundException;
+import com.example.exception.event.EventNotFoundException;
+import com.example.exception.giftCertificate.GCItemNotFoundException;
+import com.example.exception.giftCertificate.GCNotFoundException;
+import com.example.exception.giftCertificate.GCPromoCodeExistsException;
+import com.example.exception.ticket.TicketPricePeriodNotFoundException;
+import com.example.exception.ticket.TicketTypeNotFoundException;
+import com.example.exception.user.UserNotFoundException;
 import com.example.mapper.GiftCertificateMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
@@ -18,7 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,17 +53,16 @@ public class GiftCertificateService {
     private final GiftCertificateItemsConverter giftCertificateItemsConverter;
 
     @Transactional
-    public CreateGiftCertificateResponseDTO createCertificate(String userSub, CreateGiftCertificateRequestDTO dto)
-            throws BadRequestException, SQLException {
+    public CreateGiftCertificateResponseDTO createCertificate(String userSub, CreateGiftCertificateRequestDTO dto) {
 
         Users user = usersRepository.findByUserSub(userSub)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userSub)));
 
         Long eventId = eventsRepository.findIdByRefNo(dto.getEventId()).orElse(null);
         GiftCertificates gc = buildGiftCertificate(user.getId(), eventId, dto);
 
         if (giftCertificatesRepository.existsByPromoCode(gc.getPromoCode())) {
-            throw new BadRequestException("Promotion code already exists: " + gc.getPromoCode());
+            throw new GCPromoCodeExistsException(String.format("Promotion code %s already exists", gc.getPromoCode()));
         }
 
         if (dto.getType() == EVENT) {
@@ -74,7 +79,7 @@ public class GiftCertificateService {
     @Transactional
     public UpdateGiftCertificateResponseDTO updateCertificate(String promoCode, UpdateGiftCertificateRequestDTO dto) {
         GiftCertificates giftCertificates = giftCertificatesRepository.findByPromoCode(promoCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate not found"));
+                .orElseThrow(() -> new GCNotFoundException(String.format("Gift Certificate with promotion code %s not found", promoCode)));
 
         if (dto.getExpiryDate() != null) {
             giftCertificates.setExpiryDate(dto.getExpiryDate());
@@ -103,12 +108,12 @@ public class GiftCertificateService {
 
         if (giftCertificate != null && giftCertificate.getType() == VALUE) {
             GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(giftCertificate.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Value gift certificate item not found"));
+                    .orElseThrow(() -> new GCNotFoundException(String.format("Value gift certificate %s not found", giftCertificate.getId())));
 
             return new GiftCertificateApplicationResult(giftCertificate, List.of(), item.getValue());
         } else if (giftCertificate != null && giftCertificate.getType() == EVENT) {
             Long bookingEventId = bookingEventsRepository.findIdByBookingIdAndEventId(booking.getId(), giftCertificate.getEventId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Booking event not found"));
+                    .orElseThrow(() -> new BookingEventNotFoundException("Booking event not found"));
 
             List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEventId);
 
@@ -122,7 +127,7 @@ public class GiftCertificateService {
         }
     }
 
-    private GiftCertificates buildGiftCertificate(Long userId, Long eventId, CreateGiftCertificateRequestDTO dto) throws SQLException {
+    private GiftCertificates buildGiftCertificate(Long userId, Long eventId, CreateGiftCertificateRequestDTO dto) {
         return GiftCertificates.builder()
                 .refNo(referenceNoGenerator.generateGiftCertificateReference())
                 .promoCode(dto.getPromoCode())
@@ -137,16 +142,15 @@ public class GiftCertificateService {
                 .build();
     }
 
-    private void validateAndAddEventItems(GiftCertificates gc, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> items)
-            throws BadRequestException {
+    private void validateAndAddEventItems(GiftCertificates gc, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> items) {
 
         if (items == null || items.isEmpty()) {
-            throw new BadRequestException("Empty ticket list to create EVENT Gift Certificate");
+            throw new GCItemNotFoundException("Empty ticket list to create EVENT Gift Certificate");
         }
 
         for (var itemDTO : items) {
             Long ticketTypeId = ticketTypesRepository.findIdByRefNo(itemDTO.getTicketTypeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found: " + itemDTO.getTicketTypeId()));
+                    .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", itemDTO.getTicketTypeId())));
 
             gc.getItems().add(GiftCertificateItems.builder()
                     .giftCertificates(gc)
@@ -156,10 +160,10 @@ public class GiftCertificateService {
         }
     }
 
-    private void validateAndAddValueItems(GiftCertificates gc, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> items) throws BadRequestException {
+    private void validateAndAddValueItems(GiftCertificates gc, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> items) {
 
         if (items == null || items.isEmpty()) {
-            throw new BadRequestException("Empty item to create VALUE Gift Certificate");
+            throw new GCItemNotFoundException("Empty item to create VALUE Gift Certificate");
         } else {
             for (var itemDTO : items) {
                 gc.getItems().add(GiftCertificateItems.builder()
@@ -172,7 +176,7 @@ public class GiftCertificateService {
 
     public CreateGiftCertificateResponseDTO getCertificate(String promoCode) {
         GiftCertificates gc = giftCertificatesRepository.findByPromoCode(promoCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Gift certificate not found: " + promoCode));
+                .orElseThrow(() -> new GCNotFoundException(String.format("Gift certificate with promotion code %s not found", promoCode)));
 
         String userRefNo = usersRepository.findRefNoById(gc.getUserId()).orElse(null);
         String eventRefNo = eventsRepository.findRefNoById(gc.getEventId()).orElse(null);
@@ -188,7 +192,7 @@ public class GiftCertificateService {
             Pageable pageable, String eventRefNo) {
         Page<GiftCertificates> giftCertificatesPage;
         Long eventId = eventRefNo != null ? eventsRepository.findIdByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found"))
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)))
                 : null;
         if (eventId != null) {
             giftCertificatesPage = giftCertificatesRepository.findByEventId(eventId, pageable);
@@ -199,7 +203,7 @@ public class GiftCertificateService {
         List<CreateGiftCertificateResponseDTO> content = giftCertificatesPage.getContent().stream()
                 .map(giftCertificate -> {
                     String userRefNo = usersRepository.findRefNoById(giftCertificate.getUserId())
-                            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                            .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", giftCertificate.getUserId())));
                     String evtRefNo = eventsRepository.findRefNoById(giftCertificate.getEventId())
                             .orElse(null);
 
@@ -225,7 +229,7 @@ public class GiftCertificateService {
     @Transactional
     public GiftCertificates validateGiftCertificateForBooking(String promoCode, Long userId) throws BadRequestException {
         GiftCertificates gc = giftCertificatesRepository.findByPromoCodeWithLock(promoCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Gift certificate not found: " + promoCode));
+                .orElseThrow(() -> new GCNotFoundException(String.format("Gift certificate with promotion code %s not found", promoCode)));
 
         if (gc.isCancelled()) throw new BadRequestException("The gift certificate has been cancelled");
         if (gc.getRemainingQuantity() < 1) throw new BadRequestException("The gift certificate already redeemed");
@@ -247,7 +251,7 @@ public class GiftCertificateService {
 
     private GiftCertificateApplicationResult applyValueType(GiftCertificates gc) {
         GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Value gift certificate item not found"));
+                .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
 
         gc.setRemainingQuantity(gc.getRemainingQuantity() - 1);
         giftCertificatesRepository.save(gc);
@@ -260,19 +264,19 @@ public class GiftCertificateService {
 
         for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
             Long eventId = eventsRepository.findIdByRefNo(bookingEventDTO.getEvent().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + bookingEventDTO.getEvent().getId()));
+                    .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found",  bookingEventDTO.getEvent().getId())));
 
             if (gc.getEventId() != null && !gc.getEventId().equals(eventId)) {
                 continue;
             }
 
             List<GiftCertificateItems> gcItems = giftCertificateItemRepository.getEventCertByGiftCertificateId(gc.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate items not found"));
+                    .orElseThrow(() -> new GCItemNotFoundException(String.format("Gift Certificate items not found with %s", gc.getId())));
 
             for (CreateBookingRequestDTO.TicketTypeDTO ticketDTO : bookingEventDTO.getTickets()) {
                 for (GiftCertificateItems gcItem : gcItems) {
                     Long ticketTypeId = ticketTypesRepository.findIdByRefNo(ticketDTO.getId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found"));
+                            .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticketDTO.getId())));
 
                     if (ticketTypeId.equals(gcItem.getTicketTypeId())) {
                         int redeemedQty = min(ticketDTO.getQuantity(), gcItem.getQuantity());
@@ -321,10 +325,10 @@ public class GiftCertificateService {
 
     private BigDecimal calculateTicketSubtotal(CreateBookingRequestDTO.TicketTypeDTO ticket) {
         Long ticketTypeId = ticketTypesRepository.findIdByRefNo(ticket.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found"));
+                .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticket.getId())));
 
         BigDecimal price = ticketPricePeriodsRepository.findActivePrice(ticketTypeId, null)
-                .orElseThrow(() -> new ResourceNotFoundException("Price period not found"))
+                .orElseThrow(() -> new TicketPricePeriodNotFoundException(String.format("Price period not found with ticket type %s", ticketTypeId)))
                 .getPrice();
 
         return price.multiply(BigDecimal.valueOf(ticket.getQuantity()));
@@ -332,7 +336,7 @@ public class GiftCertificateService {
 
     public UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatus(String promoCode, UpdateGiftCertificateStatusRequestDTO dto) {
         GiftCertificates giftCertificates = giftCertificatesRepository.findByPromoCode(promoCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Gift Certificate not found with reference no: " + promoCode));
+                .orElseThrow(() -> new GCNotFoundException(String.format("Gift Certificate not found with promotion code %s", promoCode)));
 
         LocalDateTime actionAt = LocalDateTime.now();
         UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatusResponseDTO = new UpdateGiftCertificateStatusResponseDTO();
