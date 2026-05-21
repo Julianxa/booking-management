@@ -11,4 +11,5 @@ public class ErrorResponseDTO {
     private String errorCode;
     private String message;
     private String timestamp;
+    private String traceId;
 }
