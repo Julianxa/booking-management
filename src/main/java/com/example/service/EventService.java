@@ -2,9 +2,8 @@ package com.example.service;
 
 import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
-import com.example.exception.general.FileUploadException;
 import com.example.exception.ticket.InvalidVerificationTokenException;
-import com.example.exception.bookingEvent.BookingEventNotFoundException;
+import com.example.exception.booking.BookingEventNotFoundException;
 import com.example.exception.event.EventNotFoundException;
 import com.example.exception.general.InvalidJsonFormatException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
@@ -502,7 +501,7 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
-    public InitiateCheckInResponseDTO initiateCheckIn(String token) throws InvalidVerificationTokenException {
+    public InitiateCheckInResponseDTO initiateCheckIn(String token) {
 
         if (token == null || token.trim().isEmpty()) {
             throw new InvalidVerificationTokenException("Verification token is required");
@@ -627,7 +626,7 @@ public class EventService {
         }).collect(Collectors.toList());
     }
 
-    private void validateCheckIn(BookingEvents bookingEvent) throws InvalidVerificationTokenException {
+    private void validateCheckIn(BookingEvents bookingEvent) {
         if (bookingEvent.getVerifiedAt() != null) {
             throw new InvalidVerificationTokenException("Ticket has already been checked in");
         }
@@ -666,7 +665,7 @@ public class EventService {
         }
     }
 
-    private String uploadEventPicture(Events savedEvent, MultipartFile eventPic) throws IOException {
+    private String uploadEventPicture(Events savedEvent, MultipartFile eventPic) {
         String eventPicKey = awsService.uploadFile(savedEvent.getRefNo(), eventPic);
 
         savedEvent.setEventPicKey(eventPicKey);
@@ -676,23 +675,19 @@ public class EventService {
     }
 
     private void handleEventPictureUpdate(Events event, MultipartFile eventPic) {
-        try {
-            if (eventPic != null && !eventPic.isEmpty()) {
-                if (event.getEventPicKey() != null) {
-                    awsService.deleteFile(event.getEventPicKey());
-                }
-                String eventPicKey = awsService.uploadFile(event.getRefNo(), eventPic);
-                if (eventPicKey != null) {
-                    event.setEventPicKey(eventPicKey);
-                }
-            } else if (eventPic == null) {
-                if (event.getEventPicKey() != null) {
-                    awsService.deleteFile(event.getEventPicKey());
-                    event.setEventPicKey(null);
-                }
+        if (eventPic != null && !eventPic.isEmpty()) {
+            if (event.getEventPicKey() != null) {
+                awsService.deleteFile(event.getEventPicKey());
             }
-        } catch(IOException e) {
-            throw new FileUploadException("Failed to upload file");
+            String eventPicKey = awsService.uploadFile(event.getRefNo(), eventPic);
+            if (eventPicKey != null) {
+                event.setEventPicKey(eventPicKey);
+            }
+        } else if (eventPic == null) {
+            if (event.getEventPicKey() != null) {
+                awsService.deleteFile(event.getEventPicKey());
+                event.setEventPicKey(null);
+            }
         }
     }
 }

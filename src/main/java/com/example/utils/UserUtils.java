@@ -1,6 +1,6 @@
 package com.example.utils;
 
-import com.example.exception.InvalidIdTokenException;
+import com.example.exception.user.InvalidIdTokenException;
 import com.example.exception.user.InvalidTokenException;
 import com.example.exception.user.UserNotFoundException;
 import com.example.model.entity.Users;

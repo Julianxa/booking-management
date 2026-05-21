@@ -1,7 +1,8 @@
 package com.example.service;
 
 import com.example.config.AwsConfig;
-import com.example.exception.InvalidIdTokenException;
+import com.example.exception.general.FileOperationException;
+import com.example.exception.user.InvalidIdTokenException;
 import com.example.exception.general.MissingRequiredFieldException;
 import com.example.exception.user.UnverifiedEmailException;
 import com.example.model.dto.*;
@@ -283,12 +284,8 @@ public class AwsService {
         return null;
     }
 
-    public String getUserSub(String idToken) throws InvalidIdTokenException {
-        try {
-            return CognitoJwtParser.getUserSub(idToken, userPoolId, region);
-        } catch (Exception e) {
-            throw new InvalidIdTokenException("Expired/Invalid JWT");
-        }
+    public String getUserSub(String idToken) {
+        return CognitoJwtParser.getUserSub(idToken, userPoolId, region);
     }
 
     public boolean isAccessTokenValid(String accessToken) {
@@ -381,7 +378,7 @@ public class AwsService {
         return presignedRequest.url().toString();
     }
 
-    public String uploadFile(String uniqueIdentifier, MultipartFile file) throws IOException {
+    public String uploadFile(String uniqueIdentifier, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return null;
         }
@@ -396,16 +393,16 @@ public class AwsService {
                 .contentType(file.getContentType())
                 .build();
 
-        UploadRequest uploadRequest = UploadRequest.builder()
-                .putObjectRequest(putObjectRequest)
-                .requestBody(AsyncRequestBody.fromBytes(file.getBytes()))
-                .build();
-
         try {
-            CompletedUpload uploadResult = s3TransferManager.upload(uploadRequest).completionFuture().join();
-            return key;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to upload file to S3", e);
+            UploadRequest uploadRequest = UploadRequest.builder()
+                    .putObjectRequest(putObjectRequest)
+                    .requestBody(AsyncRequestBody.fromBytes(file.getBytes()))
+                    .build();
+
+        CompletedUpload uploadResult = s3TransferManager.upload(uploadRequest).completionFuture().join();
+        return key;
+        } catch (IOException e) {
+            throw new FileOperationException("Failed to extract the content of the uploaded file");
         }
     }
 
@@ -419,10 +416,6 @@ public class AwsService {
                 .key(key)
                 .build();
 
-        try {
-            s3Client.deleteObject(deleteObjectRequest);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to delete file from S3", e);
-        }
+        s3Client.deleteObject(deleteObjectRequest);
     }
 }

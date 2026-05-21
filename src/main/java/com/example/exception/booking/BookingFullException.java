@@ -4,6 +4,6 @@ import com.example.exception.BusinessException;
 
 public class BookingFullException extends BusinessException {
     public BookingFullException(String message) {
-        super("BT305", message);
+        super("BT302", message);
     }
 }

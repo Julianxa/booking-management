@@ -3,10 +3,7 @@ package com.example.service;
 
 import com.example.constant.Enums;
 import com.example.exception.booking.BookingNotFoundException;
-import com.example.exception.payment.AlreadyRefundedException;
-import com.example.exception.payment.CreateRefundException;
-import com.example.exception.payment.MismatchedCurrencyException;
-import com.example.exception.payment.PaymentNotFoundException;
+import com.example.exception.payment.*;
 import com.example.model.dto.CreateBookingRequestDTO;
 import com.example.model.dto.GetPaymentDetailsResponseDTO;
 import com.example.model.dto.RefundRequestDTO;
@@ -45,7 +42,7 @@ public class PaymentService {
     private final ReferenceNoGenerator referenceNoGenerator;
 
     @Transactional
-    public String createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) throws StripeException {
+    public String createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
         SessionCreateParams.PaymentMethodOptions paymentMethodOptions =
                 SessionCreateParams.PaymentMethodOptions.builder()
                         .setWechatPay(
@@ -90,13 +87,16 @@ public class PaymentService {
                 .putMetadata("bookingRefNo", booking.getRefNo())
                 .putMetadata("userSub", userSub)
                 .build();
+        try {
+            Session session = stripeClient.v1().checkout().sessions().create(params);
 
-        Session session = stripeClient.v1().checkout().sessions().create(params);
+            booking.setStatus(Enums.BookingStatus.AWAITING_PAYMENT);
+            bookingsRepository.save(booking);
 
-        booking.setStatus(Enums.BookingStatus.AWAITING_PAYMENT);
-        bookingsRepository.save(booking);
-
-        return session.getUrl();
+            return session.getUrl();
+        } catch(StripeException e) {
+            throw new CreateSessionException("Failed to create a session for payment");
+        }
     }
 
     public GetPaymentDetailsResponseDTO getPaymentDetails(String sessionId) {

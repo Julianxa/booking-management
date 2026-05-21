@@ -41,24 +41,19 @@ public class WebhookController {
             return ResponseEntity.status(400).body("Invalid signature");
         }
 
-        try {
-            switch (event.getType()) {
-                case "payment_intent.created" -> webhookService.processPaymentIntentCreated(event);
-                case "payment_intent.requires_action" -> webhookService.processPaymentRequiresAction(event);
-                case "payment_intent.canceled" -> webhookService.processPaymentIntentCanceled(event);
-                case "payment_intent.succeeded", "checkout.session.async_payment_succeeded" ->
-                        webhookService.processSuccessfulPayment(event);
-                case "payment_intent.payment_failed", "checkout.session.async_payment_failed" ->
-                        webhookService.processFailedPayment(event);
-                case "checkout.session.expired" -> webhookService.processExpiredPayment(event);
-                case "refund.created" -> webhookService.processRefundCreated(event);
-                case "refund.updated" -> webhookService.processRefundUpdated(event);
-                case "refund.failed" -> webhookService.processRefundFailed(event);
-                default -> log.info("Unhandled Stripe event type: {}", event.getType());
-            }
-        } catch (Exception e) {
-            log.error("Error processing webhook event: {}", event.getType(), e);
-            return ResponseEntity.status(500).body("Internal error");
+        switch (event.getType()) {
+            case "payment_intent.created" -> webhookService.processPaymentIntentCreated(event);
+            case "payment_intent.requires_action" -> webhookService.processPaymentRequiresAction(event);
+            case "payment_intent.canceled" -> webhookService.processPaymentIntentCanceled(event);
+            case "payment_intent.succeeded", "checkout.session.async_payment_succeeded" ->
+                    webhookService.processSuccessfulPayment(event);
+            case "payment_intent.payment_failed", "checkout.session.async_payment_failed" ->
+                    webhookService.processFailedPayment(event);
+            case "checkout.session.expired" -> webhookService.processExpiredPayment(event);
+            case "refund.created" -> webhookService.processRefundCreated(event);
+            case "refund.updated" -> webhookService.processRefundUpdated(event);
+            case "refund.failed" -> webhookService.processRefundFailed(event);
+            default -> log.info("Unhandled Stripe event type: {}", event.getType());
         }
 
         return ResponseEntity.ok("Received");

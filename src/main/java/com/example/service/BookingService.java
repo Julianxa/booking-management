@@ -3,21 +3,18 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
 import com.example.converter.BookingsConverter;
-import com.example.exception.*;
 import com.example.exception.booking.BookingNotFoundException;
 import com.example.exception.booking.EventTimeSlotUnavailableException;
 import com.example.exception.booking.TicketQuantityMismatchException;
-import com.example.exception.bookingEvent.BookingEventNotFoundException;
-import com.example.exception.email.EmailProcessException;
+import com.example.exception.booking.BookingEventNotFoundException;
 import com.example.exception.event.EventCapacityExceededException;
 import com.example.exception.event.EventDayScheduleNotFoundException;
 import com.example.exception.event.EventNotFoundException;
-import com.example.exception.general.InternalServerException;
 import com.example.exception.general.MissingRequiredFieldException;
 import com.example.exception.giftCertificate.GCRedemptionNotFoundException;
-import com.example.exception.payment.PaymentProcessingException;
 import com.example.exception.ticket.TicketPricePeriodNotFoundException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
+import com.example.exception.user.UserNotFoundException;
 import com.example.mapper.BookingEventsMapper;
 import com.example.mapper.BookingMapper;
 import com.example.mapper.EventMapper;
@@ -31,8 +28,6 @@ import com.example.utils.DateUtils;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
 import com.example.utils.UserUtils;
-import com.stripe.exception.StripeException;
-import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -94,29 +89,21 @@ public class BookingService {
     // ====================== Public API ======================
     @Transactional
     public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) {
-        try {
-            validateTicketQuantityMatchesAttendees(request);
+        validateTicketQuantityMatchesAttendees(request);
 
-            Users loggedInUser = userUtils.getLoggedInUser(userSub);
+        Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
-            Bookings booking = createEmptyBooking(loggedInUser); // PENDING
+        Bookings booking = createEmptyBooking(loggedInUser); // PENDING
 
-            BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
+        BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
 
-            GiftCertificateApplicationResult gcResult = giftCertificateService.reserveGiftCertificate(loggedInUser, booking, request.getBookingEvents(), request.getPromoCode());
+        GiftCertificateApplicationResult gcResult = giftCertificateService.reserveGiftCertificate(loggedInUser, booking, request.getBookingEvents(), request.getPromoCode());
 
-            applyGiftCertificateToBooking(booking, grandTotal, gcResult);
+        applyGiftCertificateToBooking(booking, grandTotal, gcResult);
 
-            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
+        List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
-            return handlePostBookingProcessing(loggedInUser, booking, request, bookingEventDTOs);
-        } catch (BusinessException e) {
-            throw e;
-        } catch (StripeException e) {
-            throw new PaymentProcessingException("Failed to create payment session. Please try again.");
-        } catch (Exception e) {
-            throw new InternalServerException("An unexpected error occurred while creating booking");
-        }
+        return handlePostBookingProcessing(loggedInUser, booking, request, bookingEventDTOs);
     }
 
     @Transactional
@@ -156,14 +143,14 @@ public class BookingService {
         Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
         BookingEvents bookingEvent = bookingEventsRepository.findByRefNo(bookingEventId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booked event not found"));
+                .orElseThrow(() -> new BookingEventNotFoundException(String.format("Booked event %s not found", bookingEventId)));
 
         if (bookingEvent.getStatus() == CHECKED_IN) {
             throw new IllegalStateException("Booking is already in CHECKED_IN status.");
         }
 
         Bookings booking = bookingsRepository.findById(bookingEvent.getBooking().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingEvent.getBooking().getId())));
 
         List<EmailService.BookingEmailPayload> emailPayloads = prepareEmailPayloads(bookingEvent);
 
@@ -182,7 +169,7 @@ public class BookingService {
 
     public GetListBookingResponseDTO getUserBookings(String userRefNo, Pageable pageable) {
         Long userId = usersRepository.findIdByRefNo(userRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("User not found", userRefNo)));
 
         Page<Bookings> bookingsPage = bookingsRepository.findByUserId(userId, pageable);
 
@@ -198,7 +185,7 @@ public class BookingService {
 
     public GetListBookingResponseDTO getEventBookings(String eventRefNo, Pageable pageable) {
         Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + eventRefNo));
+                .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
         Page<Bookings> bookingsPage = bookingsRepository.findBookingsByEventId(eventId, pageable);
 
@@ -320,8 +307,8 @@ public class BookingService {
 
         // 1. Fetch and validate Event
         Events event = eventsRepository.findByRefNoAndOpenStatusAndPublished(bookingEventDTO.getEvent().getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Active Event not found with reference no: " + bookingEventDTO.getEvent().getId()));
+                .orElseThrow(() -> new EventNotFoundException(
+                        String.format("Active Event %s not found", bookingEventDTO.getEvent().getId())));
 
         // 2. Validate a specific time slot availability of event
         List<EventTimeSlotException> exceptions = eventTimeSlotExceptionsRepository.findByEventIdAndExceptionDateAndTime(event.getId(), bookingEventDTO.getEvent().getEventDate(), bookingEventDTO.getEvent().getEventTime());
@@ -452,12 +439,8 @@ public class BookingService {
 
         List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
 
-        try {
-            for (CreateBookingRequestDTO.AttendeeDTO attendeeDTO : attendees) {
-                emailService.sendBookingConfirmationEmail(attendeeDTO, booking, bookingEvent, ticketDTOs, attendees);
-            }
-        } catch(MessagingException e) {
-            throw new EmailProcessException("Failed to send booking confirmation email");
+        for (CreateBookingRequestDTO.AttendeeDTO attendeeDTO : attendees) {
+            emailService.sendBookingConfirmationEmail(attendeeDTO, booking, bookingEvent, ticketDTOs, attendees);
         }
 
         return ResendConfirmationEmailResponseDTO.builder()
@@ -538,8 +521,7 @@ public class BookingService {
 
     private CreateBookingResponseDTO handlePostBookingProcessing(Users user, Bookings booking,
                                                                  CreateBookingRequestDTO request,
-                                                                 List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs)
-            throws StripeException {
+                                                                 List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
 
         if (user == null) { // Public user
             String checkoutUrl = paymentService.createCheckoutSession(null, request, booking);

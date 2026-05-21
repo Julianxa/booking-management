@@ -4,6 +4,6 @@ import com.example.exception.BusinessException;
 
 public class MissingRequiredFieldException extends BusinessException {
     public MissingRequiredFieldException(String message) {
-        super("BT001", message);
+        super("BT007", message);
     }
 }

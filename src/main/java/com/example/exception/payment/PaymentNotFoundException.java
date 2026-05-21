@@ -4,7 +4,7 @@ import com.example.exception.BusinessException;
 
 public class PaymentNotFoundException extends BusinessException {
     public PaymentNotFoundException(String message) {
-        super("BT501", message);
+        super("BT805", message);
     }
 
 }

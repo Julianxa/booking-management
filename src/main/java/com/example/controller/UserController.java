@@ -1,7 +1,5 @@
 package com.example.controller;
 
-import com.example.exception.InvalidIdTokenException;
-import com.example.exception.email.UnverifiedEmailException;
 import com.example.model.dto.*;
 import com.example.service.UserService;
 import com.example.utils.UserUtils;
@@ -15,11 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.LimitExceededException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
 

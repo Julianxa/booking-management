@@ -3,7 +3,7 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.converter.BookingsConverter;
 import com.example.exception.booking.BookingNotFoundException;
-import com.example.exception.bookingEvent.BookingEventNotFoundException;
+import com.example.exception.booking.BookingEventNotFoundException;
 import com.example.exception.payment.PaymentNotFoundException;
 import com.example.exception.user.UserNotFoundException;
 import com.example.model.dto.CreateBookingRequestDTO;
@@ -252,30 +252,18 @@ public class WebhookService {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCreatedEvent(EmailService.BookingCreatedEvent event) {
-        try {
-            emailService.sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.bookingEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
-            emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        emailService.sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.bookingEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
+        emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingReConfirmedEvent(EmailService.BookingReConfirmedEvent event) {
-        try {
-            emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCancelledEvent(BookingService.BookingCancelledEvent event) {
-        try {
-            emailService.sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        emailService.sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads());
     }
 
     void updateBookingStatus(Bookings booking, Enums.BookingStatus status) {

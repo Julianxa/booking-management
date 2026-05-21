@@ -3,9 +3,10 @@ package com.example.utils;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.config.FilterPathConfig;
-import com.example.exception.InvalidAccessTokenException;
+import com.example.exception.user.InvalidAccessTokenException;
 import com.example.service.AwsService;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jetbrains.annotations.NotNull;
@@ -17,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,7 +77,7 @@ public class CognitoTokenFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
 
-        } catch (Exception e) {
+        } catch (ServletException | IOException e) {
             SecurityContextHolder.clearContext();
             throw new InvalidAccessTokenException("Invalid or expired token");
         }

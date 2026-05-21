@@ -1,5 +1,6 @@
 package com.example.utils;
 
+import com.example.exception.general.GenerateHashException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -7,6 +8,8 @@ import org.springframework.stereotype.Component;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 @Component
@@ -33,8 +36,8 @@ public class HashGenerator {
             mac.update(userName.getBytes(StandardCharsets.UTF_8));
             byte[] rawHmac = mac.doFinal(clientId.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(rawHmac);
-        } catch (Exception e) {
-            throw new RuntimeException("Error while calculating secret hash");
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new GenerateHashException("Error while calculating secret hash");
         }
     }
 }

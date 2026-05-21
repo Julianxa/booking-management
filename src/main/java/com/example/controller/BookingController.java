@@ -1,6 +1,5 @@
 package com.example.controller;
 
-import com.example.exception.InvalidIdTokenException;
 import com.example.model.dto.*;
 import com.example.service.BookingService;
 import com.example.utils.UserUtils;
@@ -152,7 +151,7 @@ public class BookingController {
     public ResponseEntity<?> createBooking(
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @RequestHeader(value = "X-Access-Token", required = false) String accessToken,
-            @Valid @RequestBody CreateBookingRequestDTO request) throws InvalidIdTokenException {
+            @Valid @RequestBody CreateBookingRequestDTO request) {
 
         String userSub = userUtils.extractUserSub(authorizationHeader);
 
@@ -188,7 +187,7 @@ public class BookingController {
     public ResponseEntity<?> updateStatusByBookingEventId(
             @PathVariable("bookingEventId") String bookingEventId,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
-            @Valid @RequestBody UpdateBookingEventStatusRequestDTO request) throws InvalidIdTokenException {
+            @Valid @RequestBody UpdateBookingEventStatusRequestDTO request) {
 
         String userSub = userUtils.extractUserSub(authorizationHeader);
 
@@ -222,7 +221,7 @@ public class BookingController {
     public ResponseEntity<?> updateBookingAttendeesByBookingEventId(
             @PathVariable("bookingEventId") String bookingEventId,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
-            @Valid @RequestBody UpdateBookingRequestDTO request) throws InvalidIdTokenException {
+            @Valid @RequestBody UpdateBookingRequestDTO request) {
 
         String userSub = userUtils.extractUserSub(authorizationHeader);
 

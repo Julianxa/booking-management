@@ -3,11 +3,12 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
 import com.example.converter.GiftCertificateItemsConverter;
-import com.example.exception.bookingEvent.BookingEventNotFoundException;
+import com.example.exception.booking.BookingEventNotFoundException;
 import com.example.exception.event.EventNotFoundException;
 import com.example.exception.giftCertificate.GCItemNotFoundException;
 import com.example.exception.giftCertificate.GCNotFoundException;
 import com.example.exception.giftCertificate.GCPromoCodeExistsException;
+import com.example.exception.giftCertificate.InvalidGCException;
 import com.example.exception.ticket.TicketPricePeriodNotFoundException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.exception.user.UserNotFoundException;
@@ -18,7 +19,6 @@ import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
 import com.example.utils.ReferenceNoGenerator;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -227,14 +227,14 @@ public class GiftCertificateService {
     }
 
     @Transactional
-    public GiftCertificates validateGiftCertificateForBooking(String promoCode, Long userId) throws BadRequestException {
+    public GiftCertificates validateGiftCertificateForBooking(String promoCode, Long userId) {
         GiftCertificates gc = giftCertificatesRepository.findByPromoCodeWithLock(promoCode)
                 .orElseThrow(() -> new GCNotFoundException(String.format("Gift certificate with promotion code %s not found", promoCode)));
 
-        if (gc.isCancelled()) throw new BadRequestException("The gift certificate has been cancelled");
-        if (gc.getRemainingQuantity() < 1) throw new BadRequestException("The gift certificate already redeemed");
-        if (gc.isExpired()) throw new BadRequestException("The gift certificate has expired");
-        if (!gc.isEffective()) throw new BadRequestException("This gift certificate is not effective");
+        if (gc.isCancelled()) throw new InvalidGCException("The gift certificate has been cancelled");
+        if (gc.getRemainingQuantity() < 1) throw new InvalidGCException("The gift certificate already redeemed");
+        if (gc.isExpired()) throw new InvalidGCException("The gift certificate has expired");
+        if (!gc.isEffective()) throw new InvalidGCException("This gift certificate is not effective");
         return gc;
     }
 
@@ -362,7 +362,7 @@ public class GiftCertificateService {
     }
 
     @Transactional
-    public GiftCertificateApplicationResult reserveGiftCertificate(Users loggedInUser, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs, String promoCode) throws BadRequestException {
+    public GiftCertificateApplicationResult reserveGiftCertificate(Users loggedInUser, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs, String promoCode) {
         if (promoCode == null) {
             return new GiftCertificateApplicationResult(null, List.of(), BigDecimal.ZERO);
         }

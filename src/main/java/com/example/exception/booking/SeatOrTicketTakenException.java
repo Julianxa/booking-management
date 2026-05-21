@@ -4,6 +4,6 @@ import com.example.exception.BusinessException;
 
 public class SeatOrTicketTakenException extends BusinessException {
     public SeatOrTicketTakenException(String message) {
-        super("BT302", message);
+        super("BT306", message);
     }
 }

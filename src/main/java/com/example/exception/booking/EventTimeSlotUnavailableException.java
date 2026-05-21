@@ -4,6 +4,6 @@ import com.example.exception.BusinessException;
 
 public class EventTimeSlotUnavailableException extends BusinessException {
     public EventTimeSlotUnavailableException(String message) {
-        super("BT310", message);
+        super("BT304", message);
     }
 }

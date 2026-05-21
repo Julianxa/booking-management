@@ -4,7 +4,7 @@ import com.example.exception.BusinessException;
 
 public class UserNotFoundException extends BusinessException {
     public UserNotFoundException(String message) {
-        super("BT601", message);
+        super("BT906", message);
     }
 
 }

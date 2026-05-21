@@ -1,11 +1,9 @@
 package com.example.exception.email;
 
-public class UnverifiedEmailException extends Exception {
-    public UnverifiedEmailException(String message) {
-        super(message);
-    }
+import com.example.exception.BusinessException;
 
-    public UnverifiedEmailException(String message, Throwable cause) {
-        super(message, cause);
+public class UnverifiedEmailException extends BusinessException {
+    public UnverifiedEmailException(String message) {
+        super("BT503", message);
     }
 }

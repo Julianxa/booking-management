@@ -47,7 +47,7 @@ public class FileUtils {
             }
 
             @Override
-            public void transferTo(File dest) throws IllegalStateException {
+            public void transferTo(File dest) {
                 throw new UnsupportedOperationException("Transfer to file not supported in this implementation");
             }
         };

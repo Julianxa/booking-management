@@ -4,7 +4,7 @@ import com.example.exception.BusinessException;
 
 public class MismatchedCurrencyException extends BusinessException {
     public MismatchedCurrencyException(String message) {
-        super("BT504", message);
+        super("BT804", message);
     }
 
 }

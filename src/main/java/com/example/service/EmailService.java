@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.config.AppProperties;
+import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
@@ -118,7 +119,7 @@ public class EmailService {
     }
 
     @Async
-    public void sendBookingOrderSummaryEmail(Users user, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> eventList, String giftCertificatePromoCode, List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTicketList) throws MessagingException {
+    public void sendBookingOrderSummaryEmail(Users user, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> eventList, String giftCertificatePromoCode, List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTicketList) {
         Context context = new Context();
 
         Map<String, String> inlineImages = embedInlineImages();
@@ -154,7 +155,7 @@ public class EmailService {
                                              Bookings booking,
                                              BookingEvents bookingEvent,
                                              List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDTOs,
-                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) throws MessagingException {
+                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) {
         Context context = new Context();
         String checkInToken = bookingEvent.getVerificationToken();
 
@@ -194,7 +195,7 @@ public class EmailService {
                                              Bookings booking,
                                              BookingEvents bookingEvent,
                                              List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDTOs,
-                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) throws MessagingException {
+                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) {
         Context context = new Context();
 
         Map<String, String> inlineImages = embedInlineImages();
@@ -244,24 +245,28 @@ public class EmailService {
                 .collect(Collectors.joining(", "));
     }
 
-    private void sendEmail(String to, String subject, String htmlContent, Map<String, String> inlineImages) throws MessagingException {
-        MimeMessage message = javaMailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+    private void sendEmail(String to, String subject, String htmlContent, Map<String, String> inlineImages) {
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setText(htmlContent, true);
-        helper.setTo(to);
-        helper.setFrom(senderEmail);
-        helper.setSubject(subject);
-        for (Map.Entry<String, String> entry : inlineImages.entrySet()) {
-            if (entry.getKey().equals("qr")) {
-                byte[] qrBytes = qrCodeGenerator.generateQrCode(entry.getValue());
-                ByteArrayResource qrResource = new ByteArrayResource(qrBytes);
+            helper.setText(htmlContent, true);
+            helper.setTo(to);
+            helper.setFrom(senderEmail);
+            helper.setSubject(subject);
+            for (Map.Entry<String, String> entry : inlineImages.entrySet()) {
+                if (entry.getKey().equals("qr")) {
+                    byte[] qrBytes = qrCodeGenerator.generateQrCode(entry.getValue());
+                    ByteArrayResource qrResource = new ByteArrayResource(qrBytes);
 
-                helper.addInline(entry.getKey(), qrResource, "image/png");
-            } else
-                helper.addInline(entry.getKey(), new ClassPathResource(entry.getValue()));
+                    helper.addInline(entry.getKey(), qrResource, "image/png");
+                } else
+                    helper.addInline(entry.getKey(), new ClassPathResource(entry.getValue()));
+            }
+            javaMailSender.send(message);
+        } catch (MessagingException e) {
+            throw new EmailProcessException("Failed to create and populate the email messages");
         }
-        javaMailSender.send(message);
     }
 
     private Map<String, String> embedInlineImages() {
@@ -280,17 +285,13 @@ public class EmailService {
 
     public void sendBookingConfirmationEmailsAsync(Bookings booking, List<BookingEmailPayload> payloads) {
         for (BookingEmailPayload payload : payloads) {
-            try {
-                sendBookingConfirmationEmail(
-                        payload.attendee(),
-                        booking,
-                        payload.bookingEvent(),
-                        payload.tickets(),
-                        payload.allAttendees()
-                );
-            } catch (MessagingException e) {
-                e.printStackTrace();
-            }
+            sendBookingConfirmationEmail(
+                    payload.attendee(),
+                    booking,
+                    payload.bookingEvent(),
+                    payload.tickets(),
+                    payload.allAttendees()
+            );
         }
     }
 
@@ -299,7 +300,7 @@ public class EmailService {
                                             List<CreateBookingRequestDTO.BookingEventDTO> eventList,
                                             String promoCode,
                                             List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
-                                            List<BookingEmailPayload> payloads) throws MessagingException {
+                                            List<BookingEmailPayload> payloads) {
         if (loggedInUser != null && loggedInUser.getRole() == AGENT) {
             sendBookingOrderSummaryEmail(loggedInUser, booking, eventList, promoCode, redeemedTickets);
         } else {
@@ -316,17 +317,13 @@ public class EmailService {
 
     void sendBookingCancellationEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
         for (EmailService.BookingEmailPayload payload : payloads) {
-            try {
-                sendBookingCancellationEmail(
-                        payload.attendee(),
-                        booking,
-                        payload.bookingEvent(),
-                        payload.tickets(),
-                        payload.allAttendees()
-                );
-            } catch (MessagingException e) {
-                e.printStackTrace();
-            }
+            sendBookingCancellationEmail(
+                    payload.attendee(),
+                    booking,
+                    payload.bookingEvent(),
+                    payload.tickets(),
+                    payload.allAttendees()
+            );
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.example.converter;
 
-import com.example.exception.ResourceNotFoundException;
+import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.model.dto.CreateGiftCertificateRequestDTO;
 import com.example.model.entity.GiftCertificateItems;
 import com.example.model.entity.GiftCertificates;
@@ -26,7 +26,7 @@ public class GiftCertificateItemsConverter {
                     .build();
         } else {
             TicketTypes ticketType = ticketTypesRepository.findById(item.getTicketTypeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Ticket Type not found: " + item.getTicketTypeId()));
+                    .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", item.getTicketTypeId())));
 
             return CreateGiftCertificateRequestDTO.GiftCertificateItemDTO.builder()
                     .ticketTypeId(ticketType.getRefNo())

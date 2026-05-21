@@ -4,6 +4,6 @@ import com.example.exception.BusinessException;
 
 public class InternalServerException extends BusinessException {
     public InternalServerException(String message) {
-        super("BT002", message);
+        super("BT005", message);
     }
 }
