@@ -71,11 +71,11 @@ public class GiftCertificates {
     private List<GiftCertificateItems> items = new ArrayList<>();
 
     public boolean isExpired() {
-        return expiryDate != null && expiryDate.isBefore(LocalDate.now());
+        return expiryDate != null && expiryDate.isBefore(LocalDate.now().plusDays(1));
     }
 
     public boolean isEffective() {
-        return effectiveDate != null && effectiveDate.isBefore(LocalDate.now());
+        return effectiveDate != null && effectiveDate.isBefore(LocalDate.now().plusDays(1));
     }
 
     public boolean isCancelled() {
