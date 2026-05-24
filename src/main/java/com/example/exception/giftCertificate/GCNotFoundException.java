@@ -2,9 +2,13 @@ package com.example.exception.giftCertificate;
 
 import com.example.exception.BusinessException;
 
-public class GCNotFoundException extends BusinessException {
-    public GCNotFoundException(String message) {
-        super("BT702", message);
-    }
+import static com.example.exception.ErrorCode.GC_NOT_FOUND;
 
+public class GCNotFoundException extends BusinessException {
+    public GCNotFoundException() {
+        super(GC_NOT_FOUND);
+    }
+    public GCNotFoundException(String message) {
+        super(GC_NOT_FOUND, message);
+    }
 }

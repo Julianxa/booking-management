@@ -2,9 +2,8 @@ package com.example.service;
 
 import com.example.config.AwsConfig;
 import com.example.exception.general.FileOperationException;
-import com.example.exception.user.InvalidIdTokenException;
 import com.example.exception.general.MissingRequiredFieldException;
-import com.example.exception.user.UnverifiedEmailException;
+import com.example.exception.email.UnverifiedEmailException;
 import com.example.model.dto.*;
 import com.example.utils.CognitoJwtParser;
 import com.example.utils.FileUtils;

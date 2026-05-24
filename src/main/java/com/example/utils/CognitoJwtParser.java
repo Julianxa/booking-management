@@ -1,7 +1,7 @@
 package com.example.utils;
 
 
-import com.example.exception.user.InvalidTokenException;
+import com.example.exception.general.ParseTokenException;
 import com.google.gson.JsonParser;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -11,7 +11,6 @@ import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.PublicKey;
 import java.text.ParseException;
@@ -38,7 +37,7 @@ public class CognitoJwtParser {
                     .build();
             return jwtParser.parseClaimsJws(jwtToken).getBody();
         } catch(ParseException | JOSEException | IOException e) {
-            throw new InvalidTokenException("Invalid JWKS URL is provided");
+            throw new ParseTokenException("Invalid JWKS URL is provided");
         }
     }
 

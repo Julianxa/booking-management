@@ -2,9 +2,13 @@ package com.example.exception.payment;
 
 import com.example.exception.BusinessException;
 
-public class MismatchedCurrencyException extends BusinessException {
-    public MismatchedCurrencyException(String message) {
-        super("BT804", message);
-    }
+import static com.example.exception.ErrorCode.CURRENCY_MISMATCHED;
 
+public class MismatchedCurrencyException extends BusinessException {
+    public MismatchedCurrencyException() {
+        super(CURRENCY_MISMATCHED);
+    }
+    public MismatchedCurrencyException(String message) {
+        super(CURRENCY_MISMATCHED, message);
+    }
 }

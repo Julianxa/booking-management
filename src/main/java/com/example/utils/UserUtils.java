@@ -1,7 +1,7 @@
 package com.example.utils;
 
+import com.example.exception.general.ParseTokenException;
 import com.example.exception.user.InvalidIdTokenException;
-import com.example.exception.user.InvalidTokenException;
 import com.example.exception.user.UserNotFoundException;
 import com.example.model.entity.Users;
 import com.example.repository.UsersRepository;
@@ -32,7 +32,7 @@ public class UserUtils {
             String idToken = authorizationHeader.replace("Bearer ", "");
             return awsService.getUserSub(idToken);
         } catch(InvalidIdTokenException e) {
-            throw new InvalidTokenException("Failed to parse ID token");
+            throw new ParseTokenException("Failed to parse ID token");
         }
     }
 }

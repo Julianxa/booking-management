@@ -2,9 +2,13 @@ package com.example.exception.payment;
 
 import com.example.exception.BusinessException;
 
-public class AlreadyRefundedException extends BusinessException {
-    public AlreadyRefundedException(String message) {
-        super("BT801", message);
-    }
+import static com.example.exception.ErrorCode.REFUNDED_ALREADY;
 
+public class AlreadyRefundedException extends BusinessException {
+    public AlreadyRefundedException() {
+        super(REFUNDED_ALREADY);
+    }
+    public AlreadyRefundedException(String message) {
+        super(REFUNDED_ALREADY, message);
+    }
 }

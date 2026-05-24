@@ -1,15 +1,24 @@
 package com.example.exception;
 
 
+import org.springframework.http.HttpStatus;
+
 public class StripeException extends RuntimeException {
-    private final String errorCode;
+    private final String code;
+    private final HttpStatus httpStatus;
 
-    public StripeException(String errorCode, String message) {
+    public StripeException(ErrorDefinition error) {
+        super(error.getDefaultMessage());
+        this.code = error.getCode();
+        this.httpStatus = error.getStatus();
+    }
+
+    public StripeException(ErrorDefinition error, String message) {
         super(message);
-        this.errorCode = errorCode;
+        this.code = error.getCode();
+        this.httpStatus = error.getStatus();
     }
 
-    public String getErrorCode() {
-        return errorCode;
-    }
+    public String getCode() { return code; }
+    public HttpStatus getHttpStatus() { return httpStatus; }
 }
