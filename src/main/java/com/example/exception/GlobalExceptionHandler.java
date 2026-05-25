@@ -26,6 +26,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, ex.getHttpStatus());
     }
 
+    @ExceptionHandler(StripeException.class)
+    public ResponseEntity<Object> handleStripeException(StripeException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", ex.getCode());
+        body.put("message", ex.getMessage());
+        body.put("timestamp", LocalDateTime.now());
+        return new ResponseEntity<>(body, ex.getHttpStatus());
+    }
+
     // Fallback for any other unexpected exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
