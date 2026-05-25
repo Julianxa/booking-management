@@ -132,9 +132,6 @@ public class PaymentService {
             throw new MismatchedCurrencyException("Invalid currency for this refund");
         }
 
-        Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
-                .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
-
         Refunds r = new Refunds();
         r.setRefNo(referenceNoGenerator.generateRefundReference());
         r.setBookingId(booking.getId());
@@ -146,6 +143,8 @@ public class PaymentService {
             if (booking.getFinalPaidAmount().compareTo(requestDTO.getRefundAmount()) != 0) {
                 throw new RuntimeException("Invalid amount for full amount");
             }
+            Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
+                    .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
             RefundCreateParams.Builder refundParams = RefundCreateParams.builder()
                     .setPaymentIntent(payment.getPaymentIntentId())
                     .setAmount(payment.getAmount().longValue() * 100)
@@ -170,7 +169,8 @@ public class PaymentService {
         } else { // Online Payment but Offline Refund
             booking.setStatus(Enums.BookingStatus.REFUNDED);
             bookingsRepository.save(booking);
-
+            Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
+                    .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
             payment.setPaymentStatus(Enums.PaymentStatus.REFUNDED);
             paymentsRepository.save(payment);
 
