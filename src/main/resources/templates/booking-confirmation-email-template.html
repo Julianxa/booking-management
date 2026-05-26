@@ -284,7 +284,14 @@
                                 </tr>
                                 <tr>
                                     <td style="font-size: 13px; color: #444444; line-height: 2">
-                                        <strong style="color: #1a1a1a">Gender:</strong> <span th:text="${attendee.gender} ?: 'Prefer Not to Say'"></span>
+                                        <strong style="color: #1a1a1a">Gender:</strong>
+
+                                        <span th:text="${
+                                            #strings.equals(attendee.gender, 'M') ? 'Male' :
+                                            #strings.equals(attendee.gender, 'F') ? 'Female' :
+                                            #strings.equals(attendee.gender, 'N') ? 'Prefer not to say' :
+                                            '-'
+                                        }"></span>
                                     </td>
                                 </tr>
                             </table>
