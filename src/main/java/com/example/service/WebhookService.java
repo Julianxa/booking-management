@@ -74,6 +74,7 @@ public class WebhookService {
         publishBookingConfirmedEvent(user, booking, bookingEvents, result, emailPayloads);
     }
 
+    @Transactional
     public List<EmailService.BookingEmailPayload> activateBookingEvents(List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
         List<EmailService.BookingEmailPayload> emailPayloads = new ArrayList<>();
 

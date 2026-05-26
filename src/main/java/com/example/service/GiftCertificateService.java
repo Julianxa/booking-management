@@ -374,6 +374,7 @@ public class GiftCertificateService {
         return applyGiftCertificate(gc, bookingEventDTOs);
     }
 
+    @Transactional
     GiftCertificateApplicationResult handleGiftCertificateRedemption(
             Bookings booking, GiftCertificates giftCertificate, Long userId) {
 

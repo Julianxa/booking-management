@@ -519,6 +519,7 @@ public class BookingService {
                 .toList();
     }
 
+    @Transactional
     private CreateBookingResponseDTO handlePostBookingProcessing(Users user, Bookings booking,
                                                                  CreateBookingRequestDTO request,
                                                                  List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
