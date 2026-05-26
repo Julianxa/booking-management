@@ -306,7 +306,7 @@ public class EventService {
             if (Boolean.TRUE.equals(isPublishedOnly)) {
                 eventsPage = eventsRepository.findAllPublished(isPublishedOnly, pageable);
             } else {
-                eventsPage = eventsRepository.findAllActive(pageable);
+                eventsPage = eventsRepository.findAll(pageable);
             }
         }
 

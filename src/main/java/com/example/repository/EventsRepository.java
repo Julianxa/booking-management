@@ -30,8 +30,7 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
 
     @Query("""
             SELECT e FROM Events e
-            WHERE e.deletedAt IS NULL
-            AND (:isPublishedOnly = false OR e.isPublish = true)
+            WHERE (:isPublishedOnly = false OR e.isPublish = true)
             AND (
             LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%'))
                OR LOWER(e.type) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -50,8 +49,13 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
     @Query("""
             SELECT e
             FROM Events e
-            WHERE e.deletedAt IS NULL
-            AND (:isPublishedOnly = false OR e.isPublish = true)
+            """)
+    Page<Events> findAll(Pageable pageable);
+
+    @Query("""
+            SELECT e
+            FROM Events e
+            WHERE (:isPublishedOnly = false OR e.isPublish = true)
             """)
     Page<Events> findAllPublished(@Param("isPublishedOnly") boolean isPublishedOnly, Pageable pageable);
 
