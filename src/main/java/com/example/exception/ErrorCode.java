@@ -106,6 +106,8 @@ public class ErrorCode {
     public static final ErrorDefinition PAYMENT_PROCESSING_ERROR =
             new ErrorDefinition("BT605", HttpStatus.BAD_REQUEST, "Payment processing error");
 
+    public static final ErrorDefinition REFUND_NOT_FOUND =
+            new ErrorDefinition("BT606", HttpStatus.NOT_FOUND, "Refund not found");
     // Ticket
     public static final ErrorDefinition INVALID_VERIFICATION_TOKEN =
             new ErrorDefinition("BT700", HttpStatus.BAD_REQUEST, "Invalid verification token");

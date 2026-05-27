@@ -4,15 +4,17 @@ import com.example.constant.Enums;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@Builder
+@NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RefundResponseDTO {
@@ -36,4 +38,11 @@ public class RefundResponseDTO {
 
     @JsonProperty("remarks")
     private String remarks;
+
+    @Schema(description = "Message confirming success", example = "Refund created successfully")
+    @JsonProperty("message")
+    private String message;
+
+    @JsonProperty("timestamp")
+    private LocalDateTime timestamp;
 }

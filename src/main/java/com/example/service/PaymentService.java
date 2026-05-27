@@ -4,10 +4,8 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.exception.booking.BookingNotFoundException;
 import com.example.exception.payment.*;
-import com.example.model.dto.CreateBookingRequestDTO;
-import com.example.model.dto.GetPaymentDetailsResponseDTO;
-import com.example.model.dto.RefundRequestDTO;
-import com.example.model.dto.RefundResponseDTO;
+import com.example.mapper.RefundMapper;
+import com.example.model.dto.*;
 import com.example.model.entity.Bookings;
 import com.example.model.entity.Payments;
 import com.example.model.entity.Refunds;
@@ -17,17 +15,20 @@ import com.example.repository.RefundsRepository;
 import com.example.utils.ReferenceNoGenerator;
 import com.stripe.StripeClient;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.example.constant.Enums.PaymentPlatform.STRIPE;
 import static com.stripe.param.checkout.SessionCreateParams.PaymentMethodOptions.WechatPay.Client.WEB;
@@ -40,6 +41,7 @@ public class PaymentService {
     private final BookingsRepository bookingsRepository;
     private final RefundsRepository refundsRepository;
     private final ReferenceNoGenerator referenceNoGenerator;
+    private final RefundMapper refundMapper;
 
     @Transactional
     public String createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
@@ -132,12 +134,12 @@ public class PaymentService {
             throw new MismatchedCurrencyException("Invalid currency for this refund");
         }
 
-        Refunds r = new Refunds();
-        r.setRefNo(referenceNoGenerator.generateRefundReference());
-        r.setBookingId(booking.getId());
-        r.setCurrency(requestDTO.getRefundCurrency());
-        r.setAmount(requestDTO.getRefundAmount());
-        r.setRemarks(requestDTO.getRemarks());
+        Refunds refund = new Refunds();
+        refund.setRefNo(referenceNoGenerator.generateRefundReference());
+        refund.setBookingId(booking.getId());
+        refund.setCurrency(requestDTO.getRefundCurrency());
+        refund.setAmount(requestDTO.getRefundAmount());
+        refund.setRemarks(requestDTO.getRemarks());
 
         if(requestDTO.getIsFullRefund() && booking.getType().equals(Enums.BookingType.ONLINE_PAYMENT)) {
             if (booking.getFinalPaidAmount().compareTo(requestDTO.getRefundAmount()) != 0) {
@@ -151,21 +153,21 @@ public class PaymentService {
                     .putMetadata("bookingRefNo", booking.getRefNo())
                     .putMetadata("paymentIntentId", payment.getPaymentIntentId());
             try {
-                Refund refund = stripeClient.v1().refunds().create(refundParams.build());
+                stripeClient.v1().refunds().create(refundParams.build());
             } catch(StripeException e) {
                 throw new CreateRefundException("Failed to create refund");
             }
 
-            r.setType(Enums.RefundType.ONLINE_REFUND);
-            r.setStatus(Enums.RefundStatus.PENDING);
-            refundsRepository.save(r);
+            refund.setType(Enums.RefundType.ONLINE_REFUND);
+            refund.setStatus(Enums.RefundStatus.PENDING);
+            refundsRepository.save(refund);
         } else if (booking.getType().equals(Enums.BookingType.OFFLINE_PAYMENT)) { // Offline Payment with Offline Refund
             booking.setStatus(Enums.BookingStatus.REFUNDED);
             bookingsRepository.save(booking);
 
-            r.setType(Enums.RefundType.OFFLINE_REFUND);
-            r.setStatus(Enums.RefundStatus.SUCCESS);
-            refundsRepository.save(r);
+            refund.setType(Enums.RefundType.OFFLINE_REFUND);
+            refund.setStatus(Enums.RefundStatus.SUCCESS);
+            refundsRepository.save(refund);
         } else { // Online Payment but Offline Refund
             booking.setStatus(Enums.BookingStatus.REFUNDED);
             bookingsRepository.save(booking);
@@ -174,19 +176,44 @@ public class PaymentService {
             payment.setPaymentStatus(Enums.PaymentStatus.REFUNDED);
             paymentsRepository.save(payment);
 
-            r.setType(Enums.RefundType.OFFLINE_REFUND);
-            r.setStatus(Enums.RefundStatus.SUCCESS);
-            refundsRepository.save(r);
+            refund.setType(Enums.RefundType.OFFLINE_REFUND);
+            refund.setStatus(Enums.RefundStatus.SUCCESS);
+            refundsRepository.save(refund);
         }
 
-        return RefundResponseDTO.builder()
-                .id(r.getRefNo())
-                .refundType(r.getType())
-                .refundAmount(r.getAmount())
-                .refundCurrency(r.getCurrency())
-                .status(r.getStatus())
-                .remarks(r.getRemarks())
-                .build();
+        return refundMapper.toCreateResponseDTO(booking.getRefNo(), refund);
+    }
+
+    public RefundResponseDTO getRefund(String bookingRefNo) {
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+        Refunds refund = refundsRepository.findByBookingId(booking.getId())
+                .orElseThrow(() -> new RefundNotFoundException("Refund not found"));
+
+        RefundResponseDTO refundResponseDTO = refundMapper.toCreateResponseDTO(bookingRefNo, refund);
+        refundResponseDTO.setStatus(refund.getStatus());
+        refundResponseDTO.setMessage("Retrieve a Refund successfully");
+        refundResponseDTO.setTimestamp(LocalDateTime.now());
+        return refundResponseDTO;
+    }
+
+    public GetListRefundResponseDTO getAllRefunds(Pageable pageable) {
+        Page<Refunds> refundsPage = refundsRepository.findAll(pageable);
+
+        List<RefundResponseDTO> content = refundsPage.getContent().stream()
+                .map(refund -> {
+                    String bookingRefNo = bookingsRepository.findRefNoById(refund.getBookingId())
+                            .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+                    RefundResponseDTO refundResponseDTO = refundMapper.toCreateResponseDTO(bookingRefNo, refund);
+                    refundResponseDTO.setStatus(refund.getStatus());
+                    return refundResponseDTO;
+                })
+                .toList();
+
+        GetListRefundResponseDTO getListRefundResponseDTO = refundMapper.toGetListResponse(refundsPage, content);
+        getListRefundResponseDTO.setMessage("Retrieve list of Events successfully.");
+        getListRefundResponseDTO.setTimestamp(LocalDateTime.now());
+        return getListRefundResponseDTO;
     }
 
     @Transactional

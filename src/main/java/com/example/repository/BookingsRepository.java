@@ -18,6 +18,9 @@ public interface BookingsRepository extends JpaRepository<Bookings, Long> {
     @Query("SELECT b.id FROM Bookings b WHERE b.refNo = :refNo")
     Optional<Long> findIdByRefNo(String refNo);
 
+    @Query("SELECT b.refNo FROM Bookings b WHERE b.id = :id")
+    Optional<String> findRefNoById(Long id);
+
     Page<Bookings> findByUserId(Long userId, Pageable pageable);
 
     Optional<Bookings> findByRefNo(String refNo);
