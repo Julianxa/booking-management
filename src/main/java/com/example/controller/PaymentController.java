@@ -85,14 +85,14 @@ public class PaymentController {
     }
 
     @Operation(
-            summary = "Get refund by ID",
+            summary = "Get refund by booking ID",
             description = "Retrieves details of a specific refund.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Refund found",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(implementation = RefundResponseDTO.class))),
+                                    schema = @Schema(implementation = GetListRefundResponseDTO.class))),
                     @ApiResponse(
                             responseCode = "404",
                             description = "Refund not found",
