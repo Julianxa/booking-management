@@ -3,10 +3,7 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
 import com.example.converter.BookingsConverter;
-import com.example.exception.booking.BookingNotFoundException;
-import com.example.exception.booking.EventTimeSlotUnavailableException;
-import com.example.exception.booking.TicketQuantityMismatchException;
-import com.example.exception.booking.BookingEventNotFoundException;
+import com.example.exception.booking.*;
 import com.example.exception.event.EventCapacityExceededException;
 import com.example.exception.event.EventDayScheduleNotFoundException;
 import com.example.exception.event.EventNotFoundException;
@@ -37,7 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static com.example.constant.Enums.BookingEventStatus.*;
@@ -90,6 +90,8 @@ public class BookingService {
     @Transactional
     public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) {
         validateTicketQuantityMatchesAttendees(request);
+
+        validateEventThreshold(request);
 
         Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
@@ -267,6 +269,61 @@ public class BookingService {
                                     bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
                                     attendeeCount,
                                     totalTicketQuantity)
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     Day threshold:
+     If threshold = 1 and event is on 7 May → Booking only allowed until 5 May
+
+     Hour threshold:
+     2 hours and event starts at 15:00:
+     12:59 → Allowed (121 mins left)
+     13:00 → Blocked (120 mins left)
+     **/
+    private void validateEventThreshold(CreateBookingRequestDTO request) {
+        if (request.getBookingEvents() == null) {
+            return;
+        }
+
+        for (CreateBookingRequestDTO.BookingEventDTO bookingEvent : request.getBookingEvents()) {
+            Events event = eventsRepository.findByRefNo(bookingEvent.getEvent().getId())
+                    .orElseThrow(() -> new EventNotFoundException(String.format("Event not found with event ID: %s", bookingEvent.getEvent().getId())));
+
+            LocalDate eventDate = bookingEvent.getEvent().getEventDate();
+            LocalTime eventTime = LocalTime.parse(bookingEvent.getEvent().getEventTime());
+            ZonedDateTime eventStartTime = ZonedDateTime.of(eventDate, eventTime, ZoneId.systemDefault());
+            ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+
+            if (event.getActivityDayThreshold() != null) {
+                LocalDate today = now.toLocalDate();
+                long daysUntilEvent = ChronoUnit.DAYS.between(today, eventDate);
+
+                if (daysUntilEvent <= event.getActivityDayThreshold()) {
+                    throw new ThresholdExceededException(
+                            String.format("Booking is not allowed. " +
+                                            "Event: %s | Day Threshold: %d. " +
+                                            "You must book at least %d full day(s) before the event date.",
+                                    bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
+                                    event.getActivityDayThreshold(),
+                                    event.getActivityDayThreshold())
+                    );
+                }
+            } else if(event.getActivityHourThreshold() != null) {
+                long minutesUntilEvent = ChronoUnit.MINUTES.between(now, eventStartTime);
+                long requiredMinutes = event.getActivityHourThreshold() * 60L;
+
+                if (minutesUntilEvent <= requiredMinutes) {
+                    throw new ThresholdExceededException(
+                            String.format("Booking is not available. " +
+                                            "Event: %s | Hour Threshold: %d hour(s). " +
+                                            "You must book at least %d hour(s) before the event starts.",
+                                    bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
+                                    event.getActivityHourThreshold(),
+                                    event.getActivityHourThreshold())
                     );
                 }
             }

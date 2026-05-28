@@ -100,11 +100,11 @@ public class CreateEventRequestDTO {
     @JsonProperty("is_publish")
     private Boolean isPublish;
 
-    @Schema(description = "Minimum cut-off in hours")
-    @JsonProperty("min_activity_threshold_time")
-    private Double minActivityThresholdTime;
+    @Schema(description = "Activity duration threshold in days")
+    @JsonProperty("activity_day_threshold")
+    private Integer activityDayThreshold;
 
-    @Schema(description = "Maximum cut-off in hours")
-    @JsonProperty("max_activity_threshold_time")
-    private Double maxActivityThresholdTime;
+    @Schema(description = "Activity duration threshold in hours")
+    @JsonProperty("activity_hour_threshold")
+    private Integer activityHourThreshold;
 }

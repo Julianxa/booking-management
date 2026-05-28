@@ -47,6 +47,8 @@ public class ErrorCode {
     public static final ErrorDefinition TICKET_QUANTITY_MISMATCHED =
             new ErrorDefinition("BT104", HttpStatus.CONFLICT, "Ticket quantity mismatched");
 
+    public static final ErrorDefinition THRESHOLD_EXCEEDED =
+            new ErrorDefinition("BT105", HttpStatus.BAD_REQUEST, "Booking is not allowed. This event has a threshold.");
     // Email
     public static final ErrorDefinition EMAIL_PROCESSING_ERROR =
             new ErrorDefinition("BT200", HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process email content");

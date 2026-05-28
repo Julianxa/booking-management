@@ -131,11 +131,11 @@ public class EventService {
             if (dto.getCustomQuestion() != null) event.setCustomQuestion(dto.getCustomQuestion());
             if (dto.getMatchTicketQuantityWithAttendees() != null) event.setMatchTicketQuantityWithAttendees(dto.getMatchTicketQuantityWithAttendees());
             if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
-            if (dto.getMinActivityThresholdTime() != null)
-                event.setMinActivityThresholdTime(dto.getMinActivityThresholdTime());
+            if (dto.getActivityDayThreshold() != null)
+                event.setActivityDayThreshold(dto.getActivityDayThreshold());
+            else if (dto.getActivityHourThreshold() != null)
+                event.setActivityHourThreshold(dto.getActivityHourThreshold());
             if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
-            if (dto.getMaxActivityThresholdTime() != null)
-                event.setMaxActivityThresholdTime(dto.getMaxActivityThresholdTime());
     //        if (dto.getCreatedBy() != null) event.setCreatedBy(dto.getCreatedBy());
     //        if (dto.getUpdatedBy() != null) event.setUpdatedBy(dto.getUpdatedBy());
             if (dto.getAvailableDays() != null) {
