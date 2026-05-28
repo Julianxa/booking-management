@@ -3,7 +3,7 @@ package com.example.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Entity
 @Getter
@@ -31,5 +31,5 @@ public class GiftCertificateRedemptions {
     private Integer quantityUsed;
 
     @Column(name = "redeemed_at", nullable = false)
-    private LocalDateTime redeemedAt;
+    private ZonedDateTime redeemedAt;
 }

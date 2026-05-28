@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Data
@@ -51,7 +51,7 @@ public class GetListRefundResponseDTO {
     private String message;
 
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 
     @Getter
     @Setter

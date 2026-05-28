@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,7 +91,7 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
             @Param("eventTime") String eventTime,
             @Param("currentStatus") String currentStatus,
             @Param("status") String status,
-            @Param("cancelledAt") LocalDateTime cancelledAt);
+            @Param("cancelledAt") ZonedDateTime cancelledAt);
 
     @Modifying
     @Transactional
@@ -107,5 +107,5 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
             @Param("eventId") Long eventId,
             @Param("currentStatus") String currentStatus,
             @Param("status") String status,
-            @Param("cancelledAt") LocalDateTime cancelledAt);
+            @Param("cancelledAt") ZonedDateTime cancelledAt);
 }

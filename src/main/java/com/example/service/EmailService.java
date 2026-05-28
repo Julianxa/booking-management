@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +80,7 @@ public class EmailService {
         GetEmailTemplateResponseDTO getEmailTemplateResponseDTO = emailTemplateMapper.toResponseDTO(emailTemplate);
 
         getEmailTemplateResponseDTO.setMessage("Retrieve Email Templates successfully.");
-        getEmailTemplateResponseDTO.setTimestamp(LocalDateTime.now());
+        getEmailTemplateResponseDTO.setTimestamp(ZonedDateTime.now());
         return getEmailTemplateResponseDTO;
     }
 
@@ -93,7 +93,7 @@ public class EmailService {
 
         GetListEmailTemplatesResponseDTO getListEmailTemplatesResponseDTO = emailTemplateMapper.toGetListResponse(emailTemplatesPage, content);
         getListEmailTemplatesResponseDTO.setMessage("Retrieve list of Email Templates successfully.");
-        getListEmailTemplatesResponseDTO.setTimestamp(LocalDateTime.now());
+        getListEmailTemplatesResponseDTO.setTimestamp(ZonedDateTime.now());
         return getListEmailTemplatesResponseDTO;
     }
 

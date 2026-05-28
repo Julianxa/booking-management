@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Getter
 @Setter
@@ -44,5 +44,5 @@ public class RefundResponseDTO {
     private String message;
 
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

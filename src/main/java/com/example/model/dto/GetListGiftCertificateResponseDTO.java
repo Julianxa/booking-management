@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 
@@ -55,7 +55,7 @@ public class GetListGiftCertificateResponseDTO {
     private String message;
 
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 
     @Getter
     @Setter

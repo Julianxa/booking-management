@@ -4,7 +4,7 @@ import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -47,32 +47,32 @@ public class TicketTypes {
     private Enums.TicketTypeStatus status;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     @Column(name = "created_by")
     private Long createdBy;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
 
     @Column(name = "updated_by")
     private Long updatedBy;
 
     @Column(name = "deleted_at")
-    private LocalDateTime deletedAt;
+    private ZonedDateTime deletedAt;
 
     @Column(name = "deleted_by")
     private Long deletedBy;
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = ZonedDateTime.now();
+        this.updatedAt = ZonedDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = ZonedDateTime.now();
     }
 
     public void addTicketPricePeriods(TicketPricePeriods periods) {

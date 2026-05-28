@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.Locale;
@@ -19,8 +19,8 @@ public class DateUtils {
                 .toUpperCase();   // Returns "MON", "TUE", "WED"
     }
 
-    public LocalDateTime convertToLocalDateTime(Long timestampInSeconds) {
-        return LocalDateTime.ofInstant(
+    public ZonedDateTime convertToZonedDateTime(Long timestampInSeconds) {
+        return ZonedDateTime.ofInstant(
                 Instant.ofEpochSecond(timestampInSeconds),
                 ZoneId.systemDefault()
         );

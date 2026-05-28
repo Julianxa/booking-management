@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Data
@@ -30,15 +30,15 @@ public class UpdateTicketTypeResponseDTO {
 
     private Enums.TicketTypeStatus status;
 
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     private Long createdBy;
 
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
 
     private Long updatedBy;
 
     private String message;
 
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

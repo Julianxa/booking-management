@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Getter
 @Setter
@@ -19,9 +19,9 @@ public class UpdateGiftCertificateStatusResponseDTO {
     @JsonProperty("status")
     private Enums.GiftCertificateStatus status;
     @JsonProperty("cancelled_at")
-    private LocalDateTime cancelledAt;
+    private ZonedDateTime cancelledAt;
     @JsonProperty("message")
     private String message;
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

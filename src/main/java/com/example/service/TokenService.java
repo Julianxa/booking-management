@@ -16,7 +16,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.GlobalSignO
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 import static com.example.constant.Enums.UserStatus.CONFIRMED;
 
@@ -45,7 +45,7 @@ public class TokenService {
                 loginResponseDTO.setRefreshToken(res.authenticationResult().refreshToken());
                 loginResponseDTO.setExpiresIn(res.authenticationResult().expiresIn());
                 loginResponseDTO.setMessage("Login successfully");
-                loginResponseDTO.setTimestamp(LocalDateTime.now());
+                loginResponseDTO.setTimestamp(ZonedDateTime.now());
             }
             return loginResponseDTO;
         } catch (NotAuthorizedException e) {
@@ -67,7 +67,7 @@ public class TokenService {
             tokenRenewalResponseDTO.setIdToken(res.authenticationResult().idToken());
             tokenRenewalResponseDTO.setTokenType(res.authenticationResult().tokenType());
             tokenRenewalResponseDTO.setMessage("Tokens refreshed successfully");
-            tokenRenewalResponseDTO.setTimestamp(LocalDateTime.now());
+            tokenRenewalResponseDTO.setTimestamp(ZonedDateTime.now());
             return tokenRenewalResponseDTO;
         } else {
             throw new RuntimeException("Failed to renew token");
@@ -79,7 +79,7 @@ public class TokenService {
         if (globalSignOutResponse.sdkHttpResponse().statusCode() == 200) {
             return LogoutResponseDTO.builder()
                     .message("Logout successfully: " + globalSignOutResponse.sdkHttpResponse().statusText())
-                    .timestamp(LocalDateTime.now())
+                    .timestamp(ZonedDateTime.now())
                     .build();
         } else {
             throw new RuntimeException("Logout failed: " + globalSignOutResponse.sdkHttpResponse().statusText());
@@ -93,7 +93,7 @@ public class TokenService {
         } else {
             ipAddress = httpServletRequest.getHeader("X-Real-IP") != null ? httpServletRequest.getHeader("X-Real-IP") : httpServletRequest.getRemoteAddr();
         }
-        LocalDateTime loginAt = LocalDateTime.now();
+        ZonedDateTime loginAt = ZonedDateTime.now();
         String userAgent = httpServletRequest.getHeader("User-Agent");
 
         if (loginActivityStatus == Enums.LoginActivityStatus.SUCCESS)

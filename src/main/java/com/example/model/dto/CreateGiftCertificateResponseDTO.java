@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Getter
@@ -37,9 +37,9 @@ public class CreateGiftCertificateResponseDTO {
     @JsonProperty("status")
     private Enums.GiftCertificateStatus status;
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
     @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
     @JsonProperty("items")
     private List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> items;
 }

@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Data
 @Getter
@@ -40,12 +40,12 @@ public class UserRegistrationResponseDTO {
     @JsonProperty("session")
     private String session;
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
     @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
     @JsonProperty("message")
     private String message;
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }
 

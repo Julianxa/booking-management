@@ -11,7 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Data
@@ -76,11 +76,11 @@ public class EventAvailabilityDTO {
 
     @Schema(description = "When the event was created")
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     @Schema(description = "When the event was updated")
     @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
 
     @Schema(description = "Who created the event")
     @JsonProperty("created_by")
@@ -95,5 +95,5 @@ public class EventAvailabilityDTO {
     private String message;
 
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

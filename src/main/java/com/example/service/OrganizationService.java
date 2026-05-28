@@ -14,7 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +31,7 @@ public class OrganizationService {
         Organizations saved = organizationsRepository.save(organization);
         CreateOrganizationResponseDTO createOrganizationResponseDTO = mapper.toCreateResponseDTO(saved);
         createOrganizationResponseDTO.setMessage("Organization created successfully");
-        createOrganizationResponseDTO.setTimestamp(LocalDateTime.now());
+        createOrganizationResponseDTO.setTimestamp(ZonedDateTime.now());
         return createOrganizationResponseDTO;
     }
 
@@ -48,7 +48,7 @@ public class OrganizationService {
         Organizations updated = organizationsRepository.save(organization);
         UpdateOrganizationResponseDTO updateOrganizationResponseDTO = mapper.toUpdateResponseDTO(updated);
         updateOrganizationResponseDTO.setMessage("Organization updated successfully");
-        updateOrganizationResponseDTO.setTimestamp(LocalDateTime.now());
+        updateOrganizationResponseDTO.setTimestamp(ZonedDateTime.now());
         return updateOrganizationResponseDTO;
     }
 
@@ -58,7 +58,7 @@ public class OrganizationService {
             throw new OrganizationNotFoundException(String.format("Organization %s not found)", orgRefNo));
         }
 
-        LocalDateTime deletedAt = LocalDateTime.now();
+        ZonedDateTime deletedAt = ZonedDateTime.now();
         organizationsRepository.updateStatusByOrganizationRefNo(orgRefNo, Enums.OrganizationStatus.INACTIVE, deletedAt);
         DeleteOrganizationResponseDTO deleteOrganizationResponseDTO = new DeleteOrganizationResponseDTO();
         deleteOrganizationResponseDTO.setMessage("Organization deleted successfully");

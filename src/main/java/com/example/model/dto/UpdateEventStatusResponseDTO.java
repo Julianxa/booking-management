@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Getter
 @Setter
@@ -24,9 +24,9 @@ public class UpdateEventStatusResponseDTO {
     @JsonProperty("status")
     private Enums.EventStatus status;
     @JsonProperty("closed_at")
-    private LocalDateTime closedAt;
+    private ZonedDateTime closedAt;
     @JsonProperty("message")
     private String message;
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

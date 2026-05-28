@@ -4,7 +4,7 @@ import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Entity
 @Getter
@@ -24,7 +24,7 @@ public class UsersLoginHistory {
     private Users user;
 
     @Column(name = "login_at", nullable = false)
-    private LocalDateTime loginAt;
+    private ZonedDateTime loginAt;
 
     @Column(name = "ip_address", length = 45)
     private String ipAddress;

@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Data
 @Builder
@@ -28,7 +28,7 @@ public class GetPaymentDetailsResponseDTO {
     @JsonProperty("payment_status")
     private Enums.PaymentStatus paymentStatus;
     @JsonProperty("paid_at")
-    private LocalDateTime paidAt;
+    private ZonedDateTime paidAt;
     private String message;
 
     public static GetPaymentDetailsResponseDTO error(String message) {

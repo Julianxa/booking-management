@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Getter
 @Setter
@@ -33,11 +33,11 @@ public class ConfirmCheckinResponseDTO {
     private Enums.BookingEventStatus status;
 
     @JsonProperty("verified_at")
-    private LocalDateTime verifiedAt;
+    private ZonedDateTime verifiedAt;
 
     @JsonProperty("message")
     private String message;
 
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Data
 @Builder
@@ -26,13 +26,13 @@ public class UpdateOrganizationResponseDTO {
     @JsonProperty("company_group")
     private String companyGroup;
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
     @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
     @JsonProperty("deleted_at")
-    private LocalDateTime deletedAt;
+    private ZonedDateTime deletedAt;
     @JsonProperty("message")
     private String message;
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

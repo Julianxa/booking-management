@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Component
@@ -51,7 +51,7 @@ public class ReferenceNoGenerator {
     }
 
     public String generateBookingReference() {
-        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String datePart = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         return generateUniqueReference("BKG-" + datePart + "-", 10, bookingsRepository);
     }
 

@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -82,7 +82,7 @@ public class UserService {
         userRegistrationResponseDTO.setCreatedAt(user.getCreatedAt());
         userRegistrationResponseDTO.setUpdatedAt(user.getUpdatedAt());
         userRegistrationResponseDTO.setMessage("User registered successfully");
-        userRegistrationResponseDTO.setTimestamp(LocalDateTime.now());
+        userRegistrationResponseDTO.setTimestamp(ZonedDateTime.now());
         return userRegistrationResponseDTO;
     }
 
@@ -97,16 +97,16 @@ public class UserService {
 
                 confirmSignUpResponseDTO.setEmail(confirmSignUpRequestDTO.getEmail());
                 confirmSignUpResponseDTO.setMessage("User registration confirmed successfully");
-                confirmSignUpResponseDTO.setTimestamp(LocalDateTime.now());
+                confirmSignUpResponseDTO.setTimestamp(ZonedDateTime.now());
 
                 user.setStatus(Enums.UserStatus.CONFIRMED);
-                user.setUpdatedAt(LocalDateTime.now());
+                user.setUpdatedAt(ZonedDateTime.now());
                 usersRepository.save(user);
             } else {
                 confirmSignUpResponseDTO.setEmail(confirmSignUpResponseDTO.getEmail());
                 confirmSignUpResponseDTO.setSession(res.session());
                 confirmSignUpResponseDTO.setMessage("Wrong confirmation code");
-                confirmSignUpResponseDTO.setTimestamp(LocalDateTime.now());
+                confirmSignUpResponseDTO.setTimestamp(ZonedDateTime.now());
             }
             return confirmSignUpResponseDTO;
         } else {
@@ -120,7 +120,7 @@ public class UserService {
         ForgotPasswordResponseDTO forgotPasswordResponseDTO = new ForgotPasswordResponseDTO();
         forgotPasswordResponseDTO.setEmail(forgotPasswordRequestDTO.getEmail());
         forgotPasswordResponseDTO.setMessage("Forgot password initiated successfully");
-        forgotPasswordResponseDTO.setTimestamp(LocalDateTime.now());
+        forgotPasswordResponseDTO.setTimestamp(ZonedDateTime.now());
         return forgotPasswordResponseDTO;
     }
 
@@ -128,7 +128,7 @@ public class UserService {
         awsService.confirmForgotPassword(confirmForgotPasswordRequestDTO);
         ConfirmForgotPasswordResponseDTO confirmForgotPasswordResponseDTO = new ConfirmForgotPasswordResponseDTO();
         confirmForgotPasswordResponseDTO.setMessage("OTP for Forgot Password confirmed successfully");
-        confirmForgotPasswordResponseDTO.setTimestamp(LocalDateTime.now());
+        confirmForgotPasswordResponseDTO.setTimestamp(ZonedDateTime.now());
         return confirmForgotPasswordResponseDTO;
     }
 
@@ -139,7 +139,7 @@ public class UserService {
         awsService.setPassword(resetPasswordRequestDTO);
         ResetPasswordResponseDTO resetPasswordResponseDTO = new ResetPasswordResponseDTO();
         resetPasswordResponseDTO.setMessage("Password reset successfully");
-        resetPasswordResponseDTO.setTimestamp(LocalDateTime.now());
+        resetPasswordResponseDTO.setTimestamp(ZonedDateTime.now());
         return resetPasswordResponseDTO;
     }
 
@@ -150,7 +150,7 @@ public class UserService {
         awsService.changePassword(accessToken, changePasswordRequestDTO);
         ChangePasswordResponseDTO changePasswordResponseDTO = new ChangePasswordResponseDTO();
         changePasswordResponseDTO.setMessage("Password changed successfully");
-        changePasswordResponseDTO.setTimestamp(LocalDateTime.now());
+        changePasswordResponseDTO.setTimestamp(ZonedDateTime.now());
         return changePasswordResponseDTO;
     }
 
@@ -161,12 +161,12 @@ public class UserService {
         awsService.verifyUserCredentials(user.getEmail(), deleteUserRequestDTO.getPassword());
 
         // inactivate user status
-        usersRepository.updateStatusToInactiveByOwnerUserId(user.getId(), LocalDateTime.now());
+        usersRepository.updateStatusToInactiveByOwnerUserId(user.getId(), ZonedDateTime.now());
 
         awsService.deleteUser(accessToken);
         DeleteUserResponseDTO deleteUserResponseDTO = new DeleteUserResponseDTO();
         deleteUserResponseDTO.setMessage("User deleted successfully");
-        deleteUserResponseDTO.setTimestamp(LocalDateTime.now());
+        deleteUserResponseDTO.setTimestamp(ZonedDateTime.now());
         return deleteUserResponseDTO;
     }
 
@@ -176,12 +176,12 @@ public class UserService {
                 .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userRefNo)));
 
         // inactivate user status
-        usersRepository.updateStatusToInactiveByOwnerUserId(user.getId(), LocalDateTime.now());
+        usersRepository.updateStatusToInactiveByOwnerUserId(user.getId(), ZonedDateTime.now());
 
         awsService.deleteUserByAdmin(user.getUserSub());
         DeleteUserResponseDTO deleteUserResponseDTO = new DeleteUserResponseDTO();
         deleteUserResponseDTO.setMessage("User deleted successfully");
-        deleteUserResponseDTO.setTimestamp(LocalDateTime.now());
+        deleteUserResponseDTO.setTimestamp(ZonedDateTime.now());
         return deleteUserResponseDTO;
     }
 
@@ -207,7 +207,7 @@ public class UserService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .message("Retrieve user successfully")
-                .timestamp(LocalDateTime.now())
+                .timestamp(ZonedDateTime.now())
                 .build();
     }
 
@@ -232,7 +232,7 @@ public class UserService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .message("Retrieve user successfully")
-                .timestamp(LocalDateTime.now())
+                .timestamp(ZonedDateTime.now())
                 .build();
     }
 

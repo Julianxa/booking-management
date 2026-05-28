@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Getter
 @Setter
@@ -21,9 +21,9 @@ public class UpdateTicketTypeStatusResponseDTO {
     @JsonProperty("status")
     private Enums.TicketTypeStatus status;
     @JsonProperty("deleted_at")
-    private LocalDateTime deletedAt;
+    private ZonedDateTime deletedAt;
     @JsonProperty("message")
     private String message;
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

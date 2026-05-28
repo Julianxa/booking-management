@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -99,7 +99,7 @@ public class GiftCertificateService {
         updateGiftCertificateResponseDTO.setExpiryDate(giftCertificates.getExpiryDate());
         updateGiftCertificateResponseDTO.setUpdatedAt(giftCertificates.getUpdatedAt());
         updateGiftCertificateResponseDTO.setMessage("Gift Certificate is updated");
-        updateGiftCertificateResponseDTO.setTimestamp(LocalDateTime.now());
+        updateGiftCertificateResponseDTO.setTimestamp(ZonedDateTime.now());
         return updateGiftCertificateResponseDTO;
     }
 
@@ -213,7 +213,7 @@ public class GiftCertificateService {
 
         GetListGiftCertificateResponseDTO getListGiftCertificateResponseDTO = giftCertificateMapper.toGetListResponse(giftCertificatesPage, content);
         getListGiftCertificateResponseDTO.setMessage("Retrieve list of Gift Certificates successfully.");
-        getListGiftCertificateResponseDTO.setTimestamp(LocalDateTime.now());
+        getListGiftCertificateResponseDTO.setTimestamp(ZonedDateTime.now());
         return getListGiftCertificateResponseDTO;
     }
 
@@ -306,7 +306,7 @@ public class GiftCertificateService {
         giftCertificateRedemptions.setBookingId(booking.getId());
         giftCertificateRedemptions.setRedeemedByUserId(userId);
         giftCertificateRedemptions.setQuantityUsed(1);
-        giftCertificateRedemptions.setRedeemedAt(LocalDateTime.now());
+        giftCertificateRedemptions.setRedeemedAt(ZonedDateTime.now());
         giftCertificateRedemptionRepository.save(giftCertificateRedemptions);
     }
 
@@ -338,7 +338,7 @@ public class GiftCertificateService {
         GiftCertificates giftCertificates = giftCertificatesRepository.findByPromoCode(promoCode)
                 .orElseThrow(() -> new GCNotFoundException(String.format("Gift Certificate not found with promotion code %s", promoCode)));
 
-        LocalDateTime actionAt = LocalDateTime.now();
+        ZonedDateTime actionAt = ZonedDateTime.now();
         UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatusResponseDTO = new UpdateGiftCertificateStatusResponseDTO();
         if (dto.getStatus() == Enums.GiftCertificateStatus.CANCELLED) {
             giftCertificates.setCancelledAt(actionAt);

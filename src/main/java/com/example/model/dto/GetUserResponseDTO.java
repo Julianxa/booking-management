@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Getter
 @Setter
@@ -51,20 +51,20 @@ public class GetUserResponseDTO {
     private Enums.UserStatus status;
 
     @JsonProperty("last_login_at")
-    private LocalDateTime lastLoginAt;
+    private ZonedDateTime lastLoginAt;
 
     @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
 
     @JsonProperty("deleted_at")
-    private LocalDateTime deletedAt;
+    private ZonedDateTime deletedAt;
 
     @JsonProperty("message")
     private String message;
 
     @JsonProperty("timestamp")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
 }

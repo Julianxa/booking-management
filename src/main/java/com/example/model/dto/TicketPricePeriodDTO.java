@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Data
 @Builder
@@ -15,9 +15,9 @@ public class TicketPricePeriodDTO {
     @JsonProperty("price")
     private BigDecimal price;
     @JsonProperty("effective_from")
-    private LocalDateTime effectiveFrom;
+    private ZonedDateTime effectiveFrom;
     @JsonProperty("effective_to")
-    private LocalDateTime effectiveTo;
+    private ZonedDateTime effectiveTo;
     @JsonProperty("reason")
     private String reason;
 }

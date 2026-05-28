@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.LimitExceededException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 import static com.example.constant.Enums.UserRole.*;
 
@@ -143,7 +143,7 @@ public class UserController {
             return ResponseEntity.status(429).body(
                     ErrorResponseDTO.builder()
                             .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
+                            .timestamp(ZonedDateTime.now().toString())
                             .build()
             );
         } catch (NotAuthorizedException e) {
@@ -151,14 +151,14 @@ public class UserController {
                 return ResponseEntity.status(401).body(
                         ErrorResponseDTO.builder()
                                 .message(e.getMessage())
-                                .timestamp(LocalDateTime.now().toString())
+                                .timestamp(ZonedDateTime.now().toString())
                                 .build()
                 );
             } else {
                 return ResponseEntity.status(400).body(
                         ErrorResponseDTO.builder()
                                 .message(e.getMessage())
-                                .timestamp(LocalDateTime.now().toString())
+                                .timestamp(ZonedDateTime.now().toString())
                                 .build()
                 );
             }
@@ -166,7 +166,7 @@ public class UserController {
             return ResponseEntity.badRequest().body(
                     ErrorResponseDTO.builder()
                             .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
+                            .timestamp(ZonedDateTime.now().toString())
                             .build()
             );
         }
@@ -238,14 +238,14 @@ public class UserController {
                 return ResponseEntity.status(401).body(
                         ErrorResponseDTO.builder()
                                 .message(e.getMessage())
-                                .timestamp(LocalDateTime.now().toString())
+                                .timestamp(ZonedDateTime.now().toString())
                                 .build()
                 );
             } else {
                 return ResponseEntity.status(400).body(
                         ErrorResponseDTO.builder()
                                 .message(e.getMessage())
-                                .timestamp(LocalDateTime.now().toString())
+                                .timestamp(ZonedDateTime.now().toString())
                                 .build()
                 );
             }
@@ -253,7 +253,7 @@ public class UserController {
             return ResponseEntity.badRequest().body(
                     ErrorResponseDTO.builder()
                             .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
+                            .timestamp(ZonedDateTime.now().toString())
                             .build()
             );
         }
@@ -504,14 +504,14 @@ public class UserController {
                 return ResponseEntity.status(401).body(
                         ErrorResponseDTO.builder()
                                 .message(e.getMessage())
-                                .timestamp(LocalDateTime.now().toString())
+                                .timestamp(ZonedDateTime.now().toString())
                                 .build()
                 );
             } else {
                 return ResponseEntity.status(400).body(
                         ErrorResponseDTO.builder()
                                 .message(e.getMessage())
-                                .timestamp(LocalDateTime.now().toString())
+                                .timestamp(ZonedDateTime.now().toString())
                                 .build()
                 );
             }
@@ -519,7 +519,7 @@ public class UserController {
             return ResponseEntity.badRequest().body(
                     ErrorResponseDTO.builder()
                             .message(e.getMessage())
-                            .timestamp(LocalDateTime.now().toString())
+                            .timestamp(ZonedDateTime.now().toString())
                             .build()
             );
         }

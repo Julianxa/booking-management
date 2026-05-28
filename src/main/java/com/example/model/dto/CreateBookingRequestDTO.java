@@ -11,7 +11,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Getter
@@ -82,7 +82,7 @@ public class CreateBookingRequestDTO {
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY)
         @JsonProperty("created_at")
-        private LocalDateTime createdAt;
+        private ZonedDateTime createdAt;
     }
 
     @Data

@@ -35,7 +35,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -93,7 +94,7 @@ public class EventService {
             createEventResponseDTO.setStatus(Enums.EventStatus.OPEN);
             createEventResponseDTO.setEventPicUrl(eventPicUrl);
             createEventResponseDTO.setMessage("Create Event successfully");
-            createEventResponseDTO.setTimestamp(LocalDateTime.now());
+            createEventResponseDTO.setTimestamp(ZonedDateTime.now());
             return createEventResponseDTO;
         } catch (IOException e) {
             throw new InvalidJsonFormatException("Failed to parse event data");
@@ -154,7 +155,7 @@ public class EventService {
             UpdateEventResponseDTO updateEventResponseDTO = eventMapper.toUpdateResponseDTO(updatedEvent);
             updateEventResponseDTO.setEventPicUrl(eventPicUrl);
             updateEventResponseDTO.setMessage("Event updated successfully");
-            updateEventResponseDTO.setTimestamp(LocalDateTime.now());
+            updateEventResponseDTO.setTimestamp(ZonedDateTime.now());
             return updateEventResponseDTO;
         } catch(IOException e) {
             throw new InvalidJsonFormatException("Failed to parse event data");
@@ -167,7 +168,7 @@ public class EventService {
         Events event = eventsRepository.findByRefNo(eventRefNo)
                 .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
-        LocalDateTime actionAt = LocalDateTime.now();
+        ZonedDateTime actionAt = ZonedDateTime.now();
         UpdateEventStatusResponseDTO updateEventStatusResponseDTO = new UpdateEventStatusResponseDTO();
         if (updateEventStatusRequestDTO.getStatus() == CLOSE) {
             EventTimeSlotExceptions eventTimeSlotExceptions = eventTimeSlotExceptionsMapper.toEntity(updateEventStatusRequestDTO, event);
@@ -225,7 +226,7 @@ public class EventService {
         Events event = eventsRepository.findByRefNo(eventRefNo)
                 .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
-        LocalDateTime actionAt = LocalDateTime.now();
+        ZonedDateTime actionAt = ZonedDateTime.now();
         UpdateEventStatusResponseDTO updateEventStatusResponseDTO = new UpdateEventStatusResponseDTO();
         if (updateEventStatusRequestDTO.getStatus() == CLOSE) {
             event.setStatus(CLOSE);
@@ -293,7 +294,7 @@ public class EventService {
         createEventResponseDTO.setStatus(event.getStatus());
         createEventResponseDTO.setEventPicUrl(eventPicUrl);
         createEventResponseDTO.setMessage("Retrieve an Event successfully");
-        createEventResponseDTO.setTimestamp(LocalDateTime.now());
+        createEventResponseDTO.setTimestamp(ZonedDateTime.now());
         return createEventResponseDTO;
     }
 
@@ -325,7 +326,7 @@ public class EventService {
 
         GetListEventResponseDTO getListEventResponseDTO = eventMapper.toGetListResponse(eventsPage, content);
         getListEventResponseDTO.setMessage("Retrieve list of Events successfully.");
-        getListEventResponseDTO.setTimestamp(LocalDateTime.now());
+        getListEventResponseDTO.setTimestamp(ZonedDateTime.now());
         return getListEventResponseDTO;
     }
 
@@ -348,7 +349,7 @@ public class EventService {
 
         EventAvailabilityDTO eventAvailabilityDTO = eventMapper.toGetAvailabilityResponse(event, occupancyMap);
         eventAvailabilityDTO.setMessage("Retrieve the availability of event successfully");
-        eventAvailabilityDTO.setTimestamp(LocalDateTime.now());
+        eventAvailabilityDTO.setTimestamp(ZonedDateTime.now());
         return eventAvailabilityDTO;
     }
 
@@ -365,7 +366,7 @@ public class EventService {
         if (eventsPage.isEmpty()) {
             GetListEventAvailabilityResponseDTO getListEventAvailabilityResponseDTO = eventMapper.toGetListAvailabilitiesResponse(eventsPage, Collections.emptyMap());
             getListEventAvailabilityResponseDTO.setMessage("Retrieve empty list of Availability of event.");
-            getListEventAvailabilityResponseDTO.setTimestamp(LocalDateTime.now());
+            getListEventAvailabilityResponseDTO.setTimestamp(ZonedDateTime.now());
         }
 
         List<EventDailySlot> allSlots = eventsRepository.getAllEventsScheduleSlots(isPublishedOnly, filterDate, dayValue);
@@ -378,7 +379,7 @@ public class EventService {
 
         GetListEventAvailabilityResponseDTO getListEventAvailabilityResponseDTO = eventMapper.toGetListAvailabilitiesResponse(eventsPage, occupancyMap);
         getListEventAvailabilityResponseDTO.setMessage("Retrieve list of Availability of event successfully");
-        getListEventAvailabilityResponseDTO.setTimestamp(LocalDateTime.now());
+        getListEventAvailabilityResponseDTO.setTimestamp(ZonedDateTime.now());
         return getListEventAvailabilityResponseDTO;
     }
 
@@ -423,7 +424,7 @@ public class EventService {
 
         CreateTicketTypeResponseDTO createTicketTypeResponseDTO = ticketTypeMapper.toCreateResponseDTO(ticketTypes);
         createTicketTypeResponseDTO.setMessage("Create Ticket Type successfully.");
-        createTicketTypeResponseDTO.setTimestamp(LocalDateTime.now());
+        createTicketTypeResponseDTO.setTimestamp(ZonedDateTime.now());
         return createTicketTypeResponseDTO;
     }
 
@@ -457,7 +458,7 @@ public class EventService {
 
         UpdateTicketTypeResponseDTO updateTicketTypeResponseDTO = ticketTypeMapper.toUpdateResponseDTO(ticketTypes);
         updateTicketTypeResponseDTO.setMessage("Update Ticket Type successfully");
-        updateTicketTypeResponseDTO.setTimestamp(LocalDateTime.now());
+        updateTicketTypeResponseDTO.setTimestamp(ZonedDateTime.now());
         return updateTicketTypeResponseDTO;
     }
 
@@ -468,7 +469,7 @@ public class EventService {
 
         UpdateTicketTypeStatusResponseDTO updateTicketTypeStatusResponseDTO = new UpdateTicketTypeStatusResponseDTO();
         if (updateTicketTypeStatusRequestDTO.getStatus() == Enums.TicketTypeStatus.CLOSE) {
-            LocalDateTime deletedAt = LocalDateTime.now();
+            ZonedDateTime deletedAt = ZonedDateTime.now();
             ticketTypesRepository.updateDeleteStatusByEventIdAndTicketTypesRefNo(eventId, ticketTypeRefNo, Enums.TicketTypeStatus.CLOSE, deletedAt);
 
             updateTicketTypeStatusResponseDTO.setStatus(Enums.TicketTypeStatus.CLOSE);
@@ -476,14 +477,14 @@ public class EventService {
             updateTicketTypeStatusResponseDTO.setMessage("Ticket Type deleted successfully");
             updateTicketTypeStatusResponseDTO.setTimestamp(deletedAt);
         } else {
-            LocalDateTime openedAt = LocalDateTime.now();
+            ZonedDateTime openedAt = ZonedDateTime.now();
             ticketTypesRepository.updateOpenStatusByEventIdAndTicketTypesRefNo(eventId, ticketTypeRefNo, Enums.TicketTypeStatus.OPEN, openedAt);
             updateTicketTypeStatusResponseDTO.setMessage("Ticket Type opened successfully");
             updateTicketTypeStatusResponseDTO.setTimestamp(openedAt);
         }
         updateTicketTypeStatusResponseDTO.setId(eventRefNo);
         updateTicketTypeStatusResponseDTO.setTicketTypeId(ticketTypeRefNo);
-        updateTicketTypeStatusResponseDTO.setTimestamp(LocalDateTime.now());
+        updateTicketTypeStatusResponseDTO.setTimestamp(ZonedDateTime.now());
         return updateTicketTypeStatusResponseDTO;
     }
 
@@ -547,8 +548,8 @@ public class EventService {
             throw new InvalidVerificationTokenException("Ticket has already been cancelled");
         }
 
-        bookingEvent.setVerifiedAt(LocalDateTime.now());
-        bookingEvent.setUpdatedAt(LocalDateTime.now());
+        bookingEvent.setVerifiedAt(ZonedDateTime.now());
+        bookingEvent.setUpdatedAt(ZonedDateTime.now());
         bookingEvent.setStatus(CHECKED_IN);
 
         bookingEvent = bookingEventsRepository.save(bookingEvent);
@@ -561,7 +562,7 @@ public class EventService {
                 .status(bookingEvent.getStatus())
                 .verifiedAt(bookingEvent.getVerifiedAt())
                 .message("Confirm Check-in successfully")
-                .timestamp(LocalDateTime.now()).build();
+                .timestamp(ZonedDateTime.now()).build();
     }
 
     // ====================== Private Helper Methods ======================
@@ -634,9 +635,9 @@ public class EventService {
         LocalDate date = bookingEvent.getEventDate();
         LocalTime time = LocalTime.parse(bookingEvent.getEventTime());
 
-        LocalDateTime eventStartTime = LocalDateTime.of(date, time);
+        ZonedDateTime eventStartTime = ZonedDateTime.of(date, time, ZoneId.systemDefault());
 
-        if (eventStartTime.isBefore(LocalDateTime.now())) {
+        if (eventStartTime.isBefore(ZonedDateTime.now())) {
             throw new InvalidVerificationTokenException("Ticket has expired");
         }
     }

@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static com.example.constant.Enums.PaymentPlatform.STRIPE;
@@ -193,7 +193,7 @@ public class PaymentService {
         RefundResponseDTO refundResponseDTO = refundMapper.toCreateResponseDTO(bookingRefNo, refund);
         refundResponseDTO.setStatus(refund.getStatus());
         refundResponseDTO.setMessage("Retrieve a Refund successfully");
-        refundResponseDTO.setTimestamp(LocalDateTime.now());
+        refundResponseDTO.setTimestamp(ZonedDateTime.now());
         return refundResponseDTO;
     }
 
@@ -212,7 +212,7 @@ public class PaymentService {
 
         GetListRefundResponseDTO getListRefundResponseDTO = refundMapper.toGetListResponse(refundsPage, content);
         getListRefundResponseDTO.setMessage("Retrieve list of Events successfully.");
-        getListRefundResponseDTO.setTimestamp(LocalDateTime.now());
+        getListRefundResponseDTO.setTimestamp(ZonedDateTime.now());
         return getListRefundResponseDTO;
     }
 

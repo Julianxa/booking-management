@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 @Repository
@@ -25,5 +25,5 @@ public interface TicketPricePeriodsRepository extends JpaRepository<TicketPriceP
             """)
     Optional<TicketPricePeriods> findActivePrice(
             @Param("ticketTypeId") Long ticketTypeId,
-            @Param("currentTime") LocalDateTime currentTime);
+            @Param("currentTime") ZonedDateTime currentTime);
 }

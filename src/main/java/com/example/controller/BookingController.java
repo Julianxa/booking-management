@@ -20,7 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 @Tag(name = "Bookings", description = "Booking management APIs")
 @RestController
@@ -158,7 +158,7 @@ public class BookingController {
         CreateBookingResponseDTO createBookingResponseDTO = bookingService.createBooking(userSub, request);
 
         createBookingResponseDTO.setMessage("Booking created successfully. Please complete payment.");
-        createBookingResponseDTO.setTimestamp(LocalDateTime.now());
+        createBookingResponseDTO.setTimestamp(ZonedDateTime.now());
         return ResponseEntity.status(HttpStatus.OK).body(createBookingResponseDTO);
     }
 

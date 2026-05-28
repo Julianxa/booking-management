@@ -11,7 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 @Repository
@@ -45,7 +45,7 @@ public interface OrganizationsRepository extends JpaRepository<Organizations, Lo
                 deletedAt = :deletedAt
             WHERE refNo = :organizationRefNo
             """)
-    void updateStatusByOrganizationRefNo(String organizationRefNo, Enums.OrganizationStatus status, LocalDateTime deletedAt);
+    void updateStatusByOrganizationRefNo(String organizationRefNo, Enums.OrganizationStatus status, ZonedDateTime deletedAt);
 
     @Query("""
             SELECT o FROM Organizations o

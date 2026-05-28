@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,7 +46,7 @@ public interface TicketTypesRepository extends JpaRepository<TicketTypes, Long> 
             WHERE t.event.id = :eventId
               AND t.refNo = :ticketTypeRefNo
             """)
-    void updateDeleteStatusByEventIdAndTicketTypesRefNo(Long eventId, String ticketTypeRefNo, Enums.TicketTypeStatus status, LocalDateTime deletedAt);
+    void updateDeleteStatusByEventIdAndTicketTypesRefNo(Long eventId, String ticketTypeRefNo, Enums.TicketTypeStatus status, ZonedDateTime deletedAt);
 
     @Modifying
     @Transactional
@@ -58,5 +58,5 @@ public interface TicketTypesRepository extends JpaRepository<TicketTypes, Long> 
             WHERE t.event.id = :eventId
               AND t.refNo = :ticketTypeRefNo
             """)
-    void updateOpenStatusByEventIdAndTicketTypesRefNo(Long eventId, String ticketTypeRefNo, Enums.TicketTypeStatus status, LocalDateTime updatedAt);
+    void updateOpenStatusByEventIdAndTicketTypesRefNo(Long eventId, String ticketTypeRefNo, Enums.TicketTypeStatus status, ZonedDateTime updatedAt);
 }

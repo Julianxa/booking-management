@@ -9,7 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Getter
@@ -31,8 +31,8 @@ public class UpdateBookingResponseDTO {
     private String message;
 
     @Schema(description = "Timestamp of update")
-    private LocalDateTime timestamp;
+    private ZonedDateTime timestamp;
     @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
 
 }

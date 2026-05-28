@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,7 +48,7 @@ public class WebhookService {
     private final StatusTransitioner statusTransitioner;
 
     @Transactional
-    public void confirmPayment(Payments payment, String paymentIntent, String paymentMethod, LocalDateTime paidAt) {
+    public void confirmPayment(Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
         updatePaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
 
         Bookings booking = bookingsRepository.findById(payment.getBookingId())
@@ -224,7 +224,7 @@ public class WebhookService {
         String sessionId = intent.getPaymentDetails().getOrderReference();
         String paymentMethod = intent.getPaymentMethodTypes().get(0);
         String paymentIntent = intent.getId();
-        LocalDateTime paidAt = dateUtils.convertToLocalDateTime(intent.getCreated());
+        ZonedDateTime paidAt = dateUtils.convertToZonedDateTime(intent.getCreated());
 
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
@@ -275,7 +275,7 @@ public class WebhookService {
     }
 
     public void updatePaymentRecord(Payments payment, String paymentIntent,
-                                    String paymentMethod, Enums.PaymentStatus status, LocalDateTime paidAt) {
+                                    String paymentMethod, Enums.PaymentStatus status, ZonedDateTime paidAt) {
         updatePaymentStatus(payment, status);
         payment.setPaymentIntentId(paymentIntent);
         payment.setPaymentChannel(Enums.PaymentChannel.valueOf(paymentMethod.toUpperCase()));

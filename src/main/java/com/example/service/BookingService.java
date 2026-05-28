@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import static com.example.constant.Enums.BookingEventStatus.*;
@@ -134,7 +134,7 @@ public class BookingService {
                 .attendees(request.getAttendees())
                 .notes(request.getNotes())
                 .message("Booking is updated successfully")
-                .timestamp(LocalDateTime.now())
+                .timestamp(ZonedDateTime.now())
                 .build();
     }
 
@@ -164,7 +164,7 @@ public class BookingService {
                 .status(dto.getStatus())
                 .updatedAt(bookingEvent.getUpdatedAt())
                 .message("The status of booked event is updated")
-                .timestamp(LocalDateTime.now()).build();
+                .timestamp(ZonedDateTime.now()).build();
     }
 
     public GetListBookingResponseDTO getUserBookings(String userRefNo, Pageable pageable) {
@@ -179,7 +179,7 @@ public class BookingService {
 
         GetListBookingResponseDTO response = bookingMapper.toGetListResponse(bookingsPage, content);
         response.setMessage("Retrieve list of Booking successfully");
-        response.setTimestamp(LocalDateTime.now());
+        response.setTimestamp(ZonedDateTime.now());
         return response;
     }
 
@@ -195,7 +195,7 @@ public class BookingService {
 
         GetListBookingResponseDTO response = bookingMapper.toGetListResponse(bookingsPage, content);
         response.setMessage("Retrieve list of Booking successfully");
-        response.setTimestamp(LocalDateTime.now());
+        response.setTimestamp(ZonedDateTime.now());
         return response;
     }
 
@@ -225,7 +225,7 @@ public class BookingService {
                 .updatedAt(booking.getUpdatedAt())
                 .bookingEvents(bookingEvents)
                 .message("Retrieve booking successfully")
-                .timestamp(LocalDateTime.now())
+                .timestamp(ZonedDateTime.now())
                 .build();
     }
 
@@ -241,7 +241,7 @@ public class BookingService {
 
         GetListParticipantsResponseDTO getListParticipantsResponseDTO = bookingMapper.toGetParticipantsResponse(passengers);
         getListParticipantsResponseDTO.setMessage("Retrieve list of participants successfully");
-        getListParticipantsResponseDTO.setTimestamp(LocalDateTime.now());
+        getListParticipantsResponseDTO.setTimestamp(ZonedDateTime.now());
         return getListParticipantsResponseDTO;
     }
 
@@ -447,7 +447,7 @@ public class BookingService {
                 .success(true)
                 .message("Confirmation email has been resent successfully")
                 .bookingEventId(bookinEventId)
-                .timestamp(LocalDateTime.now())
+                .timestamp(ZonedDateTime.now())
                 .build();
     }
 
@@ -551,7 +551,7 @@ public class BookingService {
                                                   Users user, Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
 
         event.setStatus(newStatus);
-        event.setUpdatedAt(LocalDateTime.now());
+        event.setUpdatedAt(ZonedDateTime.now());
 
         if (newStatus == AVAILABLE) {
             event.setCancelledAt(null);
@@ -559,7 +559,7 @@ public class BookingService {
             applicationEventPublisher.publishEvent(new EmailService.BookingReConfirmedEvent(user, booking, payloads));
         }
         else if (newStatus == CANCELLED) {
-            event.setCancelledAt(LocalDateTime.now());
+            event.setCancelledAt(ZonedDateTime.now());
             bookingEventsRepository.save(event);
             applicationEventPublisher.publishEvent(new BookingCancelledEvent(user, booking, payloads));
         }

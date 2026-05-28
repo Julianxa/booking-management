@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 @Repository
@@ -53,7 +53,7 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     @Modifying
     @Query(value = "UPDATE users SET status = 'INACTIVE', updated_at = :timestamp, deleted_at = :timestamp WHERE id = :ownerUserId", nativeQuery = true)
-    void updateStatusToInactiveByOwnerUserId(@Param("ownerUserId") Long ownerUserId, @Param("timestamp") LocalDateTime timestamp);
+    void updateStatusToInactiveByOwnerUserId(@Param("ownerUserId") Long ownerUserId, @Param("timestamp") ZonedDateTime timestamp);
 
     Page<Users> findByRole(Enums.UserRole role, Pageable pageable);
 

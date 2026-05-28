@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("code", ex.getCode());
         body.put("message", ex.getMessage());
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", ZonedDateTime.now());
 
         // Return correct HTTP status + error body
         return new ResponseEntity<>(body, ex.getHttpStatus());
@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("code", ex.getCode());
         body.put("message", ex.getMessage());
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", ZonedDateTime.now());
         return new ResponseEntity<>(body, ex.getHttpStatus());
     }
 
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("code", "BT999");
         body.put("message", "An unexpected error occurred");
-        body.put("timestamp", LocalDateTime.now());
+        body.put("timestamp", ZonedDateTime.now());
 
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }

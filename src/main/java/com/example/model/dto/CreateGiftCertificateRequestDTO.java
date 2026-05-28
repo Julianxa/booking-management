@@ -10,7 +10,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 @Getter
@@ -76,6 +76,6 @@ public class CreateGiftCertificateRequestDTO {
         private BigDecimal value;
         @JsonProperty("created_at")
         @Schema(accessMode = Schema.AccessMode.READ_ONLY)
-        private LocalDateTime createdAt;
+        private ZonedDateTime createdAt;
     }
 }
