@@ -3,6 +3,8 @@ package com.example.model.entity;
 import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -54,15 +56,19 @@ public class BookingEvents {
     @Column(name = "verification_token", nullable = false)
     private String verificationToken;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "verified_at")
     private ZonedDateTime verifiedAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "cancelled_at")
     private ZonedDateTime cancelledAt;
 

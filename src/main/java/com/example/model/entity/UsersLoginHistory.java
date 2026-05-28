@@ -3,6 +3,8 @@ package com.example.model.entity;
 import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.time.ZonedDateTime;
 
@@ -23,6 +25,7 @@ public class UsersLoginHistory {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "login_at", nullable = false)
     private ZonedDateTime loginAt;
 

@@ -105,8 +105,8 @@ public class PaymentController {
     )
     @GetMapping("/payments/refund/{bookingId}")
     public ResponseEntity<?> getRefund(@PathVariable String bookingId) {
-        RefundResponseDTO refundResponseDTO = paymentService.getRefund(bookingId);
-        return ResponseEntity.ok(refundResponseDTO);
+        GetListRefundResponseDTO getListRefundResponseDTO = paymentService.getRefunds(bookingId);
+        return ResponseEntity.ok(getListRefundResponseDTO);
     }
 
     @Operation(

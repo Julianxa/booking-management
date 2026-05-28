@@ -2,6 +2,8 @@ package com.example.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -31,21 +33,25 @@ public class TicketPricePeriods {
     @Column(name = "price")
     private BigDecimal price;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "effective_from")
     private ZonedDateTime effectiveFrom;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "effective_to")
     private ZonedDateTime effectiveTo;
 
     @Column(name = "reason")
     private String reason;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
 
     @Column(name = "created_by")
     private Long createdBy;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 

@@ -3,6 +3,8 @@ package com.example.model.entity;
 import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -49,12 +51,15 @@ public class Bookings {
     @Column(name = "status", nullable = false, length = 20)
     private Enums.BookingStatus status; // e.g., PENDING, CONFIRMED, CANCELLED, COMPLETED
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "deleted_at")
     private ZonedDateTime deletedAt;
 

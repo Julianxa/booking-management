@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -17,5 +18,5 @@ public interface RefundsRepository extends JpaRepository<Refunds, String>  {
     Refunds findByBookingIdAndOngoingStatus(Long bookingId);
 
     @Query("SELECT r FROM Refunds r WHERE r.bookingId = :bookingId")
-    Optional<Refunds> findByBookingId(Long bookingId);
+    Optional<List<Refunds>> findByBookingId(Long bookingId);
 }

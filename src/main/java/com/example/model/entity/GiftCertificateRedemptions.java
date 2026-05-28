@@ -2,6 +2,8 @@ package com.example.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.time.ZonedDateTime;
 
@@ -30,6 +32,7 @@ public class GiftCertificateRedemptions {
     @Column(name = "quantity_used", nullable = false)
     private Integer quantityUsed;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "redeemed_at", nullable = false)
     private ZonedDateTime redeemedAt;
 }

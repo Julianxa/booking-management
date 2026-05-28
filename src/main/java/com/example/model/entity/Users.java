@@ -4,6 +4,8 @@ import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.time.ZonedDateTime;
 
@@ -56,15 +58,19 @@ public class Users {
     @Column(name = "status", nullable = false)
     private Enums.UserStatus status;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "last_login_at")
     private ZonedDateTime lastLoginAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at", nullable = false)
     private ZonedDateTime updatedAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "deleted_at")
     private ZonedDateTime deletedAt;
 

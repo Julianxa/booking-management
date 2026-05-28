@@ -4,6 +4,8 @@ import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -45,9 +47,11 @@ public class Refunds {
     @Column(name = "remarks")
     private String remarks;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 

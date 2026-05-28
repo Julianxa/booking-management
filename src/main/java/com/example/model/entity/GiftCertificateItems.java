@@ -2,6 +2,8 @@ package com.example.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
@@ -32,9 +34,11 @@ public class GiftCertificateItems {
     @Column(precision = 10, scale = 2)
     private BigDecimal value;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at", nullable = false, updatable = false)
     private ZonedDateTime updatedAt;
 

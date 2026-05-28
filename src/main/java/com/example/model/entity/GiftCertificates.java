@@ -4,6 +4,8 @@ import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
@@ -55,14 +57,17 @@ public class GiftCertificates {
     @Column(name = "message_to_recipient", columnDefinition = "TEXT")
     private String messageToRecipient;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @UpdateTimestamp
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "cancelled_at")
     private ZonedDateTime cancelledAt;
 

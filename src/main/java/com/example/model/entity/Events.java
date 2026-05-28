@@ -4,6 +4,8 @@ import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -86,10 +88,13 @@ public class Events {
     private Long updatedBy;
     @Column(name = "deleted_by")
     private Long deletedBy;
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at", nullable = false)
     private ZonedDateTime updatedAt;
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "deleted_at")
     private ZonedDateTime deletedAt;
 

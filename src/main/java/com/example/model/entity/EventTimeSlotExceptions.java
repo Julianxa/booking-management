@@ -3,6 +3,8 @@ package com.example.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -32,8 +34,10 @@ public class EventTimeSlotExceptions {
     private Long createdBy;
     @Column(name = "updated_by")
     private Long updatedBy;
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 }

@@ -3,6 +3,8 @@ package com.example.model.entity;
 import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
 
 import java.time.ZonedDateTime;
 import java.util.LinkedList;
@@ -46,18 +48,21 @@ public class TicketTypes {
     @Column(name = "status", nullable = false)
     private Enums.TicketTypeStatus status;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
 
     @Column(name = "created_by")
     private Long createdBy;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 
     @Column(name = "updated_by")
     private Long updatedBy;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "deleted_at")
     private ZonedDateTime deletedAt;
 

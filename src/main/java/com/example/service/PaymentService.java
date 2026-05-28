@@ -184,17 +184,25 @@ public class PaymentService {
         return refundMapper.toCreateResponseDTO(booking.getRefNo(), refund);
     }
 
-    public RefundResponseDTO getRefund(String bookingRefNo) {
+    public GetListRefundResponseDTO getRefunds(String bookingRefNo) {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Refunds refund = refundsRepository.findByBookingId(booking.getId())
+        List<Refunds> refunds = refundsRepository.findByBookingId(booking.getId())
                 .orElseThrow(() -> new RefundNotFoundException("Refund not found"));
 
-        RefundResponseDTO refundResponseDTO = refundMapper.toCreateResponseDTO(bookingRefNo, refund);
-        refundResponseDTO.setStatus(refund.getStatus());
-        refundResponseDTO.setMessage("Retrieve a Refund successfully");
-        refundResponseDTO.setTimestamp(ZonedDateTime.now());
-        return refundResponseDTO;
+        List<RefundResponseDTO> content = refunds.stream()
+                .map(refund -> {
+                    RefundResponseDTO refundResponseDTO = refundMapper.toCreateResponseDTO(bookingRefNo, refund);
+                    refundResponseDTO.setStatus(refund.getStatus());
+                    return refundResponseDTO;
+                })
+                .toList();
+
+        GetListRefundResponseDTO getListRefundResponseDTO = new GetListRefundResponseDTO();
+        getListRefundResponseDTO.setContent(content);
+        getListRefundResponseDTO.setMessage("Retrieve Refund history successfully");
+        getListRefundResponseDTO.setTimestamp(ZonedDateTime.now());
+        return getListRefundResponseDTO;
     }
 
     public GetListRefundResponseDTO getAllRefunds(Pageable pageable) {
