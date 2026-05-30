@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import static com.example.constant.Enums.PaymentPlatform.STRIPE;
 import static com.stripe.param.checkout.SessionCreateParams.PaymentMethodOptions.WechatPay.Client.WEB;
 
 @Service
@@ -44,7 +43,7 @@ public class PaymentService {
     private final RefundMapper refundMapper;
 
     @Transactional
-    public String createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
+    public Session createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
         SessionCreateParams.PaymentMethodOptions paymentMethodOptions =
                 SessionCreateParams.PaymentMethodOptions.builder()
                         .setWechatPay(
@@ -95,7 +94,7 @@ public class PaymentService {
             booking.setStatus(Enums.BookingStatus.AWAITING_PAYMENT);
             bookingsRepository.save(booking);
 
-            return session.getUrl();
+            return session;
         } catch(StripeException e) {
             throw new CreateSessionException("Failed to create a session for payment");
         }
@@ -225,28 +224,28 @@ public class PaymentService {
     }
 
     @Transactional
-    public Payments findOrCreatePaymentByPaymentIntentId(String sessionId, String intentId, Bookings booking) {
+    public Payments findOrCreatePaymentByPaymentIntentId(String sessionId, String intentId, Enums.PaymentPlatform paymentPlatform, Bookings booking) {
         if(intentId == null) {
-            return createNewPaymentRecord(sessionId, null, booking);
+            return createNewPaymentRecord(sessionId, null, paymentPlatform, booking);
         } else {
             return paymentsRepository.findByPaymentIntentId(intentId)
                     .orElseGet(() -> {
-                        return createNewPaymentRecord(sessionId, intentId, booking);
+                        return createNewPaymentRecord(sessionId, intentId, paymentPlatform, booking);
                     });
         }
     }
 
     @Transactional
-    private Payments createNewPaymentRecord(String sessionId, String intentId, Bookings booking) {
+    private Payments createNewPaymentRecord(String sessionId, String intentId, Enums.PaymentPlatform paymentPlatform, Bookings booking) {
         Payments payments = Payments.builder()
                 .refNo(referenceNoGenerator.generatePaymentReference())
                 .bookingId(booking.getId())
                 .amount(booking.getFinalPaidAmount())
                 .currency(booking.getCurrency())
-                .paymentPlatform(STRIPE)
+                .paymentPlatform(paymentPlatform)
                 .paymentIntentId(intentId)
                 .sessionId(sessionId)
-                .paymentStatus(Enums.PaymentStatus.INITIATED)
+                .paymentStatus(Enums.PaymentStatus.PENDING)
                 .build();
         return paymentsRepository.save(payments);
     }

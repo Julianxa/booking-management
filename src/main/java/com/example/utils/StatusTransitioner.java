@@ -19,6 +19,14 @@ public class StatusTransitioner {
         return switch (current) {
             case FAILED, CANCELLED, EXPIRED, REFUNDED -> false;
 
+            case PENDING ->
+                    newStatus == Enums.PaymentStatus.INITIATED ||
+                            newStatus == Enums.PaymentStatus.REQUIRES_ACTION ||
+                            newStatus == Enums.PaymentStatus.SUCCEEDED ||
+                            newStatus == Enums.PaymentStatus.FAILED ||
+                            newStatus == Enums.PaymentStatus.CANCELLED ||
+                            newStatus == Enums.PaymentStatus.EXPIRED;
+
             case INITIATED ->
                     newStatus == Enums.PaymentStatus.REQUIRES_ACTION ||
                             newStatus == Enums.PaymentStatus.SUCCEEDED ||

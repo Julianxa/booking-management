@@ -28,6 +28,9 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.constant.Enums.PaymentPlatform.STRIPE;
+import static com.example.constant.Enums.PaymentStatus.INITIATED;
+
 
 @Service
 @RequiredArgsConstructor
@@ -49,7 +52,7 @@ public class WebhookService {
 
     @Transactional
     public void confirmPayment(Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
-        updatePaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
+        updateSuccessPaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
 
         Bookings booking = bookingsRepository.findById(payment.getBookingId())
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", payment.getBookingId())));
@@ -135,8 +138,8 @@ public class WebhookService {
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                         .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        String sessionId = intent.getPaymentDetails().getOrderReference();
-        paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(null, intent.getId(), STRIPE, booking);
+        updatePaymentStatus(payment, INITIATED);
 
         updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
     }
@@ -185,7 +188,7 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         String sessionId = intent.getPaymentDetails().getOrderReference();
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
 
         updatePaymentStatus(payment, Enums.PaymentStatus.REQUIRES_ACTION);
         updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
@@ -200,7 +203,7 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
 
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
 
         booking.setStatus(Enums.BookingStatus.FAILED);
@@ -214,7 +217,7 @@ public class WebhookService {
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
         updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
     }
 
@@ -229,7 +232,7 @@ public class WebhookService {
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), booking);
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
 
         confirmPayment(payment, paymentIntent, paymentMethod, paidAt);
     }
@@ -242,10 +245,8 @@ public class WebhookService {
         String bookingRefNo = session.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, null, booking);
-
-        payment.setPaymentStatus(Enums.PaymentStatus.EXPIRED);
-        paymentsRepository.save(payment);
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, null, STRIPE, booking);
+        updatePaymentStatus(payment, Enums.PaymentStatus.EXPIRED);
 
         booking.setStatus(Enums.BookingStatus.EXPIRED);
         bookingsRepository.save(booking);
@@ -274,11 +275,11 @@ public class WebhookService {
         }
     }
 
-    public void updatePaymentRecord(Payments payment, String paymentIntent,
+    public void updateSuccessPaymentRecord(Payments payment, String paymentIntent,
                                     String paymentMethod, Enums.PaymentStatus status, ZonedDateTime paidAt) {
         updatePaymentStatus(payment, status);
         payment.setPaymentIntentId(paymentIntent);
-        payment.setPaymentChannel(Enums.PaymentChannel.valueOf(paymentMethod.toUpperCase()));
+        payment.setPaymentChannel(paymentMethod == null ? null : Enums.PaymentChannel.valueOf(paymentMethod.toUpperCase()));
         payment.setPaidAt(paidAt);
         paymentsRepository.save(payment);
     }

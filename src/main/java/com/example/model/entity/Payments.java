@@ -37,7 +37,7 @@ public class Payments {
     private String currency;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_platform", nullable = false)
+    @Column(name = "payment_platform")
     private Enums.PaymentPlatform paymentPlatform;
 
     @Enumerated(EnumType.STRING)

@@ -25,6 +25,7 @@ import com.example.utils.DateUtils;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
 import com.example.utils.UserUtils;
+import com.stripe.model.checkout.Session;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -580,12 +581,28 @@ public class BookingService {
     private CreateBookingResponseDTO handlePostBookingProcessing(Users user, Bookings booking,
                                                                  CreateBookingRequestDTO request,
                                                                  List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
-
         if (user == null) { // Public user
-            String checkoutUrl = paymentService.createCheckoutSession(null, request, booking);
+            String checkoutUrl = null;
+            if(booking.getFinalPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+                Session session = paymentService.createCheckoutSession(null, request, booking);
+                checkoutUrl = session.getUrl();
+
+                paymentService.findOrCreatePaymentByPaymentIntentId(session.getId(), null, null, booking);
+            } else { // 0 dollar payment
+                GiftCertificates gc = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
+                GiftCertificateApplicationResult result =
+                        giftCertificateService.handleGiftCertificateRedemption(booking, gc, null);
+
+                Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(null, null, null, booking);
+
+                ZonedDateTime paidAt = ZonedDateTime.now();
+                webhookService.confirmPayment(payment, null, null, paidAt);
+            }
+
             booking.setType(Enums.BookingType.ONLINE_PAYMENT);
             bookingsRepository.save(booking);
             return bookingMapper.toCreateResponseDTO(booking, bookingEventDTOs, request.getPromoCode(), checkoutUrl);
+
         } else { // Admin/Agent flow
             GiftCertificates gc = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
             GiftCertificateApplicationResult result =
@@ -593,7 +610,6 @@ public class BookingService {
 
             List<EmailService.BookingEmailPayload> emailPayloads = webhookService.activateBookingEvents(bookingEventDTOs);
 
-            booking.setStatus(Enums.BookingStatus.SUCCESS);
             booking.setType(Enums.BookingType.OFFLINE_PAYMENT);
             bookingsRepository.save(booking);
 

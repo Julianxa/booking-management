@@ -61,6 +61,7 @@ public class Enums {
     }
 
     public enum PaymentStatus {
+        PENDING,
         INITIATED,
         REQUIRES_ACTION,
         SUCCEEDED,
