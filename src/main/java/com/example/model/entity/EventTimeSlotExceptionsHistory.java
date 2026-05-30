@@ -1,5 +1,6 @@
 package com.example.model.entity;
 
+import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
@@ -16,8 +17,8 @@ import java.time.ZonedDateTime;
 @DynamicUpdate
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "event_time_slot_exceptions")
-public class EventTimeSlotExceptions {
+@Table(name = "event_time_slot_exceptions_history")
+public class EventTimeSlotExceptionsHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true, nullable = false)
@@ -28,22 +29,19 @@ public class EventTimeSlotExceptions {
     private LocalDate exceptionDate;
     @Column(name = "exception_time")
     private String exceptionTime;
-    @Column(name = "reason")
-    private String reason;
-    @Column(name = "created_by")
-    private Long createdBy;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private Enums.EventStatus status;
+    @Column(name = "description")
+    private String description;
     @Column(name = "updated_by")
-    private Long updatedBy;
-    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
-    @Column(name = "created_at")
-    private ZonedDateTime createdAt;
+    private String updatedBy;
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = ZonedDateTime.now();
         this.updatedAt = ZonedDateTime.now();
     }
 

@@ -259,6 +259,33 @@ public class EventController {
     }
 
     @Operation(
+            summary = "Get event status history by ID, date and time",
+            description = "Retrieves status history of a specific timeslot of event.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Status history found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = CreateEventResponseDTO.class))),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Status history not found",
+                            content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class))),
+                    @ApiResponse(
+                            responseCode = "401",
+                            description = "Unauthorized",
+                            content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+            }
+    )
+    @GetMapping("/events/{id}/status/history")
+    public ResponseEntity<?> getEventStatusHistory(@PathVariable String id,
+                                                   @RequestParam LocalDate eventDate,
+                                                    @RequestParam String eventTime) {
+        GetStatusHistoryResponseDTO getStatusHistoryResponseDTO = eventService.getEventStatusHistory(id, eventDate, eventTime);
+        return ResponseEntity.ok(getStatusHistoryResponseDTO);
+    }
+
+    @Operation(
             summary = "Create a new ticket type for an event",
             description = "Adds a new ticket type (e.g. Adult, Student, VIP) to an existing event. " +
                     "The event must already exist.",

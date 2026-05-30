@@ -53,6 +53,7 @@ public class EventService {
     private final BookingAttendeesRepository bookingAttendeesRepository;
     private final BookingItemsRepository bookingItemsRepository;
     private final TicketTypesRepository ticketTypesRepository;
+    private final EventTimeSlotExceptionsHistoryRepository eventTimeSlotExceptionsHistoryRepository;
     private final UsersRepository usersRepository;
     private final TicketPricePeriodsRepository ticketPricePeriodsRepository;
     private final EventTimeSlotExceptionsRepository eventTimeSlotExceptionsRepository;
@@ -215,6 +216,14 @@ public class EventService {
             throw new IllegalArgumentException("Invalid EventStatus: " + updateEventStatusRequestDTO.getStatus() +
                     ". Allowed values are: OPEN, CLOSE, OPEN_WITH_BOOKINGS, CLOSE_WITH_BOOKINGS");
         }
+
+        EventTimeSlotExceptionsHistory history = new EventTimeSlotExceptionsHistory();
+        history.setEventId(event.getId());
+        history.setExceptionDate(updateEventStatusRequestDTO.getEventDate());
+        history.setExceptionTime(updateEventStatusRequestDTO.getEventTime());
+        history.setStatus(updateEventStatusRequestDTO.getStatus());
+        history.setDescription(updateEventStatusRequestDTO.getDescription());
+        eventTimeSlotExceptionsHistoryRepository.save(history);
 
         updateEventStatusResponseDTO.setEventRefNo(eventRefNo);
         updateEventStatusResponseDTO.setTimestamp(actionAt);
@@ -500,6 +509,20 @@ public class EventService {
         return ticketTypes.stream()
                 .map(ticketTypeMapper::toCreateResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    public GetStatusHistoryResponseDTO getEventStatusHistory(String eventRefNo, LocalDate eventDate, String eventTime) {
+        Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
+                .orElseThrow(() -> new EventNotFoundException("Event not found"));
+
+        List<EventTimeSlotExceptionsHistory> history = eventTimeSlotExceptionsHistoryRepository.findAllByEventIdAndExceptionDateAndExceptionTimeOrderByIdAsc(eventId, eventDate, eventTime)
+                .orElse(null);
+
+        GetStatusHistoryResponseDTO getStatusHistoryResponseDTO = new GetStatusHistoryResponseDTO();
+        getStatusHistoryResponseDTO.setEventId(eventRefNo);
+        getStatusHistoryResponseDTO.setHistory(history);
+        getStatusHistoryResponseDTO.setMessage("Retrieve event status history successfully");
+        return getStatusHistoryResponseDTO;
     }
 
     public InitiateCheckInResponseDTO initiateCheckIn(String token) {

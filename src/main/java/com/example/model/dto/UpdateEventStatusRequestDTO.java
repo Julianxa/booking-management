@@ -27,4 +27,6 @@ public class UpdateEventStatusRequestDTO {
     @NotNull(message = "Status is required")
     @JsonProperty("status")
     private Enums.EventStatus status;
+    @JsonProperty("description")
+    private String description;
 }
