@@ -1,5 +1,6 @@
 package com.example.model.entity;
 
+import com.example.constant.Enums;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.TimeZoneStorage;
@@ -32,7 +33,11 @@ public class GiftCertificateRedemptions {
     @Column(name = "quantity_used", nullable = false)
     private Integer quantityUsed;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private Enums.GiftCertificateRedemptionStatus status;
+
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
-    @Column(name = "redeemed_at", nullable = false)
+    @Column(name = "redeemed_at")
     private ZonedDateTime redeemedAt;
 }

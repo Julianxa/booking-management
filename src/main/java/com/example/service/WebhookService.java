@@ -51,24 +51,31 @@ public class WebhookService {
     private final StatusTransitioner statusTransitioner;
 
     @Transactional
-    public void confirmPayment(Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
+    public void confirmOnlinePayment(Users user, Bookings booking, Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
         updateSuccessPaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
-
-        Bookings booking = bookingsRepository.findById(payment.getBookingId())
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", payment.getBookingId())));
 
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
 
-        Users user = null;
-        if(booking.getUserId() != null) {
-            user = usersRepository.findById(booking.getUserId())
-                    .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", booking.getUserId())));
-        }
         GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
-        List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents =
-                bookingsConverter.toBookingEventDTOs(booking, null);
+        List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
 
-        GiftCertificateApplicationResult result = giftCertificateService.handleGiftCertificateRedemption(booking, giftCertificate, user != null ? user.getId() : null);
+        GiftCertificateApplicationResult result = giftCertificateService.confirmCertificateRedemption(booking, giftCertificate, user != null ? user.getId() : null);
+
+        List<EmailService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
+
+        updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
+
+        publishBookingConfirmedEvent(user, booking, bookingEvents, result, emailPayloads);
+    }
+
+    @Transactional
+    public void confirmOfflinePayment(Users user, Bookings booking) {
+        updateBookingStatus(booking, Enums.BookingStatus.PAID);
+
+        GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
+        List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
+
+        GiftCertificateApplicationResult result = giftCertificateService.confirmCertificateRedemption(booking, giftCertificate, user != null ? user.getId() : null);
 
         List<EmailService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
 
@@ -206,6 +213,8 @@ public class WebhookService {
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
 
+        giftCertificateService.cancelCertificateRedemption(booking);
+
         booking.setStatus(Enums.BookingStatus.FAILED);
         bookingsRepository.save(booking);
     }
@@ -223,6 +232,7 @@ public class WebhookService {
 
     @Transactional
     public void processSuccessfulPayment(Event event) {
+        Users user = null;
         PaymentIntent intent = getPaymentIntentFromEvent(event);
         String sessionId = intent.getPaymentDetails().getOrderReference();
         String paymentMethod = intent.getPaymentMethodTypes().get(0);
@@ -234,7 +244,10 @@ public class WebhookService {
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
 
-        confirmPayment(payment, paymentIntent, paymentMethod, paidAt);
+        if(booking.getUserId() != null)
+            user = usersRepository.findById(booking.getUserId())
+                    .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", booking.getUserId())));
+        confirmOnlinePayment(user, booking, payment, paymentIntent, paymentMethod, paidAt);
     }
 
     @Transactional

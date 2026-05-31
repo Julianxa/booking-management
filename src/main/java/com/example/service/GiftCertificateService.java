@@ -5,10 +5,7 @@ import com.example.converter.BookingItemsConverter;
 import com.example.converter.GiftCertificateItemsConverter;
 import com.example.exception.booking.BookingEventNotFoundException;
 import com.example.exception.event.EventNotFoundException;
-import com.example.exception.giftCertificate.GCItemNotFoundException;
-import com.example.exception.giftCertificate.GCNotFoundException;
-import com.example.exception.giftCertificate.GCPromoCodeExistsException;
-import com.example.exception.giftCertificate.InvalidGCException;
+import com.example.exception.giftCertificate.*;
 import com.example.exception.ticket.TicketPricePeriodNotFoundException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.exception.user.UserNotFoundException;
@@ -30,6 +27,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.constant.Enums.GiftCertificateRedemptionStatus.*;
 import static com.example.constant.Enums.GiftCertificateStatus.ACTIVE;
 import static com.example.constant.Enums.GiftCertificateType.EVENT;
 import static com.example.constant.Enums.GiftCertificateType.VALUE;
@@ -238,17 +236,7 @@ public class GiftCertificateService {
         return gc;
     }
 
-    public GiftCertificateApplicationResult applyGiftCertificate(
-            GiftCertificates gc, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
-        GiftCertificateApplicationResult giftCertificateApplicationResult;
-        if (gc.getType() == VALUE) {
-            giftCertificateApplicationResult = applyValueType(gc);
-        } else {
-            giftCertificateApplicationResult = applyEventType(gc, bookingEventDTOs);
-        }
-        return giftCertificateApplicationResult;
-    }
-
+    @Transactional
     private GiftCertificateApplicationResult applyValueType(GiftCertificates gc) {
         GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
                 .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
@@ -259,6 +247,7 @@ public class GiftCertificateService {
         return new GiftCertificateApplicationResult(gc, List.of(), item.getValue());
     }
 
+    @Transactional
     private GiftCertificateApplicationResult applyEventType(GiftCertificates gc, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
         List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = new ArrayList<>();
 
@@ -297,17 +286,6 @@ public class GiftCertificateService {
         BigDecimal discount = getGiftCertificateDiscount(redeemedTickets);
 
         return new GiftCertificateApplicationResult(gc, redeemedTickets, discount);
-    }
-
-    @Transactional
-    public void confirmCertificateRedemption(Bookings booking, GiftCertificates gc, Long userId) {
-        GiftCertificateRedemptions giftCertificateRedemptions = new GiftCertificateRedemptions();
-        giftCertificateRedemptions.setGiftCertificateId(gc.getId());
-        giftCertificateRedemptions.setBookingId(booking.getId());
-        giftCertificateRedemptions.setRedeemedByUserId(userId);
-        giftCertificateRedemptions.setQuantityUsed(1);
-        giftCertificateRedemptions.setRedeemedAt(ZonedDateTime.now());
-        giftCertificateRedemptionRepository.save(giftCertificateRedemptions);
     }
 
     private CreateGiftCertificateResponseDTO buildResponse(GiftCertificates gc, String userRefNo, String eventRefNo) {
@@ -371,18 +349,52 @@ public class GiftCertificateService {
 
         GiftCertificates gc = validateGiftCertificateForBooking(promoCode, userId);
 
-        return applyGiftCertificate(gc, bookingEventDTOs);
+        // gift certificate quantity -1
+        GiftCertificateApplicationResult giftCertificateApplicationResult;
+        if (gc.getType() == VALUE) {
+            giftCertificateApplicationResult = applyValueType(gc);
+        } else {
+            giftCertificateApplicationResult = applyEventType(gc, bookingEventDTOs);
+        }
+
+        GiftCertificateRedemptions redemption = new GiftCertificateRedemptions();
+        redemption.setGiftCertificateId(gc.getId());
+        redemption.setBookingId(booking.getId());
+        redemption.setRedeemedByUserId(userId);
+        redemption.setQuantityUsed(1);
+        redemption.setStatus(PENDING);
+        giftCertificateRedemptionRepository.save(redemption);
+
+        return giftCertificateApplicationResult;
     }
 
     @Transactional
-    GiftCertificateApplicationResult handleGiftCertificateRedemption(
-            Bookings booking, GiftCertificates giftCertificate, Long userId) {
-
+    public GiftCertificateApplicationResult confirmCertificateRedemption(Bookings booking, GiftCertificates giftCertificate, Long userId) {
         if (giftCertificate == null) {
             return null;
         }
 
-        confirmCertificateRedemption(booking, giftCertificate, userId);
+        GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
+                .orElseThrow(() -> new GCRedemptionNotFoundException("Gift certificate redemption not found"));
+        redemption.setStatus(SUCCESS);
+        redemption.setRedeemedAt(ZonedDateTime.now());
+        giftCertificateRedemptionRepository.save(redemption);
+
         return getCertificateRedemptionResult(booking);
+    }
+
+    @Transactional
+    public void cancelCertificateRedemption(Bookings booking) {
+        GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
+                .orElse(null);
+        if(redemption != null) {
+            redemption.setStatus(FAILED);
+            giftCertificateRedemptionRepository.save(redemption);
+
+            GiftCertificates gc = giftCertificatesRepository.findById(redemption.getGiftCertificateId())
+                    .orElseThrow(() -> new GCNotFoundException("Gift certificate not found"));
+            gc.setRemainingQuantity(gc.getRemainingQuantity() + 1);
+            giftCertificatesRepository.save(gc);
+        }
     }
 }

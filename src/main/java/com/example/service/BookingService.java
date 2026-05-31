@@ -106,7 +106,7 @@ public class BookingService {
 
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
-        return handlePostBookingProcessing(loggedInUser, booking, request, bookingEventDTOs);
+        return completeBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs);
     }
 
     @Transactional
@@ -352,6 +352,7 @@ public class BookingService {
     private Bookings createEmptyBooking(Users loggedInUser) {
         Bookings booking = Bookings.builder()
                 .refNo(referenceNoGenerator.generateBookingReference())
+                .type(loggedInUser != null ? Enums.BookingType.OFFLINE_PAYMENT : Enums.BookingType.ONLINE_PAYMENT)
                 .userId(loggedInUser != null ? loggedInUser.getId() : null)
                 .totalPaidPrice(BigDecimal.ZERO)
                 .currency("HKD")
@@ -578,44 +579,25 @@ public class BookingService {
     }
 
     @Transactional
-    private CreateBookingResponseDTO handlePostBookingProcessing(Users user, Bookings booking,
+    private CreateBookingResponseDTO completeBookingAndPayment(Users user, Bookings booking,
                                                                  CreateBookingRequestDTO request,
                                                                  List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
-        if (user == null) { // Public user
+        if (user == null) { // guest
             String checkoutUrl = null;
-            if(booking.getFinalPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
+
+            if (booking.getFinalPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
                 Session session = paymentService.createCheckoutSession(null, request, booking);
                 checkoutUrl = session.getUrl();
-
                 paymentService.findOrCreatePaymentByPaymentIntentId(session.getId(), null, null, booking);
             } else { // 0 dollar payment
-                GiftCertificates gc = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
-                GiftCertificateApplicationResult result =
-                        giftCertificateService.handleGiftCertificateRedemption(booking, gc, null);
-
                 Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(null, null, null, booking);
 
                 ZonedDateTime paidAt = ZonedDateTime.now();
-                webhookService.confirmPayment(payment, null, null, paidAt);
+                webhookService.confirmOnlinePayment(null, booking, payment, null, null, paidAt);
             }
-
-            booking.setType(Enums.BookingType.ONLINE_PAYMENT);
-            bookingsRepository.save(booking);
             return bookingMapper.toCreateResponseDTO(booking, bookingEventDTOs, request.getPromoCode(), checkoutUrl);
-
         } else { // Admin/Agent flow
-            GiftCertificates gc = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
-            GiftCertificateApplicationResult result =
-                    giftCertificateService.handleGiftCertificateRedemption(booking, gc, user.getId());
-
-            List<EmailService.BookingEmailPayload> emailPayloads = webhookService.activateBookingEvents(bookingEventDTOs);
-
-            booking.setType(Enums.BookingType.OFFLINE_PAYMENT);
-            bookingsRepository.save(booking);
-
-            webhookService.updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
-            webhookService.publishBookingConfirmedEvent(user, booking, bookingEventDTOs, result, emailPayloads);
-
+            webhookService.confirmOfflinePayment(user, booking);
             return bookingMapper.toCreateResponseDTO(booking, bookingEventDTOs, request.getPromoCode(), null);
         }
     }

@@ -225,14 +225,16 @@ public class PaymentService {
 
     @Transactional
     public Payments findOrCreatePaymentByPaymentIntentId(String sessionId, String intentId, Enums.PaymentPlatform paymentPlatform, Bookings booking) {
-        if(intentId == null) {
-            return createNewPaymentRecord(sessionId, null, paymentPlatform, booking);
-        } else {
-            return paymentsRepository.findByPaymentIntentId(intentId)
+        if (sessionId != null)
+            return paymentsRepository.findBySessionId(sessionId)
                     .orElseGet(() -> {
-                        return createNewPaymentRecord(sessionId, intentId, paymentPlatform, booking);
+                        return createNewPaymentRecord(sessionId, null, paymentPlatform, booking);
                     });
-        }
+        else
+            return paymentsRepository.findByBookingId(booking.getId())
+                    .orElseGet(() -> {
+                        return createNewPaymentRecord(null, null, paymentPlatform, booking);
+                    });
     }
 
     @Transactional
