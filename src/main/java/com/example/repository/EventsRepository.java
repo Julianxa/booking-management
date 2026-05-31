@@ -61,23 +61,24 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
 
     @Query("""
             SELECT e FROM Events e
-            WHERE e.startDate <= :filterDate
-              AND e.endDate >= :filterDate
+            WHERE (e.startDate <= :filterDate OR e.startDate IS NULL)
+              AND (e.endDate >= :filterDate OR e.endDate IS NULL)
             """)
     Page<Events> findByDate(@Param("filterDate") LocalDate filterDate, Pageable pageable);
 
     @Query("""
             SELECT e FROM Events e
             WHERE e.id = :id
-              AND e.startDate <= :filterDate
-              AND e.endDate >= :filterDate
+              AND (e.startDate <= :filterDate OR e.startDate IS NULL)
+              AND (e.endDate >= :filterDate OR e.endDate IS NULL)
             """)
     Events findByDateAndId(@Param("id") Long id, @Param("filterDate") LocalDate filterDate);
 
     @Query("""
             SELECT e FROM Events e
             WHERE (:filterDate IS NULL
-                   OR (e.startDate <= :filterDate AND e.endDate >= :filterDate))
+                   OR ((e.startDate <= :filterDate OR e.startDate IS NULL)
+                   AND (e.endDate >= :filterDate OR e.endDate IS NULL)))
               AND (
                     LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%'))
                  OR LOWER(e.type) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -92,15 +93,17 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
             Pageable pageable);
 
     @Query(value = """
-            SELECT
-                COALESCE(SUM(bi.quantity), 0) AS total_booked,
-                COALESCE(SUM(CASE WHEN be.status = 'CHECKED_IN' THEN bi.quantity ELSE 0 END), 0) AS total_used
-            FROM booking_events be
-            LEFT JOIN booking_items bi ON be.id = bi.booking_event_id
-            WHERE be.event_id = :eventId
-              AND be.event_date = :filterDate
-              AND be.event_time = :eventTime
-            """, nativeQuery = true)
+        SELECT
+            COALESCE(SUM(bi.quantity), 0) AS total_booked,
+            COALESCE(SUM(CASE WHEN be.status = 'CHECKED_IN' THEN bi.quantity ELSE 0 END), 0) AS total_used
+        FROM booking_events be
+        INNER JOIN bookings b ON be.booking_id = b.id
+        LEFT JOIN booking_items bi ON be.id = bi.booking_event_id
+        WHERE be.event_id = :eventId
+          AND be.event_date = :filterDate
+          AND be.event_time = :eventTime
+          AND b.status IN ('PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
+        """, nativeQuery = true)
     EventBookingSummary getBookingSummary(
             @Param("eventId") Long eventId,
             @Param("filterDate") LocalDate filterDate,
