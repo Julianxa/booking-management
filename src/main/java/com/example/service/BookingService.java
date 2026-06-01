@@ -17,7 +17,7 @@ import com.example.mapper.BookingMapper;
 import com.example.mapper.EventMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
-import com.example.model.record.EventBookingStats;
+import com.example.model.record.EventBookingSummary;
 import com.example.model.record.EventTimeSlotException;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
@@ -361,11 +361,12 @@ public class BookingService {
         return bookingsRepository.save(booking);
     }
 
+    @Transactional
     private BookingEventProcessingResult processSingleBookingEvent(Bookings booking,
                                                                    CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
 
         // 1. Fetch and validate Event
-        Events event = eventsRepository.findByRefNoAndOpenStatusAndPublished(bookingEventDTO.getEvent().getId())
+        Events event = eventsRepository.findByRefNoAndOpenStatusAndPublishedForUpdate(bookingEventDTO.getEvent().getId())
                 .orElseThrow(() -> new EventNotFoundException(
                         String.format("Active Event %s not found", bookingEventDTO.getEvent().getId())));
 
@@ -394,7 +395,7 @@ public class BookingService {
                                 event.getName(), dayValue, bookingEventDTO.getEvent().getEventTime())));
 
         // 5. Capacity Check
-        checkEventTimeSlotQuota(dayValue, event, bookingEventDTO);
+        checkEventTimeSlotQuotaWithLock(event, bookingEventDTO);
 
         // 6. Create Booking Event
         BookingEvents bookingEvent = registerBookingEvent(booking, event, bookingEventDTO);
@@ -467,22 +468,22 @@ public class BookingService {
         bookingAttendeesRepository.save(attendee);
     }
 
-    private void checkEventTimeSlotQuota(String dayValueForDate, Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
+    @Transactional
+    private void checkEventTimeSlotQuotaWithLock(Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
         int requestedParticipants = calculateTotalParticipants(bookingEventDTO.getTickets());
 
         if (requestedParticipants == 0) {
             return;
         }
 
-        List<EventBookingStats> bookingData = eventService.getBookingPercentageByDateForEvent(true, event.getId(), bookingEventDTO.getEvent().getEventDate(), dayValueForDate);
-        List<EventTimeSlotException> exceptions = eventTimeSlotExceptionsRepository.findExceptionTimeByEventIdAndExceptionDate(event.getId(), bookingEventDTO.getEvent().getEventDate());
-        CreateEventResponseDTO.OccupancyDTO occupancyDTO = eventMapper.toEventOccupancyDTO(
-                event.getRefNo(),
+        EventBookingSummary summary = eventsRepository.getLockedBookingSummary(
+                event.getId(),
                 bookingEventDTO.getEvent().getEventDate(),
-                bookingEventDTO.getEvent().getEventTime(),
-                bookingData,
-                exceptions);
-        if (occupancyDTO.getTotalBooked() + requestedParticipants > event.getMaxCapacity()) {
+                bookingEventDTO.getEvent().getEventTime());
+
+        int totalBooked = summary.totalBooked() != null ? summary.totalBooked().intValue() : 0;
+
+        if (totalBooked + requestedParticipants > event.getMaxCapacity()) {
             throw new EventCapacityExceededException(String.format("Insufficient capacity for %s on %s at %s. Requested: %d", event.getName(), bookingEventDTO.getEvent().getEventDate(), bookingEventDTO.getEvent().getEventTime(), requestedParticipants));
         }
     }
@@ -554,6 +555,7 @@ public class BookingService {
         return bookingEventsRepository.save(bookingEvent);
     }
 
+    @Transactional
     private BigDecimal processBookingEvents(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
 
         BigDecimal grandTotal = BigDecimal.ZERO;
