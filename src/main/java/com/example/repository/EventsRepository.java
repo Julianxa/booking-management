@@ -105,7 +105,7 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
         WHERE be.event_id = :eventId
           AND be.event_date = :filterDate
           AND be.event_time = :eventTime
-          AND b.status IN ('PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
+          AND b.status IN ('PENDING', 'PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
         """, nativeQuery = true)
     EventBookingSummary getBookingSummary(
             @Param("eventId") Long eventId,
@@ -122,7 +122,7 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
         WHERE be.event_id = :eventId
           AND be.event_date = :filterDate
           AND be.event_time = :eventTime
-          AND b.status IN ('PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
+          AND b.status IN ('PENDING', 'PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
         FOR UPDATE
         """, nativeQuery = true)
     EventBookingSummary getLockedBookingSummary(

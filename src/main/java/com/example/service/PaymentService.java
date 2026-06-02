@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -42,7 +43,7 @@ public class PaymentService {
     private final ReferenceNoGenerator referenceNoGenerator;
     private final RefundMapper refundMapper;
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public Session createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
         SessionCreateParams.PaymentMethodOptions paymentMethodOptions =
                 SessionCreateParams.PaymentMethodOptions.builder()
@@ -120,7 +121,7 @@ public class PaymentService {
                 .build();
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public RefundResponseDTO refundBooking(RefundRequestDTO requestDTO) {
         Bookings booking = bookingsRepository.findByRefNo(requestDTO.getBookingId())
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", requestDTO.getBookingId())));

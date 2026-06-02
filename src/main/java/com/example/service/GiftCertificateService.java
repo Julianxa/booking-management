@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -56,7 +57,16 @@ public class GiftCertificateService {
         Users user = usersRepository.findByUserSub(userSub)
                 .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userSub)));
 
-        Long eventId = eventsRepository.findIdByRefNo(dto.getEventId()).orElse(null);
+        Long eventId = null;
+        if (dto.getType() == EVENT) {
+            // For EVENT type certificates, event ID is required
+            eventId = eventsRepository.findIdByRefNo(dto.getEventId())
+                    .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found for EVENT type certificate", dto.getEventId())));
+        } else {
+            // For VALUE type certificates, event ID is optional
+            eventId = eventsRepository.findIdByRefNo(dto.getEventId()).orElse(null);
+        }
+        
         GiftCertificates gc = buildGiftCertificate(user.getId(), eventId, dto);
 
         if (giftCertificatesRepository.existsByPromoCode(gc.getPromoCode())) {
@@ -102,14 +112,22 @@ public class GiftCertificateService {
     }
 
     public GiftCertificateApplicationResult getCertificateRedemptionResult(Bookings booking) {
-        GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
+        // If booking has no gift certificate, return empty result
+        if (booking.getGiftCertificateId() == null) {
+            return new GiftCertificateApplicationResult(null, List.of(), BigDecimal.ZERO);
+        }
+        
+        // Gift certificate ID exists, so it must be found in database
+        GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId())
+                .orElseThrow(() -> new GCNotFoundException(
+                    String.format("Gift certificate with ID %s referenced by booking not found", booking.getGiftCertificateId())));
 
-        if (giftCertificate != null && giftCertificate.getType() == VALUE) {
+        if (giftCertificate.getType() == VALUE) {
             GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(giftCertificate.getId())
                     .orElseThrow(() -> new GCNotFoundException(String.format("Value gift certificate %s not found", giftCertificate.getId())));
 
             return new GiftCertificateApplicationResult(giftCertificate, List.of(), item.getValue());
-        } else if (giftCertificate != null && giftCertificate.getType() == EVENT) {
+        } else if (giftCertificate.getType() == EVENT) {
             Long bookingEventId = bookingEventsRepository.findIdByBookingIdAndEventId(booking.getId(), giftCertificate.getEventId())
                     .orElseThrow(() -> new BookingEventNotFoundException("Booking event not found"));
 
@@ -121,7 +139,7 @@ public class GiftCertificateService {
             return new GiftCertificateApplicationResult(giftCertificate, redeemedTicketDTOs, discount);
 
         } else {
-            return null;
+            throw new GCNotFoundException(String.format("Unknown gift certificate type for certificate ID %s", giftCertificate.getId()));
         }
     }
 
@@ -339,7 +357,7 @@ public class GiftCertificateService {
         return updateGiftCertificateStatusResponseDTO;
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public GiftCertificateApplicationResult reserveGiftCertificate(Users loggedInUser, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs, String promoCode) {
         if (promoCode == null) {
             return new GiftCertificateApplicationResult(null, List.of(), BigDecimal.ZERO);
@@ -368,7 +386,7 @@ public class GiftCertificateService {
         return giftCertificateApplicationResult;
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public GiftCertificateApplicationResult confirmCertificateRedemption(Bookings booking, GiftCertificates giftCertificate, Long userId) {
         if (giftCertificate == null) {
             return null;
@@ -383,7 +401,7 @@ public class GiftCertificateService {
         return getCertificateRedemptionResult(booking);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void cancelCertificateRedemption(Bookings booking) {
         GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
                 .orElse(null);

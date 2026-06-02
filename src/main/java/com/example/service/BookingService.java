@@ -8,13 +8,11 @@ import com.example.exception.event.EventCapacityExceededException;
 import com.example.exception.event.EventDayScheduleNotFoundException;
 import com.example.exception.event.EventNotFoundException;
 import com.example.exception.general.MissingRequiredFieldException;
-import com.example.exception.giftCertificate.GCRedemptionNotFoundException;
 import com.example.exception.ticket.TicketPricePeriodNotFoundException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.exception.user.UserNotFoundException;
 import com.example.mapper.BookingEventsMapper;
 import com.example.mapper.BookingMapper;
-import com.example.mapper.EventMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
 import com.example.model.record.EventBookingSummary;
@@ -27,6 +25,7 @@ import com.example.utils.ReferenceNoGenerator;
 import com.example.utils.UserUtils;
 import com.stripe.model.checkout.Session;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,6 +44,7 @@ import static com.example.constant.Enums.BookingEventStatus.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookingService {
     private final BookingAttendeesRepository bookingAttendeesRepository;
     private final BookingsRepository bookingsRepository;
@@ -57,8 +57,6 @@ public class BookingService {
     private final EventTimeSlotExceptionsRepository eventTimeSlotExceptionsRepository;
     private final BookingMapper bookingMapper;
     private final BookingEventsMapper bookingEventsMapper;
-    private final EventMapper eventMapper;
-    private final EventService eventService;
     private final PaymentService paymentService;
     private final EmailService emailService;
     private final WebhookService webhookService;
@@ -69,7 +67,6 @@ public class BookingService {
     private final UsersRepository usersRepository;
     private final UserUtils userUtils;
     private final GiftCertificateRedemptionRepository giftCertificateRedemptionRepository;
-    private final GiftCertificatesRepository giftCertificatesRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final BookingItemsConverter bookingItemsConverter;
     private final BookingsConverter bookingsConverter;
@@ -210,9 +207,12 @@ public class BookingService {
 
         String giftCertificatePromoCode = null;
         if (booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
-            GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
-                    .orElseThrow(() -> new GCRedemptionNotFoundException("Gift Certificate Redemption not found: " + bookingRefNo));
-            giftCertificatePromoCode = giftCertificatesRepository.findPromoCodeById(redemption.getGiftCertificateId());
+            giftCertificatePromoCode = giftCertificateRedemptionRepository.findPromoCodeByBookingId(booking.getId())
+                    .orElse(null);
+            
+            if (giftCertificatePromoCode == null) {
+                log.warn("Booking {} has discount but no gift certificate promo code found", bookingRefNo);
+            }
         }
 
         return CreateBookingResponseDTO.builder()
@@ -361,7 +361,6 @@ public class BookingService {
         return bookingsRepository.save(booking);
     }
 
-    @Transactional
     private BookingEventProcessingResult processSingleBookingEvent(Bookings booking,
                                                                    CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
 
@@ -468,7 +467,6 @@ public class BookingService {
         bookingAttendeesRepository.save(attendee);
     }
 
-    @Transactional
     private void checkEventTimeSlotQuotaWithLock(Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
         int requestedParticipants = calculateTotalParticipants(bookingEventDTO.getTickets());
 
@@ -484,8 +482,22 @@ public class BookingService {
         int totalBooked = summary.totalBooked() != null ? summary.totalBooked().intValue() : 0;
 
         if (totalBooked + requestedParticipants > event.getMaxCapacity()) {
-            throw new EventCapacityExceededException(String.format("Insufficient capacity for %s on %s at %s. Requested: %d", event.getName(), bookingEventDTO.getEvent().getEventDate(), bookingEventDTO.getEvent().getEventTime(), requestedParticipants));
+            String errorMsg = String.format("Insufficient capacity for %s on %s at %s. Requested: %d, Available: %d", 
+                event.getName(), 
+                bookingEventDTO.getEvent().getEventDate(), 
+                bookingEventDTO.getEvent().getEventTime(),
+                requestedParticipants,
+                event.getMaxCapacity() - totalBooked);
+            
+            log.warn("Capacity exceeded: {}", errorMsg);
+            throw new EventCapacityExceededException(errorMsg);
         }
+        
+        log.debug("Capacity check passed for event: {} on {}, booked: {}/{}", 
+            event.getName(), 
+            bookingEventDTO.getEvent().getEventDate(),
+            totalBooked + requestedParticipants,
+            event.getMaxCapacity());
     }
 
     public ResendConfirmationEmailResponseDTO reConfirmBooking(String bookinEventId) {

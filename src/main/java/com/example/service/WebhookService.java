@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -50,7 +51,7 @@ public class WebhookService {
     private final DateUtils dateUtils;
     private final StatusTransitioner statusTransitioner;
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void confirmOnlinePayment(Users user, Bookings booking, Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
         updateSuccessPaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
 
@@ -68,7 +69,7 @@ public class WebhookService {
         publishBookingConfirmedEvent(user, booking, bookingEvents, result, emailPayloads);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void confirmOfflinePayment(Users user, Bookings booking) {
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
 
@@ -230,7 +231,7 @@ public class WebhookService {
         updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void processSuccessfulPayment(Event event) {
         Users user = null;
         PaymentIntent intent = getPaymentIntentFromEvent(event);
@@ -250,7 +251,7 @@ public class WebhookService {
         confirmOnlinePayment(user, booking, payment, paymentIntent, paymentMethod, paidAt);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public void processExpiredPayment(Event event) {
         Session session = getSessionFromEvent(event);
         String sessionId = session.getId();
