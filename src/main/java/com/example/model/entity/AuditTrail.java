@@ -10,17 +10,22 @@ public class AuditTrail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "action", nullable = false)
     private String action;
 
+    @Column(name = "entity_type", nullable = false)
     private String entityType;
 
+    @Column(name = "entity_id")
     private Long entityId;
 
+    @Column(name = "user_id")
     private Long userId;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "payload")
     private String payload;
 
+    @Column(name = "created_at")
     private ZonedDateTime createdAt = ZonedDateTime.now();
 
     public AuditTrail() {}
