@@ -43,8 +43,8 @@ public class EmailService {
     private final TicketTypesRepository ticketTypesRepository;
     private final QRCodeGenerator qrCodeGenerator;
     private final JavaMailSender javaMailSender;
-    private final AppProperties appProperties;
     private final EmailTemplateMapper emailTemplateMapper;
+    private final AuditService auditService;
     @Value("${app.mail.from}")
     String senderEmail;
 
@@ -264,7 +264,20 @@ public class EmailService {
                     helper.addInline(entry.getKey(), new ClassPathResource(entry.getValue()));
             }
             javaMailSender.send(message);
+
+            auditService.record("SEND_EMAIL",
+                    Bookings.class.getName(),
+                    null,
+                    null,
+                    "Email sent successfully"
+            );
         } catch (MessagingException e) {
+            auditService.record("SEND_EMAIL",
+                    Bookings.class.getName(),
+                    null,
+                    null,
+                    "Failed to send email"
+            );
             throw new EmailProcessException("Failed to create and populate the email messages");
         }
     }

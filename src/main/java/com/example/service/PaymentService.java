@@ -36,6 +36,7 @@ import static com.stripe.param.checkout.SessionCreateParams.PaymentMethodOptions
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
+    private final AuditService auditService;
     private final StripeClient stripeClient;
     private final PaymentsRepository paymentsRepository;
     private final BookingsRepository bookingsRepository;
@@ -181,6 +182,12 @@ public class PaymentService {
             refundsRepository.save(refund);
         }
 
+        auditService.record("REFUND_BOOKING",
+                Refunds.class.getName(),
+                refund.getId(),
+                null,
+                "Refund booking successfully"
+        );
         return refundMapper.toCreateResponseDTO(booking.getRefNo(), refund);
     }
 

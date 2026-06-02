@@ -1,6 +1,9 @@
 package com.example.model.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.TimeZoneStorage;
+import org.hibernate.annotations.TimeZoneStorageType;
+
 import java.time.ZonedDateTime;
 
 @Entity
@@ -25,6 +28,7 @@ public class AuditTrail {
     @Column(name = "payload")
     private String payload;
 
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at")
     private ZonedDateTime createdAt = ZonedDateTime.now();
 

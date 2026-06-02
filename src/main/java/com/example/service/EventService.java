@@ -62,6 +62,7 @@ public class EventService {
     private final BookingEventsMapper bookingEventsMapper;
     private final EventTimeSlotExceptionsMapper eventTimeSlotExceptionsMapper;
     private final AwsService awsService;
+    private final AuditService auditService;
     private final DateUtils dateUtils;
     private final DataUtils dataUtils;
     private final BookingItemsConverter bookingItemsConverter;
@@ -96,6 +97,13 @@ public class EventService {
             createEventResponseDTO.setEventPicUrl(eventPicUrl);
             createEventResponseDTO.setMessage("Create Event successfully");
             createEventResponseDTO.setTimestamp(ZonedDateTime.now());
+
+            auditService.record("CREATE_EVENT",
+                    Events.class.getName(),
+                    savedEvent.getId(),
+                    null,
+                    savedEvent.getRefNo()
+            );
             return createEventResponseDTO;
         } catch (IOException e) {
             throw new InvalidJsonFormatException("Failed to parse event data");
@@ -157,6 +165,13 @@ public class EventService {
             updateEventResponseDTO.setEventPicUrl(eventPicUrl);
             updateEventResponseDTO.setMessage("Event updated successfully");
             updateEventResponseDTO.setTimestamp(ZonedDateTime.now());
+
+            auditService.record("UPDATE_EVENT",
+                    Events.class.getName(),
+                    updatedEvent.getId(),
+                    null,
+                    updatedEvent.getRefNo()
+            );
             return updateEventResponseDTO;
         } catch(IOException e) {
             throw new InvalidJsonFormatException("Failed to parse event data");
@@ -227,6 +242,13 @@ public class EventService {
 
         updateEventStatusResponseDTO.setEventRefNo(eventRefNo);
         updateEventStatusResponseDTO.setTimestamp(actionAt);
+
+        auditService.record("UPDATE_EVENT_STATUS_BY_DATE_AND_TIME",
+                Events.class.getName(),
+                event.getId(),
+                null,
+                event.getRefNo()
+        );
         return updateEventStatusResponseDTO;
     }
 
@@ -288,6 +310,13 @@ public class EventService {
 
         updateEventStatusResponseDTO.setEventRefNo(eventRefNo);
         updateEventStatusResponseDTO.setTimestamp(actionAt);
+
+        auditService.record("UPDATE_EVENT_STATUS",
+                Events.class.getName(),
+                event.getId(),
+                null,
+                event.getRefNo()
+        );
         return updateEventStatusResponseDTO;
     }
 
@@ -434,6 +463,13 @@ public class EventService {
         CreateTicketTypeResponseDTO createTicketTypeResponseDTO = ticketTypeMapper.toCreateResponseDTO(ticketTypes);
         createTicketTypeResponseDTO.setMessage("Create Ticket Type successfully.");
         createTicketTypeResponseDTO.setTimestamp(ZonedDateTime.now());
+
+        auditService.record("CREATE_TICKET_TYPE",
+                TicketTypes.class.getName(),
+                ticketTypes.getId(),
+                null,
+                ticketTypes.getRefNo()
+        );
         return createTicketTypeResponseDTO;
     }
 
@@ -468,6 +504,13 @@ public class EventService {
         UpdateTicketTypeResponseDTO updateTicketTypeResponseDTO = ticketTypeMapper.toUpdateResponseDTO(ticketTypes);
         updateTicketTypeResponseDTO.setMessage("Update Ticket Type successfully");
         updateTicketTypeResponseDTO.setTimestamp(ZonedDateTime.now());
+
+        auditService.record("UPDATE_TICKET_TYPE",
+                TicketTypes.class.getName(),
+                ticketTypes.getId(),
+                null,
+                ticketTypes.getRefNo()
+        );
         return updateTicketTypeResponseDTO;
     }
 
@@ -576,6 +619,13 @@ public class EventService {
         bookingEvent.setStatus(CHECKED_IN);
 
         bookingEvent = bookingEventsRepository.save(bookingEvent);
+
+        auditService.record("CONFIRM_CHECK_IN",
+                BookingEvents.class.getName(),
+                bookingEvent.getId(),
+                null,
+                "Check-in confirmed successfully"
+        );
 
         return ConfirmCheckinResponseDTO.builder()
                 .bookingId(bookingEvent.getBooking().getRefNo())

@@ -2,7 +2,6 @@ package com.example.service;
 
 
 import com.example.constant.Enums;
-import com.example.exception.email.UnverifiedEmailException;
 import com.example.exception.organization.OrganizationNotFoundException;
 import com.example.exception.user.UserNotFoundException;
 import com.example.mapper.UserMapper;
@@ -33,6 +32,7 @@ public class UserService {
     private final UsersRepository usersRepository;
     private final UserMapper userMapper;
     private final AwsService awsService;
+    private final AuditService auditService;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final OrganizationsRepository organizationsRepository;
 
@@ -83,6 +83,13 @@ public class UserService {
         userRegistrationResponseDTO.setUpdatedAt(user.getUpdatedAt());
         userRegistrationResponseDTO.setMessage("User registered successfully");
         userRegistrationResponseDTO.setTimestamp(ZonedDateTime.now());
+
+        auditService.record("REGISTER_USER",
+                Users.class.getName(),
+                user.getId(),
+                null,
+                user.getRefNo()
+        );
         return userRegistrationResponseDTO;
     }
 
@@ -108,8 +115,20 @@ public class UserService {
                 confirmSignUpResponseDTO.setMessage("Wrong confirmation code");
                 confirmSignUpResponseDTO.setTimestamp(ZonedDateTime.now());
             }
+            auditService.record("REGISTER_USER",
+                    Users.class.getName(),
+                    user.getId(),
+                    null,
+                    String.format("Confirm user %s successfully", user.getRefNo())
+            );
             return confirmSignUpResponseDTO;
         } else {
+            auditService.record("REGISTER_USER",
+                    Users.class.getName(),
+                    null,
+                    null,
+                    "Failed to confirm user"
+            );
             throw new RuntimeException("Failed to confirm user");
         }
     }

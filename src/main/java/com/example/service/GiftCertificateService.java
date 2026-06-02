@@ -37,6 +37,7 @@ import static java.lang.Math.min;
 @Service
 @RequiredArgsConstructor
 public class GiftCertificateService {
+    private final AuditService auditService;
     private final GiftCertificateMapper giftCertificateMapper;
     private final UsersRepository usersRepository;
     private final TicketPricePeriodsRepository ticketPricePeriodsRepository;
@@ -81,6 +82,13 @@ public class GiftCertificateService {
 
         gc = giftCertificatesRepository.save(gc);
 
+        auditService.record("CREATE_CERTIFICATE",
+                GiftCertificates.class.getName(),
+                gc.getId(),
+                null,
+                "Create gift certificate successfully"
+        );
+
         return buildResponse(gc, user.getRefNo(), dto.getEventId());
     }
 
@@ -108,6 +116,13 @@ public class GiftCertificateService {
         updateGiftCertificateResponseDTO.setUpdatedAt(giftCertificates.getUpdatedAt());
         updateGiftCertificateResponseDTO.setMessage("Gift Certificate is updated");
         updateGiftCertificateResponseDTO.setTimestamp(ZonedDateTime.now());
+
+        auditService.record("UPDATE_CERTIFICATE",
+                GiftCertificates.class.getName(),
+                giftCertificates.getId(),
+                null,
+                "Update gift certificate successfully"
+        );
         return updateGiftCertificateResponseDTO;
     }
 

@@ -22,6 +22,7 @@ public class OrganizationService {
     private final OrganizationsRepository organizationsRepository;
     private final OrganizationMapper mapper;
     private final ReferenceNoGenerator referenceNoGenerator;
+    private final AuditService auditService;
 
     @Transactional
     public CreateOrganizationResponseDTO createOrganization(CreateOrganizationRequestDTO dto) {
@@ -32,6 +33,13 @@ public class OrganizationService {
         CreateOrganizationResponseDTO createOrganizationResponseDTO = mapper.toCreateResponseDTO(saved);
         createOrganizationResponseDTO.setMessage("Organization created successfully");
         createOrganizationResponseDTO.setTimestamp(ZonedDateTime.now());
+
+        auditService.record("CREATE_ORGANIZATION",
+                Organizations.class.getName(),
+                organization.getId(),
+                null,
+                "Create organization successfully"
+        );
         return createOrganizationResponseDTO;
     }
 
@@ -49,6 +57,13 @@ public class OrganizationService {
         UpdateOrganizationResponseDTO updateOrganizationResponseDTO = mapper.toUpdateResponseDTO(updated);
         updateOrganizationResponseDTO.setMessage("Organization updated successfully");
         updateOrganizationResponseDTO.setTimestamp(ZonedDateTime.now());
+
+        auditService.record("UPDATE_ORGANIZATION",
+                Organizations.class.getName(),
+                organization.getId(),
+                null,
+                "Update organization successfully"
+        );
         return updateOrganizationResponseDTO;
     }
 
@@ -63,6 +78,13 @@ public class OrganizationService {
         DeleteOrganizationResponseDTO deleteOrganizationResponseDTO = new DeleteOrganizationResponseDTO();
         deleteOrganizationResponseDTO.setMessage("Organization deleted successfully");
         deleteOrganizationResponseDTO.setTimestamp(deletedAt);
+
+        auditService.record("DELETE_ORGANIZATION",
+                Organizations.class.getName(),
+                null,
+                null,
+                "Delete organization successfully"
+        );
         return deleteOrganizationResponseDTO;
     }
 

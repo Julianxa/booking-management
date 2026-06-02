@@ -105,10 +105,12 @@ public class BookingService {
 
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
-        try {
-            Long userId = loggedInUser != null ? loggedInUser.getId() : null;
-            auditService.record("CREATE_BOOKING", "Booking", booking.getId(), userId, booking.getRefNo());
-        } catch (Exception ignored) {}
+        auditService.record("CREATE_BOOKING",
+                Bookings.class.getName(),
+                booking.getId(),
+                loggedInUser != null ? loggedInUser.getId() : null,
+                booking.getRefNo()
+        );
 
         return completeBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs);
     }
