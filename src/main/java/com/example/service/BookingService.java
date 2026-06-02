@@ -39,6 +39,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 import static com.example.constant.Enums.BookingEventStatus.*;
 
@@ -70,6 +71,7 @@ public class BookingService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final BookingItemsConverter bookingItemsConverter;
     private final BookingsConverter bookingsConverter;
+    private final com.example.service.AuditService auditService;
 
     public record BookingEventProcessingResult(
             CreateBookingRequestDTO.BookingEventDTO responseEventDTO,
@@ -102,6 +104,11 @@ public class BookingService {
         applyGiftCertificateToBooking(booking, grandTotal, gcResult);
 
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
+
+        try {
+            Long userId = loggedInUser != null ? loggedInUser.getId() : null;
+            auditService.record("CREATE_BOOKING", "Booking", booking.getId(), userId, booking.getRefNo());
+        } catch (Exception ignored) {}
 
         return completeBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs);
     }
@@ -173,8 +180,23 @@ public class BookingService {
 
         Page<Bookings> bookingsPage = bookingsRepository.findByUserId(userId, pageable);
 
-        List<CreateBookingResponseDTO> content = bookingsPage.getContent().stream()
-                .map(booking -> bookingsConverter.toCreateBookingResponseDTO(booking, null))
+        List<Bookings> bookings = bookingsPage.getContent();
+
+        List<Long> bookingIds = bookings.stream().map(Bookings::getId).toList();
+        Map<Long, String> promoMap = new java.util.HashMap<>();
+        if (!bookingIds.isEmpty()) {
+            List<Object[]> rows = giftCertificateRedemptionRepository.findPromoCodesByBookingIds(bookingIds);
+            for (Object[] r : rows) {
+                if (r != null && r.length >= 2 && r[0] != null) {
+                    Long bId = ((Number) r[0]).longValue();
+                    String promo = r[1] != null ? r[1].toString() : null;
+                    promoMap.put(bId, promo);
+                }
+            }
+        }
+
+        List<CreateBookingResponseDTO> content = bookings.stream()
+                .map(booking -> bookingsConverter.toCreateBookingResponseDTO(booking, null, promoMap.get(booking.getId())))
                 .toList();
 
         GetListBookingResponseDTO response = bookingMapper.toGetListResponse(bookingsPage, content);
@@ -189,8 +211,23 @@ public class BookingService {
 
         Page<Bookings> bookingsPage = bookingsRepository.findBookingsByEventId(eventId, pageable);
 
-        List<CreateBookingResponseDTO> content = bookingsPage.getContent().stream()
-                .map(booking -> bookingsConverter.toCreateBookingResponseDTO(booking, eventRefNo))
+        List<Bookings> eventBookings = bookingsPage.getContent();
+
+        List<Long> eventBookingIds = eventBookings.stream().map(Bookings::getId).toList();
+        Map<Long, String> eventPromoMap = new java.util.HashMap<>();
+        if (!eventBookingIds.isEmpty()) {
+            List<Object[]> rows = giftCertificateRedemptionRepository.findPromoCodesByBookingIds(eventBookingIds);
+            for (Object[] r : rows) {
+                if (r != null && r.length >= 2 && r[0] != null) {
+                    Long bId = ((Number) r[0]).longValue();
+                    String promo = r[1] != null ? r[1].toString() : null;
+                    eventPromoMap.put(bId, promo);
+                }
+            }
+        }
+
+        List<CreateBookingResponseDTO> content = eventBookings.stream()
+                .map(booking -> bookingsConverter.toCreateBookingResponseDTO(booking, eventRefNo, eventPromoMap.get(booking.getId())))
                 .toList();
 
         GetListBookingResponseDTO response = bookingMapper.toGetListResponse(bookingsPage, content);

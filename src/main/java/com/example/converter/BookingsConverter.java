@@ -1,8 +1,6 @@
 package com.example.converter;
 
-import com.example.config.AppProperties;
 import com.example.exception.event.EventNotFoundException;
-import com.example.exception.giftCertificate.GCRedemptionNotFoundException;
 import com.example.mapper.EventMapper;
 import com.example.model.dto.CreateBookingRequestDTO;
 import com.example.model.dto.CreateBookingResponseDTO;
@@ -12,7 +10,6 @@ import com.example.utils.QRCodeGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -20,8 +17,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BookingsConverter {
     private final BookingEventsRepository bookingEventsRepository;
-    private final GiftCertificatesRepository giftCertificatesRepository;
-    private final GiftCertificateRedemptionRepository giftCertificateRedemptionRepository;
     private final BookingAttendeesRepository bookingAttendeesRepository;
     private final EventsRepository eventsRepository;
     private final UsersRepository usersRepository;
@@ -29,18 +24,9 @@ public class BookingsConverter {
     private final BookingItemsConverter bookingItemsConverter;
     private final EventMapper eventMapper;
     private final QRCodeGenerator qRCodeGenerator;
-    private final AppProperties appProperties;
 
-
-    public CreateBookingResponseDTO toCreateBookingResponseDTO(Bookings booking, String eventRefNo) {
+    public CreateBookingResponseDTO toCreateBookingResponseDTO(Bookings booking, String eventRefNo, String preFetchedPromoCode) {
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = toBookingEventDTOs(booking, eventRefNo);
-
-        String giftCertificatePromoCode = null;
-        if (booking.getDiscount() != null && booking.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
-            GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
-                    .orElseThrow(() -> new GCRedemptionNotFoundException(String.format("Gift Certificate Redemption not found with booking ID %s", booking.getRefNo())));
-            giftCertificatePromoCode = giftCertificatesRepository.findPromoCodeById(redemption.getGiftCertificateId());
-        }
 
         return CreateBookingResponseDTO.builder()
                 .id(booking.getRefNo())
@@ -49,7 +35,7 @@ public class BookingsConverter {
                 .discount(booking.getDiscount())
                 .finalPaidAmount(booking.getFinalPaidAmount())
                 .currency(booking.getCurrency())
-                .promoCode(giftCertificatePromoCode)
+                .promoCode(preFetchedPromoCode)
                 .status(booking.getStatus())
                 .createdAt(booking.getCreatedAt())
                 .bookingEvents(bookingEventDTOs)

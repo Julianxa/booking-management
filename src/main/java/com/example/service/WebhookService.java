@@ -48,6 +48,7 @@ public class WebhookService {
     private final EmailService emailService;
     private final BookingsConverter bookingsConverter;
     private final GiftCertificateService giftCertificateService;
+    private final AuditService auditService;
     private final DateUtils dateUtils;
     private final StatusTransitioner statusTransitioner;
 
@@ -150,6 +151,7 @@ public class WebhookService {
         updatePaymentStatus(payment, INITIATED);
 
         updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
+        auditService.record("payment_initiated", "booking", booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
     }
 
     @Transactional
@@ -176,6 +178,7 @@ public class WebhookService {
         updateRefundStatus(r, Enums.RefundStatus.SUCCESS);
         updateBookingStatus(booking, Enums.BookingStatus.REFUNDED);
         updatePaymentStatus(payment, Enums.PaymentStatus.REFUNDED);
+        auditService.record("refund_succeeded", "booking", booking.getId(), booking.getUserId(), "refund:" + refund.getId() + ", paymentIntent:" + paymentIntentId);
     }
 
     @Transactional
@@ -187,6 +190,7 @@ public class WebhookService {
 
         Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
         updateRefundStatus(r, Enums.RefundStatus.FAILED);
+        auditService.record("refund_failed", "booking", booking.getId(), booking.getUserId(), "refund:" + refund.getId());
     }
 
     @Transactional
@@ -218,6 +222,7 @@ public class WebhookService {
 
         booking.setStatus(Enums.BookingStatus.FAILED);
         bookingsRepository.save(booking);
+        auditService.record("payment_failed", "booking", booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
     }
 
     @Transactional
@@ -229,6 +234,7 @@ public class WebhookService {
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
         updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
+        auditService.record("payment_canceled", "booking", booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
@@ -249,6 +255,7 @@ public class WebhookService {
             user = usersRepository.findById(booking.getUserId())
                     .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", booking.getUserId())));
         confirmOnlinePayment(user, booking, payment, paymentIntent, paymentMethod, paidAt);
+        auditService.record("payment_succeeded", "booking", booking.getId(), booking.getUserId(), "paymentIntent:" + paymentIntent);
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
@@ -264,6 +271,7 @@ public class WebhookService {
 
         booking.setStatus(Enums.BookingStatus.EXPIRED);
         bookingsRepository.save(booking);
+        auditService.record("payment_expired", "booking", booking.getId(), booking.getUserId(), "sessionId:" + sessionId);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
