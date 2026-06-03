@@ -31,20 +31,44 @@ public class Events {
     private Long id;
     @Column(name = "ref_no", unique = true, nullable = false)
     private String refNo;
-    @Column(name = "name", unique = true, nullable = false)
+    @Column(name = "name")
     private String name;
+    @Column(name = "name_zh_cn")
+    private String nameZhCn;
+    @Column(name = "name_zh_hk")
+    private String nameZhHk;
     @Column(name = "type")
     private String type;
+    @Column(name = "type_zh_cn")
+    private String typeZhCn;
+    @Column(name = "type_zh_hk")
+    private String typeZhHk;
     @Column(name = "category")
     private String category;
+    @Column(name = "category_zh_cn")
+    private String categoryZhCn;
+    @Column(name = "category_zh_hk")
+    private String categoryZhHk;
     @Column(name = "description")
     private String description;
+    @Column(name = "description_zh_cn")
+    private String descriptionZhCn;
+    @Column(name = "description_zh_hk")
+    private String descriptionZhHk;
     @Column(name = "location")
     private String location;
+    @Column(name = "location_zh_cn")
+    private String locationZhCn;
+    @Column(name = "location_zh_hk")
+    private String locationZhHk;
     @Column(name = "duration")
     private Integer duration;
     @Column(name = "badge")
     private String badge;
+    @Column(name = "badge_zh_cn")
+    private String badgeZhCn;
+    @Column(name = "badge_zh_hk")
+    private String badgeZhHk;
     @Column(name = "start_date")
     private LocalDate startDate;
     @Column(name = "end_date")
@@ -57,6 +81,10 @@ public class Events {
     private List<TicketTypes> ticketTypes = new LinkedList<>();
     @Column(name = "equipment")
     private String equipment;
+    @Column(name = "equipment_zh_cn")
+    private String equipmentZhCn;
+    @Column(name = "equipment_zh_hk")
+    private String equipmentZhHk;
     @Column(name = "availability_to_employee_ratio")
     private Integer availabilityToEmployeeRatio;
     @Column(name = "event_pic_key")
@@ -67,10 +95,22 @@ public class Events {
     private Boolean privateBookings;
     @Column(name = "additional_info")
     private String additionalInfo;
+    @Column(name = "additional_info_zh_cn")
+    private String additionalInfoZhCn;
+    @Column(name = "additional_info_zh_hk")
+    private String additionalInfoZhHk;
     @Column(name = "cancellation_policy")
     private String cancellationPolicy;
+    @Column(name = "cancellation_policy_zh_cn")
+    private String cancellationPolicyZhCn;
+    @Column(name = "cancellation_policy_zh_hk")
+    private String cancellationPolicyZhHk;
     @Column(name = "custom_question")
     private String customQuestion;
+    @Column(name = "custom_question_zh_cn")
+    private String customQuestionZhCn;
+    @Column(name = "custom_question_zh_hk")
+    private String customQuestionZhHk;
     @Column(name = "match_ticket_quantity_with_attendees")
     private Boolean matchTicketQuantityWithAttendees;
     @Column(name = "is_publish")

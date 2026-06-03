@@ -122,22 +122,42 @@ public class EventService {
                     .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
             if (dto.getName() != null) event.setName(dto.getName());
+            if (dto.getNameZhCn() != null) event.setNameZhCn(dto.getNameZhCn());
+            if (dto.getNameZhHk() != null) event.setNameZhHk(dto.getNameZhHk());
             if (dto.getType() != null) event.setType(dto.getType());
+            if (dto.getTypeZhCn() != null) event.setTypeZhCn(dto.getTypeZhCn());
+            if (dto.getTypeZhHk() != null) event.setTypeZhHk(dto.getTypeZhHk());
             if (dto.getCategory() != null) event.setCategory(dto.getCategory());
+            if (dto.getCategoryZhCn() != null) event.setCategoryZhCn(dto.getCategoryZhCn());
+            if (dto.getCategoryZhHk() != null) event.setCategoryZhHk(dto.getCategoryZhHk());
             if (dto.getDescription() != null) event.setDescription(dto.getDescription());
+            if (dto.getDescriptionZhCn() != null) event.setDescriptionZhCn(dto.getDescriptionZhCn());
+            if (dto.getDescriptionZhHk() != null) event.setDescriptionZhHk(dto.getDescriptionZhHk());
             if (dto.getLocation() != null) event.setLocation(dto.getLocation());
+            if (dto.getLocationZhCn() != null) event.setLocationZhCn(dto.getLocationZhCn());
+            if (dto.getLocationZhHk() != null) event.setLocationZhHk(dto.getLocationZhHk());
             if (dto.getDuration() != null) event.setDuration(dto.getDuration());
             if (dto.getBadge() != null) event.setBadge(dto.getBadge());
+            if (dto.getBadgeZhCn() != null) event.setBadgeZhCn(dto.getBadgeZhCn());
+            if (dto.getBadgeZhHk() != null) event.setBadgeZhHk(dto.getBadgeZhHk());
             if (dto.getStartDate() != null) event.setStartDate(dto.getStartDate());
             if (dto.getEndDate() != null) event.setEndDate(dto.getEndDate());
             if (dto.getEquipment() != null) event.setEquipment(dto.getEquipment());
+            if (dto.getEquipmentZhCn() != null) event.setEquipmentZhCn(dto.getEquipmentZhCn());
+            if (dto.getEquipmentZhHk() != null) event.setEquipmentZhHk(dto.getEquipmentZhHk());
             if (dto.getAvailabilityToEmployeeRatio() != null)
                 event.setAvailabilityToEmployeeRatio(dto.getAvailabilityToEmployeeRatio());
             if (dto.getMaxCapacity() != null) event.setMaxCapacity(dto.getMaxCapacity());
             if (dto.getPrivateBookings() != null) event.setPrivateBookings(dto.getPrivateBookings());
             if (dto.getAdditionalInfo() != null) event.setAdditionalInfo(dto.getAdditionalInfo());
+            if (dto.getAdditionalInfoZhCn() != null) event.setAdditionalInfoZhCn(dto.getAdditionalInfoZhCn());
+            if (dto.getAdditionalInfoZhHk() != null) event.setAdditionalInfoZhHk(dto.getAdditionalInfoZhHk());
             if (dto.getCancellationPolicy() != null) event.setCancellationPolicy(dto.getCancellationPolicy());
+            if (dto.getCancellationPolicyZhCn() != null) event.setCancellationPolicyZhCn(dto.getCancellationPolicyZhCn());
+            if (dto.getCancellationPolicyZhHk() != null) event.setCancellationPolicyZhHk(dto.getCancellationPolicyZhHk());
             if (dto.getCustomQuestion() != null) event.setCustomQuestion(dto.getCustomQuestion());
+            if (dto.getCustomQuestionZhCn() != null) event.setCustomQuestionZhCn(dto.getCustomQuestionZhCn());
+            if (dto.getCustomQuestionZhHk() != null) event.setCustomQuestionZhHk(dto.getCustomQuestionZhHk());
             if (dto.getMatchTicketQuantityWithAttendees() != null) event.setMatchTicketQuantityWithAttendees(dto.getMatchTicketQuantityWithAttendees());
             if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
             if (dto.getActivityDayThreshold() != null)
