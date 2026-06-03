@@ -274,9 +274,6 @@ public class GiftCertificateService {
         GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
                 .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
 
-        gc.setRemainingQuantity(gc.getRemainingQuantity() - 1);
-        giftCertificatesRepository.save(gc);
-
         return new GiftCertificateApplicationResult(gc, List.of(), item.getValue());
     }
 
@@ -312,9 +309,6 @@ public class GiftCertificateService {
                 }
             }
         }
-
-        gc.setRemainingQuantity(gc.getRemainingQuantity() - 1);
-        giftCertificatesRepository.save(gc);
 
         BigDecimal discount = getGiftCertificateDiscount(redeemedTickets);
 
@@ -373,7 +367,7 @@ public class GiftCertificateService {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public GiftCertificateApplicationResult reserveGiftCertificate(Users loggedInUser, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs, String promoCode) {
+    public GiftCertificateApplicationResult validateAndCalculateGiftCertificate(Users loggedInUser, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs, String promoCode) {
         if (promoCode == null) {
             return new GiftCertificateApplicationResult(null, List.of(), BigDecimal.ZERO);
         }
@@ -382,13 +376,23 @@ public class GiftCertificateService {
 
         GiftCertificates gc = validateGiftCertificateForBooking(promoCode, userId);
 
-        // gift certificate quantity -1
         GiftCertificateApplicationResult giftCertificateApplicationResult;
         if (gc.getType() == VALUE) {
             giftCertificateApplicationResult = applyValueType(gc);
         } else {
             giftCertificateApplicationResult = applyEventType(gc, bookingEventDTOs);
         }
+
+        return giftCertificateApplicationResult;
+    }
+
+    @Transactional
+    public void preserveGiftCertificate(Users user, Bookings booking, GiftCertificateApplicationResult giftCertificateApplicationResult) {
+        Long userId = user != null ? user.getId() : null;
+
+        GiftCertificates gc = giftCertificateApplicationResult.certificate();
+        gc.setRemainingQuantity(gc.getRemainingQuantity() - 1);
+        giftCertificatesRepository.save(gc);
 
         GiftCertificateRedemptions redemption = new GiftCertificateRedemptions();
         redemption.setGiftCertificateId(gc.getId());
@@ -397,8 +401,6 @@ public class GiftCertificateService {
         redemption.setQuantityUsed(1);
         redemption.setStatus(PENDING);
         giftCertificateRedemptionRepository.save(redemption);
-
-        return giftCertificateApplicationResult;
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)

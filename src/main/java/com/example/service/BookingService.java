@@ -99,13 +99,15 @@ public class BookingService {
 
         BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
 
-        GiftCertificateApplicationResult gcResult = giftCertificateService.reserveGiftCertificate(loggedInUser, booking, request.getBookingEvents(), request.getPromoCode());
+        GiftCertificateApplicationResult gcResult = giftCertificateService.validateAndCalculateGiftCertificate(loggedInUser, request.getBookingEvents(), request.getPromoCode());
 
         applyGiftCertificateToBooking(booking, grandTotal, gcResult);
 
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
         CreateBookingResponseDTO createBookingResponseDTO = initiateBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs); // AWAITING_PAYMENT
+
+        giftCertificateService.preserveGiftCertificate(loggedInUser, booking, gcResult);
 
         auditService.record("CREATE_BOOKING",
                 Bookings.class.getName(),
