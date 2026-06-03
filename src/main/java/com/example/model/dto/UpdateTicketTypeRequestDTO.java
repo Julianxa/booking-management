@@ -16,7 +16,16 @@ import java.util.List;
 @AllArgsConstructor
 public class UpdateTicketTypeRequestDTO {
     @Size(min = 1, max = 100, message = "Name must be 1–100 characters")
+    @JsonProperty("name")
     private String name;
+
+    @Size(min = 1, max = 100, message = "Name must be 1–100 characters")
+    @JsonProperty("name_zh_cn")
+    private String nameZhCn;
+
+    @Size(min = 1, max = 100, message = "Name must be 1–100 characters")
+    @JsonProperty("name_zh_hk")
+    private String nameZhHk;
 
     @JsonProperty("periods")
     private List<TicketPricePeriodDTO> periods = List.of();
@@ -30,4 +39,12 @@ public class UpdateTicketTypeRequestDTO {
 
     @Size(max = 255, message = "Description ≤ 255 characters")
     private String description;
+
+    @Size(max = 255, message = "Description ≤ 255 characters")
+    @JsonProperty("description_zh_cn")
+    private String descriptionZhCn;
+
+    @Size(max = 255, message = "Description ≤ 255 characters")
+    @JsonProperty("description_zh_hk")
+    private String descriptionZhHk;
 }

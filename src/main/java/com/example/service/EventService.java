@@ -517,7 +517,11 @@ public class EventService {
         }
 
         if (request.getName() != null) ticketTypes.setName(request.getName());
+        if (request.getNameZhCn() != null) ticketTypes.setNameZhCn(request.getNameZhCn());
+        if (request.getNameZhHk() != null) ticketTypes.setNameZhHk(request.getNameZhHk());
         if (request.getDescription() != null) ticketTypes.setDescription(request.getDescription());
+        if (request.getDescriptionZhCn() != null) ticketTypes.setDescriptionZhCn(request.getDescriptionZhCn());
+        if (request.getDescriptionZhHk() != null) ticketTypes.setDescriptionZhHk(request.getDescriptionZhHk());
 
         ticketTypesRepository.save(ticketTypes);
 

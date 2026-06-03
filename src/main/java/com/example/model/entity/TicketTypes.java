@@ -35,11 +35,23 @@ public class TicketTypes {
     @Builder.Default
     private List<TicketPricePeriods> periods = new LinkedList<>();
 
-    @Column(name = "name", nullable = false, length = 100)
+    @Column(name = "name", length = 100)
     private String name;
+
+    @Column(name = "name_zh_cn", length = 100)
+    private String nameZhCn;
+
+    @Column(name = "name_zh_hk", length = 100)
+    private String nameZhHk;
 
     @Column(name = "description", length = 255)
     private String description;
+
+    @Column(name = "description_zh_cn", length = 255)
+    private String descriptionZhCn;
+
+    @Column(name = "description_zh_hk", length = 255)
+    private String descriptionZhHk;
 
 //    @Column(name = "capacity")
 //    private Integer capacity;

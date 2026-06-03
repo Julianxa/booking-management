@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,10 +18,26 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateTicketTypeRequestDTO {
-    @NotBlank(message = "Ticket type name is required")
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @JsonProperty("name")
     private String name;
+
+    @JsonProperty("name_zh_cn")
+    private String nameZhCn;
+
+    @JsonProperty("name_zh_hk")
+    private String nameZhHk;
+
+    @JsonProperty("description")
+    @Size(max = 255, message = "Description ≤ 255 characters")
+    private String description;
+
+    @JsonProperty("description_zh_cn")
+    @Size(max = 255, message = "Description ≤ 255 characters")
+    private String descriptionZhCn;
+
+    @JsonProperty("description_zh_hk")
+    @Size(max = 255, message = "Description ≤ 255 characters")
+    private String descriptionZnHk;
 
     @JsonProperty("periods")
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
