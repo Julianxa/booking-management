@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("code", "BT999");
-        body.put("message", "An unexpected error occurred");
+        body.put("message", "An unexpected error occurred: " + ex.getMessage());
         body.put("timestamp", ZonedDateTime.now());
 
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
