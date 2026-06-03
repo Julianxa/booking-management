@@ -105,6 +105,8 @@ public class BookingService {
 
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
+        CreateBookingResponseDTO createBookingResponseDTO = initiateBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs); // AWAITING_PAYMENT
+
         auditService.record("CREATE_BOOKING",
                 Bookings.class.getName(),
                 booking.getId(),
@@ -112,7 +114,7 @@ public class BookingService {
                 booking.getRefNo()
         );
 
-        return completeBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs);
+        return createBookingResponseDTO;
     }
 
     @Transactional
@@ -137,6 +139,13 @@ public class BookingService {
         if (request.getNotes() != null) {
             bookingEventsRepository.updateNotes(bookingEventId, request.getNotes());
         }
+
+        auditService.record("UPDATE_BOOKING",
+                BookingEvents.class.getName(),
+                bookingEvent.getId(),
+                loggedInUser != null ? loggedInUser.getId() : null,
+                bookingEvent.getRefNo()
+        );
 
         return UpdateBookingResponseDTO.builder()
                 .bookingEventId(bookingEventId)
@@ -178,7 +187,7 @@ public class BookingService {
 
     public GetListBookingResponseDTO getUserBookings(String userRefNo, Pageable pageable) {
         Long userId = usersRepository.findIdByRefNo(userRefNo)
-                .orElseThrow(() -> new UserNotFoundException(String.format("User not found", userRefNo)));
+                .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userRefNo)));
 
         Page<Bookings> bookingsPage = bookingsRepository.findByUserId(userId, pageable);
 
@@ -632,14 +641,14 @@ public class BookingService {
     }
 
     @Transactional
-    private CreateBookingResponseDTO completeBookingAndPayment(Users user, Bookings booking,
+    private CreateBookingResponseDTO initiateBookingAndPayment(Users user, Bookings booking,
                                                                  CreateBookingRequestDTO request,
                                                                  List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
         if (user == null) { // guest
             String checkoutUrl = null;
 
             if (booking.getFinalPaidAmount().compareTo(BigDecimal.ZERO) > 0) {
-                Session session = paymentService.createCheckoutSession(null, request, booking);
+                Session session = paymentService.createCheckoutSession(null, request, booking); // AWAITING_PAYMENT
                 checkoutUrl = session.getUrl();
                 paymentService.findOrCreatePaymentByPaymentIntentId(session.getId(), null, null, booking);
             } else { // 0 dollar payment
