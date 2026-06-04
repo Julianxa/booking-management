@@ -1,6 +1,5 @@
 package com.example.service;
 
-import com.example.config.AppProperties;
 import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
@@ -10,6 +9,7 @@ import com.example.model.entity.*;
 import com.example.repository.EmailTemplatesRepository;
 import com.example.repository.TicketTypesRepository;
 import com.example.utils.QRCodeGenerator;
+import com.example.utils.ReferenceNoGenerator;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +45,7 @@ public class EmailService {
     private final JavaMailSender javaMailSender;
     private final EmailTemplateMapper emailTemplateMapper;
     private final AuditService auditService;
+    private final ReferenceNoGenerator referenceNoGenerator;
     @Value("${app.mail.from}")
     String senderEmail;
 
@@ -98,24 +99,88 @@ public class EmailService {
     }
 
     @Transactional
-    public UpdateEmailTemplatesResponseDTO updateEmailTemplate(String templateRefNo, UpdateEmailTemplatesRequestDTO updateEmailTemplatesRequestDTO) {
+    public CreateEmailTemplatesResponseDTO createEmailTemplate(CreateEmailTemplatesRequestDTO createEmailTemplatesRequestDTO) {
+        EmailTemplates template = emailTemplateMapper.toEntity(createEmailTemplatesRequestDTO);
+        template.setRefNo(referenceNoGenerator.generateEmailTemplateReference());
+        emailTemplatesRepository.save(template);
+
+        auditService.record("CREATE_EMAIL_TEMPLATE",
+                EmailTemplates.class.getName(),
+                template.getId(),
+                null,
+                template.getRefNo()
+        );
+
+        return emailTemplateMapper.toCreateResponseDTO(template);
+    }
+
+    @Transactional
+    public CreateEmailTemplatesResponseDTO updateEmailTemplate(String templateRefNo, CreateEmailTemplatesRequestDTO updateEmailTemplatesRequestDTO) {
 
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
                 .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", templateRefNo)));
 
         if (updateEmailTemplatesRequestDTO.getSubject() != null)
             template.setSubject(updateEmailTemplatesRequestDTO.getSubject());
+        if (updateEmailTemplatesRequestDTO.getSubjectZhCn() != null)
+            template.setSubjectZhCn(updateEmailTemplatesRequestDTO.getSubjectZhCn());
+        if (updateEmailTemplatesRequestDTO.getSubjectZhHk() != null)
+            template.setSubjectZhHk(updateEmailTemplatesRequestDTO.getSubjectZhHk());
         if (updateEmailTemplatesRequestDTO.getMainBody() != null)
             template.setMainBody(updateEmailTemplatesRequestDTO.getMainBody());
+        if (updateEmailTemplatesRequestDTO.getMainBodyZhCn() != null)
+            template.setMainBodyZhCn(updateEmailTemplatesRequestDTO.getMainBodyZhCn());
+        if (updateEmailTemplatesRequestDTO.getMainBodyZhHk() != null)
+            template.setMainBodyZhHk(updateEmailTemplatesRequestDTO.getMainBodyZhHk());
         if (updateEmailTemplatesRequestDTO.getImportantInfoIntro() != null)
             template.setImportantInfoIntro(updateEmailTemplatesRequestDTO.getImportantInfoIntro());
+        if (updateEmailTemplatesRequestDTO.getImportantInfoIntroZhCn() != null)
+            template.setImportantInfoIntroZhCn(updateEmailTemplatesRequestDTO.getImportantInfoIntroZhCn());
+        if (updateEmailTemplatesRequestDTO.getImportantInfoIntroZhHk() != null)
+            template.setImportantInfoIntroZhHk(updateEmailTemplatesRequestDTO.getImportantInfoIntroZhHk());
         if (updateEmailTemplatesRequestDTO.getImportantInfoBody() != null)
             template.setImportantInfoBody(updateEmailTemplatesRequestDTO.getImportantInfoBody());
+        if (updateEmailTemplatesRequestDTO.getImportantInfoBodyZhCn() != null)
+            template.setImportantInfoBodyZhCn(updateEmailTemplatesRequestDTO.getImportantInfoBodyZhCn());
+        if (updateEmailTemplatesRequestDTO.getImportantInfoBodyZhHk() != null)
+            template.setImportantInfoBodyZhHk(updateEmailTemplatesRequestDTO.getImportantInfoBodyZhHk());
         if (updateEmailTemplatesRequestDTO.getContactBody() != null)
             template.setContactBody(updateEmailTemplatesRequestDTO.getContactBody());
+        if (updateEmailTemplatesRequestDTO.getContactBodyZhCn() != null)
+            template.setContactBodyZhCn(updateEmailTemplatesRequestDTO.getContactBodyZhCn());
+        if (updateEmailTemplatesRequestDTO.getContactBodyZhHk() != null)
+            template.setContactBodyZhHk(updateEmailTemplatesRequestDTO.getContactBodyZhHk());
         template = emailTemplatesRepository.save(template);
 
-        return emailTemplateMapper.toUpdateResponseDTO(template);
+        auditService.record("UPDATE_EMAIL_TEMPLATE",
+                EmailTemplates.class.getName(),
+                template.getId(),
+                null,
+                template.getRefNo()
+        );
+
+        return emailTemplateMapper.toCreateResponseDTO(template);
+    }
+
+
+    @Transactional
+    public DeleteEmailTemplateResponseDTO deleteEmailTemplate(String emailTemplateRefNo) {
+        if (!emailTemplatesRepository.existsByRefNo(emailTemplateRefNo)) {
+            throw new EmailTemplateNotFoundException(String.format("Email template %s not found)", emailTemplateRefNo));
+        }
+
+        ZonedDateTime deletedAt = ZonedDateTime.now();
+        DeleteEmailTemplateResponseDTO deleteEmailTemplateResponseDTO = new DeleteEmailTemplateResponseDTO();
+        deleteEmailTemplateResponseDTO.setMessage("Email template deleted successfully");
+        deleteEmailTemplateResponseDTO.setTimestamp(deletedAt);
+
+        auditService.record("DELETE_EMAIL_TEMPLATE",
+                EmailTemplates.class.getName(),
+                null,
+                null,
+                "Delete email template successfully"
+        );
+        return deleteEmailTemplateResponseDTO;
     }
 
     @Async

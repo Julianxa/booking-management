@@ -2,6 +2,7 @@ package com.example.controller;
 
 
 import com.example.model.dto.*;
+import com.example.repository.EmailTemplatesRepository;
 import com.example.service.BookingService;
 import com.example.service.EmailService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,11 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.ZonedDateTime;
 
 @Tag(name = "Emails", description = "Email management APIs")
 @RequestMapping("/api/v1")
@@ -28,14 +28,31 @@ import java.time.ZonedDateTime;
 public class EmailController {
     private final EmailService emailService;
     private final BookingService bookingService;
+    private final EmailTemplatesRepository emailTemplatesRepository;
+
+    @Operation(summary = "Create an email template")
+    @PostMapping("/emails/template")
+    public ResponseEntity<?> createTemplate(
+            @Valid @RequestBody CreateEmailTemplatesRequestDTO dto) {
+        CreateEmailTemplatesResponseDTO response = emailService.createEmailTemplate(dto);
+        return ResponseEntity.ok(response);
+    }
 
     @Operation(summary = "Update an email template by template ID")
     @PutMapping("/emails/template/{id}")
     public ResponseEntity<?> updateTemplate(
             @PathVariable String id,
-            @Valid @RequestBody UpdateEmailTemplatesRequestDTO dto) {
-        UpdateEmailTemplatesResponseDTO response = emailService.updateEmailTemplate(id, dto);
+            @Valid @RequestBody CreateEmailTemplatesRequestDTO dto) {
+        CreateEmailTemplatesResponseDTO response = emailService.updateEmailTemplate(id, dto);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Delete an email template by template ID")
+    @DeleteMapping("/emails/template/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<?> deleteTemplate(@PathVariable String id) {
+        DeleteEmailTemplateResponseDTO deleteEmailTemplateResponseDTO = emailService.deleteEmailTemplate(id);
+        return ResponseEntity.ok(deleteEmailTemplateResponseDTO);
     }
 
     @Operation(summary = "Resend an email by bookingEventId")

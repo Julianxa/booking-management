@@ -1,23 +1,16 @@
 package com.example.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.ZonedDateTime;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class GetEmailTemplateResponseDTO {
-    @JsonProperty("id")
-    private String id;
-
+public class CreateEmailTemplatesRequestDTO {
     @JsonProperty("template_name")
     private String templateName;
 
@@ -65,16 +58,4 @@ public class GetEmailTemplateResponseDTO {
 
     @JsonProperty("contact_body_zh_hk")
     private String contactBodyZhHk;
-
-    @JsonProperty("created_at")
-    private ZonedDateTime createdAt;
-
-    @JsonProperty("updated_at")
-    private ZonedDateTime updatedAt;
-
-    @JsonProperty("message")
-    private String message;
-
-    @JsonProperty("timestamp")
-    private ZonedDateTime timestamp;
 }

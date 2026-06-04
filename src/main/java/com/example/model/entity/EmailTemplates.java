@@ -25,16 +25,36 @@ public class EmailTemplates {
     private String refNo;
     @Column(name = "template_name", nullable = false)
     private String templateName;
-    @Column(name = "subject", nullable = false)
+    @Column(name = "subject")
     private String subject;
+    @Column(name = "subject_zh_cn")
+    private String subjectZhCn;
+    @Column(name = "subject_zh_hk")
+    private String subjectZhHk;
     @Column(name = "main_body")
     private String mainBody;
+    @Column(name = "main_body_zh_cn")
+    private String mainBodyZhCn;
+    @Column(name = "main_body_zh_hk")
+    private String mainBodyZhHk;
     @Column(name = "important_info_intro")
     private String importantInfoIntro;
+    @Column(name = "important_info_intro_zh_cn")
+    private String importantInfoIntroZhCn;
+    @Column(name = "important_info_intro_zh_hk")
+    private String importantInfoIntroZhHk;
     @Column(name = "important_info_body")
     private String importantInfoBody;
+    @Column(name = "important_info_body_zh_cn")
+    private String importantInfoBodyZhCn;
+    @Column(name = "important_info_body_zh_hk")
+    private String importantInfoBodyZhHk;
     @Column(name = "contact_body")
     private String contactBody;
+    @Column(name = "contact_body_zh_cn")
+    private String contactBodyZhCn;
+    @Column(name = "contact_body_zh_hk")
+    private String contactBodyZhHk;
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;

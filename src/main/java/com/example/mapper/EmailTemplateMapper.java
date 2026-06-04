@@ -1,8 +1,6 @@
 package com.example.mapper;
 
-import com.example.model.dto.GetEmailTemplateResponseDTO;
-import com.example.model.dto.GetListEmailTemplatesResponseDTO;
-import com.example.model.dto.UpdateEmailTemplatesResponseDTO;
+import com.example.model.dto.*;
 import com.example.model.entity.EmailTemplates;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -12,24 +10,51 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface EmailTemplateMapper {
-    @Mapping(target = "id", source = "template.refNo")
-    @Mapping(target = "templateName", source = "template.templateName")
-    @Mapping(target = "subject", source = "template.subject")
-    @Mapping(target = "mainBody", source = "template.mainBody")
-    @Mapping(target = "importantInfoIntro", source = "template.importantInfoIntro")
-    @Mapping(target = "importantInfoBody", source = "template.importantInfoBody")
-    @Mapping(target = "contactBody", source = "template.contactBody")
-    @Mapping(target = "createdAt", source = "template.createdAt")
-    @Mapping(target = "updatedAt", source = "template.updatedAt")
-    UpdateEmailTemplatesResponseDTO toUpdateResponseDTO(EmailTemplates template);
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    EmailTemplates toEntity(CreateEmailTemplatesRequestDTO dto);
 
     @Mapping(target = "id", source = "template.refNo")
     @Mapping(target = "templateName", source = "template.templateName")
     @Mapping(target = "subject", source = "template.subject")
+    @Mapping(target = "subjectZhCn", source = "template.subjectZhCn")
+    @Mapping(target = "subjectZhHk", source = "template.subjectZhHk")
     @Mapping(target = "mainBody", source = "template.mainBody")
+    @Mapping(target = "mainBodyZhCn", source = "template.mainBodyZhCn")
+    @Mapping(target = "mainBodyZhHk", source = "template.mainBodyZhHk")
     @Mapping(target = "importantInfoIntro", source = "template.importantInfoIntro")
+    @Mapping(target = "importantInfoIntroZhCn", source = "template.importantInfoIntroZhCn")
+    @Mapping(target = "importantInfoIntroZhHk", source = "template.importantInfoIntroZhHk")
     @Mapping(target = "importantInfoBody", source = "template.importantInfoBody")
+    @Mapping(target = "importantInfoBodyZhCn", source = "template.importantInfoBodyZhCn")
+    @Mapping(target = "importantInfoBodyZhHk", source = "template.importantInfoBodyZhHk")
     @Mapping(target = "contactBody", source = "template.contactBody")
+    @Mapping(target = "contactBodyZhCn", source = "template.contactBodyZhCn")
+    @Mapping(target = "contactBodyZhHk", source = "template.contactBodyZhHk")
+    @Mapping(target = "createdAt", source = "template.createdAt")
+    @Mapping(target = "updatedAt", source = "template.updatedAt")
+    CreateEmailTemplatesResponseDTO toUpdateResponseDTO(EmailTemplates template);
+
+    CreateEmailTemplatesResponseDTO toCreateResponseDTO(EmailTemplates template);
+
+    @Mapping(target = "id", source = "template.refNo")
+    @Mapping(target = "templateName", source = "template.templateName")
+    @Mapping(target = "subject", source = "template.subject")
+    @Mapping(target = "subjectZhCn", source = "template.subjectZhCn")
+    @Mapping(target = "subjectZhHk", source = "template.subjectZhHk")
+    @Mapping(target = "mainBody", source = "template.mainBody")
+    @Mapping(target = "mainBodyZhCn", source = "template.mainBodyZhCn")
+    @Mapping(target = "mainBodyZhHk", source = "template.mainBodyZhHk")
+    @Mapping(target = "importantInfoIntro", source = "template.importantInfoIntro")
+    @Mapping(target = "importantInfoIntroZhCn", source = "template.importantInfoIntroZhCn")
+    @Mapping(target = "importantInfoIntroZhHk", source = "template.importantInfoIntroZhHk")
+    @Mapping(target = "importantInfoBody", source = "template.importantInfoBody")
+    @Mapping(target = "importantInfoBodyZhCn", source = "template.importantInfoBodyZhCn")
+    @Mapping(target = "importantInfoBodyZhHk", source = "template.importantInfoBodyZhHk")
+    @Mapping(target = "contactBody", source = "template.contactBody")
+    @Mapping(target = "contactBodyZhCn", source = "template.contactBodyZhCn")
+    @Mapping(target = "contactBodyZhHk", source = "template.contactBodyZhHk")
     @Mapping(target = "createdAt", source = "template.createdAt")
     @Mapping(target = "updatedAt", source = "template.updatedAt")
     GetEmailTemplateResponseDTO toResponseDTO(EmailTemplates template);

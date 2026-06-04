@@ -29,14 +29,25 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
                 et.refNo,
                 et.templateName,
                 et.subject,
+                et.subjectZhCn,
+                et.subjectZhHk,
                 SUBSTRING(et.mainBody, 1, 200),
+                SUBSTRING(et.mainBodyZhCn, 1, 200),
+                SUBSTRING(et.mainBodyZhHk, 1, 200),
                 SUBSTRING(et.importantInfoIntro, 1, 200),
+                SUBSTRING(et.importantInfoIntroZhCn, 1, 200),
+                SUBSTRING(et.importantInfoIntroZhHk, 1, 200),
                 SUBSTRING(et.importantInfoBody, 1, 200),
+                SUBSTRING(et.importantInfoBodyZhCn, 1, 200),
+                SUBSTRING(et.importantInfoBodyZhHk, 1, 200),
                 SUBSTRING(et.contactBody, 1, 200),
+                SUBSTRING(et.contactBodyZhCn, 1, 200),
+                SUBSTRING(et.contactBodyZhHk, 1, 200),
                 et.createdAt, et.updatedAt
             )
             FROM EmailTemplates et
             """)
     Page<EmailTemplates> findAllActive(Pageable pageable);
 
+    boolean existsByRefNo(String refNo);
 }

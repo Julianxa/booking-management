@@ -24,6 +24,7 @@ public class ReferenceNoGenerator {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String SAFE_CHARS = "2346789ACDEFGHJKLMPQRTUVXY";
     private final TicketTypesRepository ticketTypesRepository;
+    private final EmailTemplatesRepository emailTemplatesRepository;
 
     public String generateUserReference(Enums.UserRole role) {
         return switch (role) {
@@ -54,6 +55,11 @@ public class ReferenceNoGenerator {
         String datePart = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         return generateUniqueReference("BKG-" + datePart + "-", 10, bookingsRepository);
     }
+
+    public String generateEmailTemplateReference() {
+        return generateUniqueReference("ET-", 10, emailTemplatesRepository);
+    }
+
 
     public String generateEventReference() {
         return generateUniqueReference("EVT-", 10, eventsRepository);
