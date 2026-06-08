@@ -1,18 +1,24 @@
 package com.example.service;
 
+import com.example.constant.Enums;
 import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
+import com.example.repository.EmailLogsRepository;
 import com.example.repository.EmailTemplatesRepository;
 import com.example.repository.TicketTypesRepository;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
@@ -31,10 +37,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import static com.example.constant.Enums.UserRole.AGENT;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailService {
@@ -46,6 +51,7 @@ public class EmailService {
     private final EmailTemplateMapper emailTemplateMapper;
     private final AuditService auditService;
     private final ReferenceNoGenerator referenceNoGenerator;
+    private final EmailLogsRepository emailLogsRepository;
     @Value("${app.mail.from}")
     String senderEmail;
 
@@ -212,7 +218,9 @@ public class EmailService {
 
         String template = templateEngine.process("booking-order-summary-email-template", context);
 
-        sendEmail(user.getEmail(), "Confirm Your Payment", template, inlineImages);
+        String emailParametersJson = convertContextToJson(context);
+
+        sendEmail(user.getId(), templates.getId(), emailParametersJson, user.getEmail(), "Confirm Your Payment", template, inlineImages);
     }
 
     @Async
@@ -252,7 +260,9 @@ public class EmailService {
 
         String template = templateEngine.process("booking-confirmation-email-template", context);
 
-        sendEmail(attendeeDTO.getEmail(), "Confirm Your Booking", template, inlineImages);
+        String emailParametersJson = convertContextToJson(context);
+
+        sendEmail(null, templates.getId(), emailParametersJson, attendeeDTO.getEmail(), "Confirm Your Booking", template, inlineImages);
     }
 
     @Async
@@ -290,7 +300,9 @@ public class EmailService {
 
         String template = templateEngine.process("booking-cancellation-email-template", context);
 
-        sendEmail(attendeeDTO.getEmail(), "Cancel Your Booking", template, inlineImages);
+        String emailParametersJson = convertContextToJson(context);
+
+        sendEmail(null, templates.getId(), emailParametersJson, attendeeDTO.getEmail(), "Cancel Your Booking", template, inlineImages);
     }
 
     public String buildTicketSummary(List<CreateBookingRequestDTO.TicketTypeDTO> ticketTypesDTOs) {
@@ -310,7 +322,7 @@ public class EmailService {
                 .collect(Collectors.joining(", "));
     }
 
-    private void sendEmail(String to, String subject, String htmlContent, Map<String, String> inlineImages) {
+    private void sendEmail(Long userId, Long templateId, String emailParametersJson, String to, String subject, String htmlContent, Map<String, String> inlineImages) {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -330,6 +342,15 @@ public class EmailService {
             }
             javaMailSender.send(message);
 
+            EmailLogs logs = EmailLogs.builder()
+                    .userId(userId)
+                    .emailParameters(emailParametersJson)
+                    .emailTemplateId(templateId)
+                    .status(Enums.EmailStatus.SUCCESS)
+                    .build();
+
+            emailLogsRepository.save(logs);
+
             auditService.record("SEND_EMAIL",
                     Bookings.class.getName(),
                     null,
@@ -337,6 +358,15 @@ public class EmailService {
                     "Email sent successfully"
             );
         } catch (MessagingException e) {
+            EmailLogs logs = EmailLogs.builder()
+                    .userId(userId)
+                    .emailParameters(emailParametersJson)
+                    .emailTemplateId(templateId)
+                    .status(Enums.EmailStatus.FAILED)
+                    .build();
+
+            emailLogsRepository.save(logs);
+
             auditService.record("SEND_EMAIL",
                     Bookings.class.getName(),
                     null,
@@ -402,6 +432,27 @@ public class EmailService {
                     payload.tickets(),
                     payload.allAttendees()
             );
+        }
+    }
+
+    private String convertContextToJson(Context context) {
+        try {
+            Map<String, Object> variables = new HashMap<>();
+
+            for (String key : context.getVariableNames()) {
+                variables.put(key, context.getVariable(key));
+            }
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());           // 支援 LocalDateTime 等
+            objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+
+            return objectMapper.writeValueAsString(variables);
+
+        } catch (Exception e) {
+            log.warn("Failed to convert Thymeleaf Context to JSON", e);
+            return "{}";
         }
     }
 }

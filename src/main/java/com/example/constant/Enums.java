@@ -132,4 +132,10 @@ public class Enums {
     public enum RefundType {
         OFFLINE_REFUND, ONLINE_REFUND
     }
+
+    public enum EmailStatus {
+        SUCCESS,
+        FAILED,
+
+    }
 }
