@@ -46,6 +46,7 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
                 SUBSTRING(et.contactBody, 1, 200),
                 SUBSTRING(et.contactBodyZhCn, 1, 200),
                 SUBSTRING(et.contactBodyZhHk, 1, 200),
+                et.isPerm,
                 et.createdAt, et.updatedAt
             )
             FROM EmailTemplates et

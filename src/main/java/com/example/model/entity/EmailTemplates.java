@@ -61,6 +61,8 @@ public class EmailTemplates {
     private String contactBodyZhCn;
     @Column(name = "contact_body_zh_hk")
     private String contactBodyZhHk;
+    @Column(name = "is_perm")
+    private Boolean isPerm;
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;

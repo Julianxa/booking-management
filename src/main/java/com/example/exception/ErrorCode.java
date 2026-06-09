@@ -59,6 +59,8 @@ public class ErrorCode {
     public static final ErrorDefinition UNVERIFIED_EMAIL =
             new ErrorDefinition("BT202", HttpStatus.NOT_FOUND, "Email is not verified");
 
+    public static final ErrorDefinition OFFICIAL_TEMPLATE =
+            new ErrorDefinition("BT203", HttpStatus.BAD_REQUEST, "Official template cannot be deleted");
     // Event
     public static final ErrorDefinition CAPACITY_EXCEEDED =
             new ErrorDefinition("BT300", HttpStatus.BAD_REQUEST, "Event capacity is exceeded");

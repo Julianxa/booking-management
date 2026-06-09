@@ -3,6 +3,7 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
+import com.example.exception.email.OfficialTemplateDeletionException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
 import com.example.model.dto.*;
@@ -177,9 +178,14 @@ public class EmailService {
 
     @Transactional
     public DeleteEmailTemplateResponseDTO deleteEmailTemplate(String emailTemplateRefNo) {
-        if (!emailTemplatesRepository.existsByRefNo(emailTemplateRefNo)) {
-            throw new EmailTemplateNotFoundException(String.format("Email template %s not found)", emailTemplateRefNo));
+        EmailTemplates template = emailTemplatesRepository.findByRefNo(emailTemplateRefNo)
+                .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template %s not found", emailTemplateRefNo)));
+
+        if(template.getIsPerm()) {
+            throw new OfficialTemplateDeletionException("Official template cannot be deleted");
         }
+
+        emailTemplatesRepository.delete(template);
 
         ZonedDateTime deletedAt = ZonedDateTime.now();
         DeleteEmailTemplateResponseDTO deleteEmailTemplateResponseDTO = new DeleteEmailTemplateResponseDTO();
