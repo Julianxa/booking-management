@@ -285,7 +285,7 @@ public class WebhookService {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleBookingReConfirmedEvent(EmailService.BookingReConfirmedEvent event) {
+    public void handleBookingRestoreEvent(EmailService.BookingRestoreEvent event) {
         emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
     }
 

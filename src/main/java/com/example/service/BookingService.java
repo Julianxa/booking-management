@@ -677,7 +677,7 @@ public class BookingService {
         if (newStatus == AVAILABLE) {
             event.setCancelledAt(null);
             bookingEventsRepository.save(event);
-            applicationEventPublisher.publishEvent(new EmailService.BookingReConfirmedEvent(user, booking, payloads));
+            applicationEventPublisher.publishEvent(new EmailService.BookingRestoreEvent(user, booking, payloads));
         }
         else if (newStatus == CANCELLED) {
             event.setCancelledAt(ZonedDateTime.now());

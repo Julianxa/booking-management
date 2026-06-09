@@ -73,7 +73,7 @@ public class EmailService {
     ) {
     }
 
-    public record BookingReConfirmedEvent(
+    public record BookingRestoreEvent(
             Users loggedInUser,
             Bookings booking,
             List<BookingEmailPayload> emailPayloads
