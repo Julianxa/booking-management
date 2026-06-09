@@ -34,6 +34,7 @@ public class CreateBookingResponseDTO {
     @JsonProperty("currency")
     private String currency;
     private Enums.BookingStatus status;
+    private Enums.Language language;
     @JsonProperty("promo_code")
     private String promoCode;
     @JsonProperty("checkout_url")

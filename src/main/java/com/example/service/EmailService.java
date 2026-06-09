@@ -126,6 +126,12 @@ public class EmailService {
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
                 .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", templateRefNo)));
 
+        if (updateEmailTemplatesRequestDTO.getTitle() != null)
+            template.setTitle(updateEmailTemplatesRequestDTO.getTitle());
+        if (updateEmailTemplatesRequestDTO.getTitleZhCn() != null)
+            template.setTitleZhCn(updateEmailTemplatesRequestDTO.getTitleZhCn());
+        if (updateEmailTemplatesRequestDTO.getTitleZhHk() != null)
+            template.setTitleZhHk(updateEmailTemplatesRequestDTO.getTitleZhHk());
         if (updateEmailTemplatesRequestDTO.getSubject() != null)
             template.setSubject(updateEmailTemplatesRequestDTO.getSubject());
         if (updateEmailTemplatesRequestDTO.getSubjectZhCn() != null)
@@ -210,12 +216,28 @@ public class EmailService {
         context.setVariable("giftCertificatePromoCode", giftCertificatePromoCode);
         context.setVariable("giftCertificateDiscount", booking.getDiscount());
 
-        context.setVariable("subject", templates.getSubject());
-        context.setVariable("mainBody", templates.getMainBody());
-        context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
-        context.setVariable("importantInfoBody", templates.getImportantInfoBody());
-        context.setVariable("contactBody", templates.getContactBody());
-
+        if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
+            context.setVariable("titleZhCn", templates.getTitleZhCn());
+            context.setVariable("subjectZhCn", templates.getSubjectZhCn());
+            context.setVariable("mainBodyZhCn", templates.getMainBodyZhCn());
+            context.setVariable("importantInfoIntroZhCn", templates.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBodyZhCn", templates.getImportantInfoBodyZhCn());
+            context.setVariable("contactBodyZhCn", templates.getContactBodyZhCn());
+        } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
+            context.setVariable("titleZhHk", templates.getTitleZhHk());
+            context.setVariable("subjectZhHk", templates.getSubjectZhHk());
+            context.setVariable("mainBodyZhHk", templates.getMainBodyZhHk());
+            context.setVariable("importantInfoIntroZhHk", templates.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBodyZhHk", templates.getImportantInfoBodyZhHk());
+            context.setVariable("contactBodyZhHk", templates.getContactBodyZhHk());
+        } else {
+            context.setVariable("title", templates.getTitle());
+            context.setVariable("subject", templates.getSubject());
+            context.setVariable("mainBody", templates.getMainBody());
+            context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
+            context.setVariable("importantInfoBody", templates.getImportantInfoBody());
+            context.setVariable("contactBody", templates.getContactBody());
+        }
         String template = templateEngine.process("booking-order-summary-email-template", context);
 
         String emailParametersJson = convertContextToJson(context);
@@ -252,12 +274,30 @@ public class EmailService {
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
 
-        context.setVariable("subject", templates.getSubject());
-        context.setVariable("mainBody", templates.getMainBody());
-        context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
-        context.setVariable("importantInfoBody", templates.getImportantInfoBody());
-        context.setVariable("contactBody", templates.getContactBody());
+        if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
+            context.setVariable("titleZhCn", templates.getTitleZhCn());
+            context.setVariable("subjectZhCn", templates.getSubjectZhCn());
+            context.setVariable("mainBodyZhCn", templates.getMainBodyZhCn());
+            context.setVariable("importantInfoIntroZhCn", templates.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBodyZhCn", templates.getImportantInfoBodyZhCn());
+            context.setVariable("contactBodyZhCn", templates.getContactBodyZhCn());
 
+        } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
+            context.setVariable("titleZhHk", templates.getTitleZhHk());
+            context.setVariable("subjectZhHk", templates.getSubjectZhHk());
+            context.setVariable("mainBodyZhHk", templates.getMainBodyZhHk());
+            context.setVariable("importantInfoIntroZhHk", templates.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBodyZhHk", templates.getImportantInfoBodyZhHk());
+            context.setVariable("contactBodyZhHk", templates.getContactBodyZhHk());
+
+        } else {
+            context.setVariable("title", templates.getTitle());
+            context.setVariable("subject", templates.getSubject());
+            context.setVariable("mainBody", templates.getMainBody());
+            context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
+            context.setVariable("importantInfoBody", templates.getImportantInfoBody());
+            context.setVariable("contactBody", templates.getContactBody());
+        }
         String template = templateEngine.process("booking-confirmation-email-template", context);
 
         String emailParametersJson = convertContextToJson(context);
@@ -292,12 +332,30 @@ public class EmailService {
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
 
-        context.setVariable("subject", templates.getSubject());
-        context.setVariable("mainBody", templates.getMainBody());
-        context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
-        context.setVariable("importantInfoBody", templates.getImportantInfoBody());
-        context.setVariable("contactBody", templates.getContactBody());
+        if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
+            context.setVariable("titleZhCn", templates.getTitleZhCn());
+            context.setVariable("subjectZhCn", templates.getSubjectZhCn());
+            context.setVariable("mainBodyZhCn", templates.getMainBodyZhCn());
+            context.setVariable("importantInfoIntroZhCn", templates.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBodyZhCn", templates.getImportantInfoBodyZhCn());
+            context.setVariable("contactBodyZhCn", templates.getContactBodyZhCn());
 
+        } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
+            context.setVariable("titleZhHk", templates.getTitleZhHk());
+            context.setVariable("subjectZhHk", templates.getSubjectZhHk());
+            context.setVariable("mainBodyZhHk", templates.getMainBodyZhHk());
+            context.setVariable("importantInfoIntroZhHk", templates.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBodyZhHk", templates.getImportantInfoBodyZhHk());
+            context.setVariable("contactBodyZhHk", templates.getContactBodyZhHk());
+
+        } else {
+            context.setVariable("title", templates.getTitle());
+            context.setVariable("subject", templates.getSubject());
+            context.setVariable("mainBody", templates.getMainBody());
+            context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
+            context.setVariable("importantInfoBody", templates.getImportantInfoBody());
+            context.setVariable("contactBody", templates.getContactBody());
+        }
         String template = templateEngine.process("booking-cancellation-email-template", context);
 
         String emailParametersJson = convertContextToJson(context);

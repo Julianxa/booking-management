@@ -34,6 +34,9 @@ public class CreateBookingRequestDTO {
     @JsonProperty("cancel_url")
     private String cancelUrl;
 
+    @JsonProperty("language")
+    private Enums.Language language;
+
     @Data
     @Builder
     @Getter

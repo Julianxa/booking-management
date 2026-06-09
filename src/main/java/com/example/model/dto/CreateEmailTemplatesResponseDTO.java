@@ -18,6 +18,12 @@ public class CreateEmailTemplatesResponseDTO {
     private String id;
     @JsonProperty("template_name")
     private String templateName;
+    @JsonProperty("title")
+    private String title;
+    @JsonProperty("title_zh_cn")
+    private String titleZhCn;
+    @JsonProperty("title_zh_hk")
+    private String titleZhHk;
     @JsonProperty("subject")
     private String subject;
     @JsonProperty("subject_zh_cn")

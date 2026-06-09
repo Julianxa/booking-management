@@ -25,6 +25,7 @@ public interface BookingMapper {
         createBookingResponseDTO.setCurrency(booking.getCurrency());
         createBookingResponseDTO.setPromoCode(promoCode);
         createBookingResponseDTO.setCheckoutUrl(checkoutUrl);
+        createBookingResponseDTO.setLanguage(booking.getLanguage());
         return createBookingResponseDTO;
     }
 

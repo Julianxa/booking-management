@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>Your Booking is Cancelled – HK Tramways</title>
+    <title th:text="${titleZhHk != null ? titleZhHk :
+                   (titleZhCn != null ? titleZhCn :
+                   (title != null ? title : ''))}">
+    </title>
     <!--[if mso]>
     <noscript>
         <xml>
@@ -108,7 +111,10 @@
                     line-height: 1.3;
                   "
                         >
-                            <span th:text="${subject}"/>
+                            <span th:text="${subjectZhHk != null ? subjectZhHk :
+                                (subjectZhCn != null ? subjectZhCn :
+                                (subject != null ? subject : ''))}">
+                            </span>
                         </h1>
 
                         <!-- Greeting -->
@@ -132,7 +138,10 @@
                     line-height: 1.7;
                   "
                         >
-                            <div th:utext="${mainBody}"></div>
+                            <div th:utext="${mainBodyZhHk != null ? mainBodyZhHk :
+                                (mainBodyZhCn != null ? mainBodyZhCn :
+                                (mainBody != null ? mainBody : ''))}">
+                            </div>
                         </p>
 
                         <!-- Booking ID -->
@@ -315,7 +324,10 @@
                         <p
                                 style="margin: 0 0 12px 0;font-size: 13px;color: #444444;line-height: 1.7;"
                         >
-                            <div th:utext="${importantInfoIntro}"></div>
+                        <div th:utext="${importantInfoIntroZhHk != null ? importantInfoIntroZhHk :
+                (importantInfoIntroZhCn != null ? importantInfoIntroZhCn :
+                (importantInfoIntro != null ? importantInfoIntro : ''))}">
+                        </div>
                         </p>
                         <table
                                 role="presentation"
@@ -324,7 +336,10 @@
                                 border="0"
                                 width="100%"
                         >
-                            <div th:utext="${importantInfoBody}"></div>
+                            <div th:utext="${importantInfoBodyZhHk != null ? importantInfoBodyZhHk :
+                                (importantInfoBodyZhCn != null ? importantInfoBodyZhCn :
+                                (importantInfoBody != null ? importantInfoBody : ''))}">
+                            </div>
                         </table>
                     </td>
                 </tr>
@@ -340,7 +355,10 @@
                     line-height: 1.7;
                   "
                         >
-                            <div th:utext="${contactBody}"></div>
+                            <div th:utext="${contactBodyZhHk != null ? contactBodyZhHk :
+                                (contactBodyZhCn != null ? contactBodyZhCn :
+                                (contactBody != null ? contactBody : ''))}">
+                            </div>
                         </p>
                         <p
                                 style="

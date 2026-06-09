@@ -40,6 +40,9 @@ public interface EmailTemplateMapper {
 
     @Mapping(target = "id", source = "template.refNo")
     @Mapping(target = "templateName", source = "template.templateName")
+    @Mapping(target = "title", source = "template.title")
+    @Mapping(target = "titleZhCn", source = "template.titleZhCn")
+    @Mapping(target = "titleZhHk", source = "template.titleZhHk")
     @Mapping(target = "subject", source = "template.subject")
     @Mapping(target = "subjectZhCn", source = "template.subjectZhCn")
     @Mapping(target = "subjectZhHk", source = "template.subjectZhHk")

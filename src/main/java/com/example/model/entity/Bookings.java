@@ -51,6 +51,10 @@ public class Bookings {
     @Column(name = "status", nullable = false, length = 20)
     private Enums.BookingStatus status; // e.g., PENDING, CONFIRMED, CANCELLED, COMPLETED
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "language")
+    private Enums.Language language;
+
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;

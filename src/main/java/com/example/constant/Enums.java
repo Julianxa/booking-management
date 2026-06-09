@@ -138,4 +138,8 @@ public class Enums {
         FAILED,
 
     }
+
+    public enum Language {
+        CN, HK, EN
+    }
 }

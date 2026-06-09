@@ -37,6 +37,7 @@ public class BookingsConverter {
                 .currency(booking.getCurrency())
                 .promoCode(preFetchedPromoCode)
                 .status(booking.getStatus())
+                .language(booking.getLanguage())
                 .createdAt(booking.getCreatedAt())
                 .bookingEvents(bookingEventDTOs)
                 .build();

@@ -95,7 +95,7 @@ public class BookingService {
 
         Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
-        Bookings booking = createEmptyBooking(loggedInUser); // PENDING
+        Bookings booking = createEmptyBooking(loggedInUser, request.getLanguage()); // PENDING
 
         BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
 
@@ -400,7 +400,7 @@ public class BookingService {
                 .sum();
     }
 
-    private Bookings createEmptyBooking(Users loggedInUser) {
+    private Bookings createEmptyBooking(Users loggedInUser, Enums.Language language) {
         Bookings booking = Bookings.builder()
                 .refNo(referenceNoGenerator.generateBookingReference())
                 .type(loggedInUser != null ? Enums.BookingType.OFFLINE_PAYMENT : Enums.BookingType.ONLINE_PAYMENT)
@@ -408,6 +408,7 @@ public class BookingService {
                 .totalPaidPrice(BigDecimal.ZERO)
                 .currency("HKD")
                 .status(Enums.BookingStatus.PENDING)
+                .language(language)
                 .build();
         return bookingsRepository.save(booking);
     }
