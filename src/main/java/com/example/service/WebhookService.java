@@ -12,6 +12,7 @@ import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
 import com.example.utils.DateUtils;
 import com.example.utils.StatusTransitioner;
+import com.example.utils.StripeUtils;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
@@ -51,7 +52,147 @@ public class WebhookService {
     private final AuditService auditService;
     private final DateUtils dateUtils;
     private final StatusTransitioner statusTransitioner;
+    private final StripeUtils stripeUtils;
 
+    // Webhook services
+    @Transactional
+    public void processPaymentIntentCreated(Event event) {
+        PaymentIntent intent = stripeUtils.getPaymentIntentFromEvent(event);
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(null, intent.getId(), STRIPE, booking);
+        updatePaymentStatus(payment, INITIATED);
+
+        updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
+        auditService.record("PAYMENT_INTENT_CREATED_WEBHOOK", Payments.class.getName(), payment.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
+    }
+
+    @Transactional
+    public void processRefundCreated(Event event) {
+        Refund refund = stripeUtils.getRefundFromEvent(event);
+        String bookingRefNo = refund.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+
+        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+        updateRefundStatus(r, Enums.RefundStatus.PROCESSING);
+        auditService.record("REFUND_CREATED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + refund.getId());
+
+    }
+
+    @Transactional
+    public void processRefundUpdated(Event event) {
+        Refund refund = stripeUtils.getRefundFromEvent(event);
+        String bookingRefNo = refund.getMetadata().get("bookingRefNo");
+        String paymentIntentId = refund.getMetadata().get("paymentIntentId");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+        Payments payment = paymentsRepository.findByPaymentIntentId(paymentIntentId)
+                .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment %s not found", paymentIntentId)));
+        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+        updateRefundStatus(r, Enums.RefundStatus.SUCCESS);
+        updateBookingStatus(booking, Enums.BookingStatus.REFUNDED);
+        updatePaymentStatus(payment, Enums.PaymentStatus.REFUNDED);
+        auditService.record("REFUND_UPDATED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + r.getId() + ", paymentIntent:" + paymentIntentId);
+    }
+
+    @Transactional
+    public void processRefundFailed(Event event) {
+        Refund refund = stripeUtils.getRefundFromEvent(event);
+        String bookingRefNo = refund.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+
+        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+        updateRefundStatus(r, Enums.RefundStatus.FAILED);
+        auditService.record("REFUND_FAILED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + r.getId());
+    }
+
+    @Transactional
+    public void processPaymentRequiresAction(Event event) {
+        PaymentIntent intent = stripeUtils.getPaymentIntentFromEvent(event);
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
+
+        updatePaymentStatus(payment, Enums.PaymentStatus.REQUIRES_ACTION);
+        updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
+
+        auditService.record("PAYMENT_REQUIRES_ACTION_WEBHOOK", Payments.class.getName(), payment.getId(), booking.getUserId(), "payment:" + payment.getId());
+    }
+
+    @Transactional
+    public void processFailedPayment(Event event) {
+        PaymentIntent intent = stripeUtils.getPaymentIntentFromEvent(event);
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
+        updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
+
+        giftCertificateService.cancelCertificateRedemption(booking);
+
+        booking.setStatus(Enums.BookingStatus.FAILED);
+        bookingsRepository.save(booking);
+        auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
+    }
+
+    @Transactional
+    public void processPaymentIntentCanceled(Event event) {
+        PaymentIntent intent = stripeUtils.getPaymentIntentFromEvent(event);
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
+        updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
+        auditService.record("PAYMENT_CANCELLED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void processSuccessfulPayment(Event event) {
+        Users user = null;
+        PaymentIntent intent = stripeUtils.getPaymentIntentFromEvent(event);
+        String sessionId = intent.getPaymentDetails().getOrderReference();
+        String paymentMethod = intent.getPaymentMethodTypes().get(0);
+        String paymentIntent = intent.getId();
+        ZonedDateTime paidAt = dateUtils.convertToZonedDateTime(intent.getCreated());
+
+        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
+
+        if(booking.getUserId() != null)
+            user = usersRepository.findById(booking.getUserId())
+                    .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", booking.getUserId())));
+        confirmOnlinePayment(user, booking, payment, paymentIntent, paymentMethod, paidAt);
+        auditService.record("PAYMENT_SUCCEEDED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + paymentIntent);
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void processExpiredPayment(Event event) {
+        Session session = stripeUtils.getSessionFromEvent(event);
+        String sessionId = session.getId();
+
+        String bookingRefNo = session.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, null, STRIPE, booking);
+        updatePaymentStatus(payment, Enums.PaymentStatus.EXPIRED);
+
+        booking.setStatus(Enums.BookingStatus.EXPIRED);
+        bookingsRepository.save(booking);
+        auditService.record("PAYMENT_EXPIRED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "sessionId:" + sessionId);
+    }
+
+    // Utility functions
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void confirmOnlinePayment(Users user, Bookings booking, Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
         updateSuccessPaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
@@ -122,162 +263,7 @@ public class WebhookService {
         );
     }
 
-    private PaymentIntent getPaymentIntentFromEvent(Event event) {
-        return (PaymentIntent) event.getDataObjectDeserializer()
-                .getObject()
-                .orElseThrow(() -> new IllegalStateException("Failed to deserialize PaymentIntent"));
-    }
-
-    private Refund getRefundFromEvent(Event event) {
-        return (Refund) event.getDataObjectDeserializer()
-                .getObject()
-                .orElseThrow(() -> new IllegalStateException("Failed to deserialize Refund"));
-    }
-
-    private Session getSessionFromEvent(Event event) {
-        return (Session) event.getDataObjectDeserializer()
-                .getObject()
-                .orElseThrow(() -> new IllegalStateException("Failed to deserialize Stripe Session"));
-    }
-
-    // Customer opens the cashier page and starts checkout
-    @Transactional
-    public void processPaymentIntentCreated(Event event) {
-        PaymentIntent intent = getPaymentIntentFromEvent(event);
-        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                        .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(null, intent.getId(), STRIPE, booking);
-        updatePaymentStatus(payment, INITIATED);
-
-        updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
-        auditService.record("PAYMENT_INTENT_CREATED_WEBHOOK", Payments.class.getName(), payment.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
-    }
-
-    @Transactional
-    public void processRefundCreated(Event event) {
-        Refund refund = getRefundFromEvent(event);
-        String bookingRefNo = refund.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-
-        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
-        updateRefundStatus(r, Enums.RefundStatus.PROCESSING);
-        auditService.record("REFUND_CREATED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + refund.getId());
-
-    }
-
-    @Transactional
-    public void processRefundUpdated(Event event) {
-        Refund refund = getRefundFromEvent(event);
-        String bookingRefNo = refund.getMetadata().get("bookingRefNo");
-        String paymentIntentId = refund.getMetadata().get("paymentIntentId");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Payments payment = paymentsRepository.findByPaymentIntentId(paymentIntentId)
-                .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment %s not found", paymentIntentId)));
-        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
-        updateRefundStatus(r, Enums.RefundStatus.SUCCESS);
-        updateBookingStatus(booking, Enums.BookingStatus.REFUNDED);
-        updatePaymentStatus(payment, Enums.PaymentStatus.REFUNDED);
-        auditService.record("REFUND_UPDATED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + r.getId() + ", paymentIntent:" + paymentIntentId);
-    }
-
-    @Transactional
-    public void processRefundFailed(Event event) {
-        Refund refund = getRefundFromEvent(event);
-        String bookingRefNo = refund.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-
-        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
-        updateRefundStatus(r, Enums.RefundStatus.FAILED);
-        auditService.record("REFUND_FAILED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + r.getId());
-    }
-
-    @Transactional
-    public void processPaymentRequiresAction(Event event) {
-        PaymentIntent intent = getPaymentIntentFromEvent(event);
-        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        String sessionId = intent.getPaymentDetails().getOrderReference();
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
-
-        updatePaymentStatus(payment, Enums.PaymentStatus.REQUIRES_ACTION);
-        updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
-
-        auditService.record("PAYMENT_REQUIRES_ACTION_WEBHOOK", Payments.class.getName(), payment.getId(), booking.getUserId(), "payment:" + payment.getId());
-    }
-
-    @Transactional
-    public void processFailedPayment(Event event) {
-        PaymentIntent intent = getPaymentIntentFromEvent(event);
-        String sessionId = intent.getPaymentDetails().getOrderReference();
-
-        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
-        updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
-
-        giftCertificateService.cancelCertificateRedemption(booking);
-
-        booking.setStatus(Enums.BookingStatus.FAILED);
-        bookingsRepository.save(booking);
-        auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
-    }
-
-    @Transactional
-    public void processPaymentIntentCanceled(Event event) {
-        PaymentIntent intent = getPaymentIntentFromEvent(event);
-        String sessionId = intent.getPaymentDetails().getOrderReference();
-        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
-        updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
-        auditService.record("PAYMENT_CANCELLED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
-    }
-
-    @Transactional(isolation = Isolation.SERIALIZABLE)
-    public void processSuccessfulPayment(Event event) {
-        Users user = null;
-        PaymentIntent intent = getPaymentIntentFromEvent(event);
-        String sessionId = intent.getPaymentDetails().getOrderReference();
-        String paymentMethod = intent.getPaymentMethodTypes().get(0);
-        String paymentIntent = intent.getId();
-        ZonedDateTime paidAt = dateUtils.convertToZonedDateTime(intent.getCreated());
-
-        String bookingRefNo = intent.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
-
-        if(booking.getUserId() != null)
-            user = usersRepository.findById(booking.getUserId())
-                    .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", booking.getUserId())));
-        confirmOnlinePayment(user, booking, payment, paymentIntent, paymentMethod, paidAt);
-        auditService.record("PAYMENT_SUCCEEDED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + paymentIntent);
-    }
-
-    @Transactional(isolation = Isolation.SERIALIZABLE)
-    public void processExpiredPayment(Event event) {
-        Session session = getSessionFromEvent(event);
-        String sessionId = session.getId();
-
-        String bookingRefNo = session.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
-        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, null, STRIPE, booking);
-        updatePaymentStatus(payment, Enums.PaymentStatus.EXPIRED);
-
-        booking.setStatus(Enums.BookingStatus.EXPIRED);
-        bookingsRepository.save(booking);
-        auditService.record("PAYMENT_EXPIRED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "sessionId:" + sessionId);
-    }
-
+    // Listener functions
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCreatedEvent(EmailService.BookingCreatedEvent event) {
         emailService.sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.bookingEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
