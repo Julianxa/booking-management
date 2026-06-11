@@ -21,6 +21,9 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
     @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-cancellation-email-template'")
     EmailTemplates findBookingCancellationEmailTemplate();
 
+    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-reminder-email-template'")
+    EmailTemplates findBookingReminderEmailTemplate();
+
     Optional<EmailTemplates> findByRefNo(String emailTemplateRefNo);
 
     @Query("""
@@ -46,6 +49,7 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
                 SUBSTRING(et.contactBody, 1, 200),
                 SUBSTRING(et.contactBodyZhCn, 1, 200),
                 SUBSTRING(et.contactBodyZhHk, 1, 200),
+                et.reminderDayInterval,
                 et.isPerm,
                 et.createdAt, et.updatedAt
             )
@@ -54,4 +58,11 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
     Page<EmailTemplates> findAllActive(Pageable pageable);
 
     boolean existsByRefNo(String refNo);
+
+    @Query("""
+            SELECT et.reminderDayInterval
+            FROM EmailTemplates et
+            WHERE et.templateName = 'booking-reminder-email-template'
+            """)
+    Optional<Integer> findReminderDayInterval();
 }

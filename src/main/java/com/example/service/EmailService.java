@@ -163,6 +163,8 @@ public class EmailService {
             template.setContactBodyZhCn(updateEmailTemplatesRequestDTO.getContactBodyZhCn());
         if (updateEmailTemplatesRequestDTO.getContactBodyZhHk() != null)
             template.setContactBodyZhHk(updateEmailTemplatesRequestDTO.getContactBodyZhHk());
+        if (updateEmailTemplatesRequestDTO.getReminderDayInterval() != null)
+            template.setReminderDayInterval(updateEmailTemplatesRequestDTO.getReminderDayInterval());
         template = emailTemplatesRepository.save(template);
 
         auditService.record("UPDATE_EMAIL_TEMPLATE",
@@ -207,7 +209,7 @@ public class EmailService {
 
         Map<String, String> inlineImages = embedInlineImages();
 
-        EmailTemplates templates = emailTemplatesRepository.findBookingOrderSummaryEmailTemplate();
+        EmailTemplates template = emailTemplatesRepository.findBookingOrderSummaryEmailTemplate();
 
         context.setVariable("bookingId", booking.getRefNo());
         context.setVariable("grandTotal", booking.getTotalPaidPrice());
@@ -223,32 +225,34 @@ public class EmailService {
         context.setVariable("giftCertificateDiscount", booking.getDiscount());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
-            context.setVariable("titleZhCn", templates.getTitleZhCn());
-            context.setVariable("subjectZhCn", templates.getSubjectZhCn());
-            context.setVariable("mainBodyZhCn", templates.getMainBodyZhCn());
-            context.setVariable("importantInfoIntroZhCn", templates.getImportantInfoIntroZhCn());
-            context.setVariable("importantInfoBodyZhCn", templates.getImportantInfoBodyZhCn());
-            context.setVariable("contactBodyZhCn", templates.getContactBodyZhCn());
+            context.setVariable("titleZhCn", template.getTitleZhCn());
+            context.setVariable("subjectZhCn", template.getSubjectZhCn());
+            context.setVariable("mainBodyZhCn", template.getMainBodyZhCn());
+            context.setVariable("importantInfoIntroZhCn", template.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBodyZhCn", template.getImportantInfoBodyZhCn());
+            context.setVariable("contactBodyZhCn", template.getContactBodyZhCn());
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
-            context.setVariable("titleZhHk", templates.getTitleZhHk());
-            context.setVariable("subjectZhHk", templates.getSubjectZhHk());
-            context.setVariable("mainBodyZhHk", templates.getMainBodyZhHk());
-            context.setVariable("importantInfoIntroZhHk", templates.getImportantInfoIntroZhHk());
-            context.setVariable("importantInfoBodyZhHk", templates.getImportantInfoBodyZhHk());
-            context.setVariable("contactBodyZhHk", templates.getContactBodyZhHk());
+            context.setVariable("titleZhHk", template.getTitleZhHk());
+            context.setVariable("subjectZhHk", template.getSubjectZhHk());
+            context.setVariable("mainBodyZhHk", template.getMainBodyZhHk());
+            context.setVariable("importantInfoIntroZhHk", template.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBodyZhHk", template.getImportantInfoBodyZhHk());
+            context.setVariable("contactBodyZhHk", template.getContactBodyZhHk());
         } else {
-            context.setVariable("title", templates.getTitle());
-            context.setVariable("subject", templates.getSubject());
-            context.setVariable("mainBody", templates.getMainBody());
-            context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
-            context.setVariable("importantInfoBody", templates.getImportantInfoBody());
-            context.setVariable("contactBody", templates.getContactBody());
+            context.setVariable("title", template.getTitle());
+            context.setVariable("subject", template.getSubject());
+            context.setVariable("mainBody", template.getMainBody());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntro());
+            context.setVariable("importantInfoBody", template.getImportantInfoBody());
+            context.setVariable("contactBody", template.getContactBody());
         }
-        String template = templateEngine.process("booking-order-summary-email-template", context);
+        String htmlContent = templateEngine.process("booking-order-summary-email-template", context);
 
         String emailParametersJson = convertContextToJson(context);
 
-        sendEmail(user.getId(), templates.getId(), emailParametersJson, user.getEmail(), "Confirm Your Payment", template, inlineImages);
+        String subject = getEmailSubject(template, booking.getLanguage());
+
+        sendEmail(user.getId(), template.getId(), emailParametersJson, user.getEmail(), subject, htmlContent, inlineImages);
     }
 
     @Async
@@ -263,7 +267,7 @@ public class EmailService {
         Map<String, String> inlineImages = embedInlineImages();
         inlineImages.put("qr", checkInToken);
 
-        EmailTemplates templates = emailTemplatesRepository.findBookingConfirmationEmailTemplate();
+        EmailTemplates template = emailTemplatesRepository.findBookingConfirmationEmailTemplate();
 
         String ticketSummary = buildTicketSummary(ticketsDTOs);
 
@@ -281,34 +285,36 @@ public class EmailService {
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
-            context.setVariable("titleZhCn", templates.getTitleZhCn());
-            context.setVariable("subjectZhCn", templates.getSubjectZhCn());
-            context.setVariable("mainBodyZhCn", templates.getMainBodyZhCn());
-            context.setVariable("importantInfoIntroZhCn", templates.getImportantInfoIntroZhCn());
-            context.setVariable("importantInfoBodyZhCn", templates.getImportantInfoBodyZhCn());
-            context.setVariable("contactBodyZhCn", templates.getContactBodyZhCn());
+            context.setVariable("titleZhCn", template.getTitleZhCn());
+            context.setVariable("subjectZhCn", template.getSubjectZhCn());
+            context.setVariable("mainBodyZhCn", template.getMainBodyZhCn());
+            context.setVariable("importantInfoIntroZhCn", template.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBodyZhCn", template.getImportantInfoBodyZhCn());
+            context.setVariable("contactBodyZhCn", template.getContactBodyZhCn());
 
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
-            context.setVariable("titleZhHk", templates.getTitleZhHk());
-            context.setVariable("subjectZhHk", templates.getSubjectZhHk());
-            context.setVariable("mainBodyZhHk", templates.getMainBodyZhHk());
-            context.setVariable("importantInfoIntroZhHk", templates.getImportantInfoIntroZhHk());
-            context.setVariable("importantInfoBodyZhHk", templates.getImportantInfoBodyZhHk());
-            context.setVariable("contactBodyZhHk", templates.getContactBodyZhHk());
+            context.setVariable("titleZhHk", template.getTitleZhHk());
+            context.setVariable("subjectZhHk", template.getSubjectZhHk());
+            context.setVariable("mainBodyZhHk", template.getMainBodyZhHk());
+            context.setVariable("importantInfoIntroZhHk", template.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBodyZhHk", template.getImportantInfoBodyZhHk());
+            context.setVariable("contactBodyZhHk", template.getContactBodyZhHk());
 
         } else {
-            context.setVariable("title", templates.getTitle());
-            context.setVariable("subject", templates.getSubject());
-            context.setVariable("mainBody", templates.getMainBody());
-            context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
-            context.setVariable("importantInfoBody", templates.getImportantInfoBody());
-            context.setVariable("contactBody", templates.getContactBody());
+            context.setVariable("title", template.getTitle());
+            context.setVariable("subject", template.getSubject());
+            context.setVariable("mainBody", template.getMainBody());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntro());
+            context.setVariable("importantInfoBody", template.getImportantInfoBody());
+            context.setVariable("contactBody", template.getContactBody());
         }
-        String template = templateEngine.process("booking-confirmation-email-template", context);
+        String htmlContent = templateEngine.process("booking-confirmation-email-template", context);
 
         String emailParametersJson = convertContextToJson(context);
 
-        sendEmail(null, templates.getId(), emailParametersJson, attendeeDTO.getEmail(), "Confirm Your Booking", template, inlineImages);
+        String subject = getEmailSubject(template, booking.getLanguage());
+
+        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages);
     }
 
     @Async
@@ -321,7 +327,7 @@ public class EmailService {
 
         Map<String, String> inlineImages = embedInlineImages();
 
-        EmailTemplates templates = emailTemplatesRepository.findBookingCancellationEmailTemplate();
+        EmailTemplates template = emailTemplatesRepository.findBookingCancellationEmailTemplate();
 
         String ticketSummary = buildTicketSummary(ticketsDTOs);
 
@@ -339,35 +345,98 @@ public class EmailService {
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
-            context.setVariable("titleZhCn", templates.getTitleZhCn());
-            context.setVariable("subjectZhCn", templates.getSubjectZhCn());
-            context.setVariable("mainBodyZhCn", templates.getMainBodyZhCn());
-            context.setVariable("importantInfoIntroZhCn", templates.getImportantInfoIntroZhCn());
-            context.setVariable("importantInfoBodyZhCn", templates.getImportantInfoBodyZhCn());
-            context.setVariable("contactBodyZhCn", templates.getContactBodyZhCn());
+            context.setVariable("titleZhCn", template.getTitleZhCn());
+            context.setVariable("subjectZhCn", template.getSubjectZhCn());
+            context.setVariable("mainBodyZhCn", template.getMainBodyZhCn());
+            context.setVariable("importantInfoIntroZhCn", template.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBodyZhCn", template.getImportantInfoBodyZhCn());
+            context.setVariable("contactBodyZhCn", template.getContactBodyZhCn());
 
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
-            context.setVariable("titleZhHk", templates.getTitleZhHk());
-            context.setVariable("subjectZhHk", templates.getSubjectZhHk());
-            context.setVariable("mainBodyZhHk", templates.getMainBodyZhHk());
-            context.setVariable("importantInfoIntroZhHk", templates.getImportantInfoIntroZhHk());
-            context.setVariable("importantInfoBodyZhHk", templates.getImportantInfoBodyZhHk());
-            context.setVariable("contactBodyZhHk", templates.getContactBodyZhHk());
+            context.setVariable("titleZhHk", template.getTitleZhHk());
+            context.setVariable("subjectZhHk", template.getSubjectZhHk());
+            context.setVariable("mainBodyZhHk", template.getMainBodyZhHk());
+            context.setVariable("importantInfoIntroZhHk", template.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBodyZhHk", template.getImportantInfoBodyZhHk());
+            context.setVariable("contactBodyZhHk", template.getContactBodyZhHk());
 
         } else {
-            context.setVariable("title", templates.getTitle());
-            context.setVariable("subject", templates.getSubject());
-            context.setVariable("mainBody", templates.getMainBody());
-            context.setVariable("importantInfoIntro", templates.getImportantInfoIntro());
-            context.setVariable("importantInfoBody", templates.getImportantInfoBody());
-            context.setVariable("contactBody", templates.getContactBody());
+            context.setVariable("title", template.getTitle());
+            context.setVariable("subject", template.getSubject());
+            context.setVariable("mainBody", template.getMainBody());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntro());
+            context.setVariable("importantInfoBody", template.getImportantInfoBody());
+            context.setVariable("contactBody", template.getContactBody());
         }
-        String template = templateEngine.process("booking-cancellation-email-template", context);
+        String htmlContent = templateEngine.process("booking-cancellation-email-template", context);
 
         String emailParametersJson = convertContextToJson(context);
 
-        sendEmail(null, templates.getId(), emailParametersJson, attendeeDTO.getEmail(), "Cancel Your Booking", template, inlineImages);
+        String subject = getEmailSubject(template, booking.getLanguage());
+
+        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages);
     }
+
+    @Async
+    public void sendBookingReminderEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
+                                             Bookings booking,
+                                             BookingEvents bookingEvent,
+                                             List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDTOs,
+                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) {
+        Context context = new Context();
+
+        Map<String, String> inlineImages = embedInlineImages();
+
+        EmailTemplates template = emailTemplatesRepository.findBookingReminderEmailTemplate();
+
+        String ticketSummary = buildTicketSummary(ticketsDTOs);
+
+        context.setVariable("attendees", attendeeDTOs);
+
+        context.setVariable("ticketSummary", ticketSummary);
+
+        context.setVariable("bookingId", booking.getRefNo());
+
+        context.setVariable("firstName", attendeeDTO.getFirstName());
+
+        context.setVariable("eventName", bookingEvent.getEvent().getName());
+        context.setVariable("eventDate", bookingEvent.getEventDate());
+        context.setVariable("eventTime", bookingEvent.getEventTime());
+        context.setVariable("bookingEventTotal", bookingEvent.getTotal());
+
+        if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
+            context.setVariable("titleZhCn", template.getTitleZhCn());
+            context.setVariable("subjectZhCn", template.getSubjectZhCn());
+            context.setVariable("mainBodyZhCn", template.getMainBodyZhCn());
+            context.setVariable("importantInfoIntroZhCn", template.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBodyZhCn", template.getImportantInfoBodyZhCn());
+            context.setVariable("contactBodyZhCn", template.getContactBodyZhCn());
+
+        } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
+            context.setVariable("titleZhHk", template.getTitleZhHk());
+            context.setVariable("subjectZhHk", template.getSubjectZhHk());
+            context.setVariable("mainBodyZhHk", template.getMainBodyZhHk());
+            context.setVariable("importantInfoIntroZhHk", template.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBodyZhHk", template.getImportantInfoBodyZhHk());
+            context.setVariable("contactBodyZhHk", template.getContactBodyZhHk());
+
+        } else {
+            context.setVariable("title", template.getTitle());
+            context.setVariable("subject", template.getSubject());
+            context.setVariable("mainBody", template.getMainBody());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntro());
+            context.setVariable("importantInfoBody", template.getImportantInfoBody());
+            context.setVariable("contactBody", template.getContactBody());
+        }
+        String htmlContent = templateEngine.process("booking-reminder-email-template", context);
+
+        String emailParametersJson = convertContextToJson(context);
+
+        String subject = getEmailSubject(template, booking.getLanguage());
+
+        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages);
+    }
+
 
     public String buildTicketSummary(List<CreateBookingRequestDTO.TicketTypeDTO> ticketTypesDTOs) {
         if (ticketTypesDTOs == null || ticketTypesDTOs.isEmpty()) {
@@ -409,7 +478,7 @@ public class EmailService {
             EmailLogs logs = EmailLogs.builder()
                     .userId(userId)
                     .emailParameters(emailParametersJson)
-                    .emailTemplateId(templateId)
+                    .templateId(templateId)
                     .status(Enums.EmailStatus.SUCCESS)
                     .build();
 
@@ -425,7 +494,7 @@ public class EmailService {
             EmailLogs logs = EmailLogs.builder()
                     .userId(userId)
                     .emailParameters(emailParametersJson)
-                    .emailTemplateId(templateId)
+                    .templateId(templateId)
                     .status(Enums.EmailStatus.FAILED)
                     .build();
 
@@ -518,5 +587,14 @@ public class EmailService {
             log.warn("Failed to convert Thymeleaf Context to JSON", e);
             return "{}";
         }
+    }
+
+    private String getEmailSubject(EmailTemplates template, Enums.Language language) {
+        if (language == Enums.Language.CN && template.getSubjectZhCn() != null) {
+            return template.getSubjectZhCn();
+        } else if (language == Enums.Language.HK && template.getSubjectZhHk() != null) {
+            return template.getSubjectZhHk();
+        }
+        return template.getSubject();
     }
 }

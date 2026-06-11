@@ -24,12 +24,13 @@ public class EmailLogs {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "email_template_id")
-    private Long emailTemplateId;
+    @Column(name = "template_id")
+    private Long templateId;
 
     @Column(name = "email_parameters")
     private String emailParameters;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Enums.EmailStatus status;
 
@@ -40,10 +41,6 @@ public class EmailLogs {
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
-
-    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
-    @Column(name = "deleted_at")
-    private ZonedDateTime deletedAt;
 
     @PrePersist
     protected void onCreate() {

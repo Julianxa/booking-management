@@ -67,4 +67,7 @@ public class CreateEmailTemplatesRequestDTO {
 
     @JsonProperty("contact_body_zh_hk")
     private String contactBodyZhHk;
+
+    @JsonProperty("reminder_day_interval")
+    private Integer reminderDayInterval;
 }

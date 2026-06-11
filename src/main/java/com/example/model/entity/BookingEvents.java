@@ -61,6 +61,10 @@ public class BookingEvents {
     private ZonedDateTime verifiedAt;
 
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
+    @Column(name = "reminder_sent_at")
+    private ZonedDateTime reminderSentAt;
+
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
 

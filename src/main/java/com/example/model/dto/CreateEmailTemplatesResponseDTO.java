@@ -54,6 +54,10 @@ public class CreateEmailTemplatesResponseDTO {
     private String contactBodyZhCn;
     @JsonProperty("contact_body_zh_hk")
     private String contactBodyZhHk;
+    @JsonProperty("is_perm")
+    private Boolean isPerm;
+    @JsonProperty("reminder_day_interval")
+    private Integer reminderDayInterval;
     @JsonProperty("created_at")
     private ZonedDateTime createdAt;
     @JsonProperty("updated_at")

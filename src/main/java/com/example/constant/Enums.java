@@ -142,4 +142,8 @@ public class Enums {
     public enum Language {
         CN, HK, EN
     }
+
+    public enum BookingEmailType {
+        BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION, BOOKING_CANCELLATION
+    }
 }

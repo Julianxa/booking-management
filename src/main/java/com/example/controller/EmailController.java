@@ -55,10 +55,11 @@ public class EmailController {
         return ResponseEntity.ok(deleteEmailTemplateResponseDTO);
     }
 
-    @Operation(summary = "Resend an email by bookingEventId")
-    @PostMapping("/emails/booking/{bookingEventId}/confirmation-resend")
-    public ResponseEntity<?> resendConfirmationEmail(@PathVariable String bookingEventId) {
-        ResendConfirmationEmailResponseDTO response = bookingService.reConfirmBooking(bookingEventId);
+    @Operation(summary = "Resend an email by bookingId")
+    @PostMapping("/emails/booking/{bookingId}/resend")
+    public ResponseEntity<?> resendEmail(@PathVariable String bookingId,
+                                         @RequestBody ResendEmailRequestDTO dto) {
+        ResendEmailResponseDTO response = bookingService.resendEmail(bookingId, dto.getEmailType());
         return ResponseEntity.ok(response);
     }
 

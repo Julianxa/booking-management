@@ -56,6 +56,8 @@ public class ErrorCode {
     public static final ErrorDefinition EMAIL_TEMPLATE_NOT_FOUND =
             new ErrorDefinition("BT201", HttpStatus.NOT_FOUND, "Email template not found");
 
+    public static final ErrorDefinition INTERVAL_NOT_FOUND =
+            new ErrorDefinition("BT202", HttpStatus.NOT_FOUND, "Missing interval in Reminder email template");
     public static final ErrorDefinition UNVERIFIED_EMAIL =
             new ErrorDefinition("BT202", HttpStatus.NOT_FOUND, "Email is not verified");
 
