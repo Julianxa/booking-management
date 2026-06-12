@@ -127,6 +127,8 @@ public class EmailService {
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
                 .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", templateRefNo)));
 
+        if (updateEmailTemplatesRequestDTO.getTemplateName() != null && !template.getIsPerm())
+            template.setTemplateName(updateEmailTemplatesRequestDTO.getTemplateName());
         if (updateEmailTemplatesRequestDTO.getTitle() != null)
             template.setTitle(updateEmailTemplatesRequestDTO.getTitle());
         if (updateEmailTemplatesRequestDTO.getTitleZhCn() != null)

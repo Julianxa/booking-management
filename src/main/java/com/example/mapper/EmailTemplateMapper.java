@@ -36,6 +36,7 @@ public interface EmailTemplateMapper {
     @Mapping(target = "updatedAt", source = "template.updatedAt")
     CreateEmailTemplatesResponseDTO toUpdateResponseDTO(EmailTemplates template);
 
+    @Mapping(target = "id", source = "template.refNo")
     CreateEmailTemplatesResponseDTO toCreateResponseDTO(EmailTemplates template);
 
     @Mapping(target = "id", source = "template.refNo")
