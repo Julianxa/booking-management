@@ -12,16 +12,16 @@ import java.util.Optional;
 @Repository
 public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, Long> {
 
-    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-confirmation-email-template'")
+    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-confirmation-email-template' AND et.isPerm = true")
     EmailTemplates findBookingConfirmationEmailTemplate();
 
-    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-order-summary-email-template'")
+    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-order-summary-email-template' AND et.isPerm = true")
     EmailTemplates findBookingOrderSummaryEmailTemplate();
 
-    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-cancellation-email-template'")
+    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-cancellation-email-template' AND et.isPerm = true")
     EmailTemplates findBookingCancellationEmailTemplate();
 
-    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-reminder-email-template'")
+    @Query("SELECT et FROM EmailTemplates et WHERE et.templateName = 'booking-reminder-email-template' AND et.isPerm = true")
     EmailTemplates findBookingReminderEmailTemplate();
 
     Optional<EmailTemplates> findByRefNo(String emailTemplateRefNo);
