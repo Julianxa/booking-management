@@ -274,6 +274,7 @@ public class BookingService {
                 .discount(booking.getDiscount())
                 .finalPaidAmount(booking.getFinalPaidAmount())
                 .currency(booking.getCurrency())
+                .language(booking.getLanguage())
                 .promoCode(giftCertificatePromoCode)
                 .status(booking.getStatus())
                 .createdAt(booking.getCreatedAt())
