@@ -1,14 +1,19 @@
 package com.example.repository;
 
 
+import com.example.constant.Enums;
 import com.example.model.entity.Bookings;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -39,4 +44,17 @@ public interface BookingsRepository extends JpaRepository<Bookings, Long> {
                     WHERE be.event_id = :eventId
                     """, nativeQuery = true)
     Page<Bookings> findBookingsByEventId(@Param("eventId") Long eventId, Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT b
+            FROM Bookings b
+            WHERE b.status = :status
+              AND b.updatedAt < :cutoff
+            ORDER BY b.updatedAt ASC
+            """)
+    List<Bookings> findStaleBookingsForUpdate(
+            @Param("status") Enums.BookingStatus status,
+            @Param("cutoff") ZonedDateTime cutoff,
+            Pageable pageable);
 }
