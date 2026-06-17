@@ -30,8 +30,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -40,6 +41,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.example.constant.Enums.BookingEmailType.PAYMENT_CONFIRMATION;
@@ -74,6 +76,7 @@ public class BookingService {
     private final BookingItemsConverter bookingItemsConverter;
     private final BookingsConverter bookingsConverter;
     private final com.example.service.AuditService auditService;
+    private final PlatformTransactionManager transactionManager;
 
     public record BookingEventProcessingResult(
             CreateBookingRequestDTO.BookingEventDTO responseEventDTO,
@@ -88,38 +91,78 @@ public class BookingService {
     ) {
     }
 
+    private record BookingReservation(
+            Users loggedInUser,
+            Bookings booking,
+            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs
+    ) {
+    }
+
     // ====================== Public API ======================
-    @Transactional
     public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) {
         validateTicketQuantityMatchesAttendees(request);
 
         validateEventThreshold(request);
 
-        Users loggedInUser = userUtils.getLoggedInUser(userSub);
+        BookingReservation reservation = reserveBooking(userSub, request);
 
-        Bookings booking = createEmptyBooking(loggedInUser, request.getLanguage()); // PENDING
+        try {
+            return initiateBookingAndPayment(
+                    reservation.loggedInUser(),
+                    reservation.booking(),
+                    request,
+                    reservation.bookingEventDTOs()); // AWAITING_PAYMENT
+        } catch (RuntimeException e) {
+            failReservedBooking(reservation.booking());
+            throw e;
+        }
+    }
 
-        BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
+    private BookingReservation reserveBooking(String userSub, CreateBookingRequestDTO request) {
+        return executeInBookingTransaction(() -> {
+            Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
-        GiftCertificateApplicationResult gcResult = giftCertificateService.validateAndCalculateGiftCertificate(loggedInUser, request.getBookingEvents(), request.getPromoCode());
+            Bookings booking = createEmptyBooking(loggedInUser, request.getLanguage()); // PENDING
 
-        calculateAndUpdateFinalPaymentAmount(booking, grandTotal, gcResult);
+            BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
 
-        List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
+            GiftCertificateApplicationResult gcResult = giftCertificateService.validateAndCalculateGiftCertificate(loggedInUser, request.getBookingEvents(), request.getPromoCode());
 
-        if(gcResult.certificate() != null)
-            giftCertificateService.preserveGiftCertificate(loggedInUser, booking, gcResult);
+            calculateAndUpdateFinalPaymentAmount(booking, grandTotal, gcResult);
 
-        CreateBookingResponseDTO createBookingResponseDTO = initiateBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs); // AWAITING_PAYMENT
+            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
-        auditService.record("CREATE_BOOKING",
-                Bookings.class.getName(),
-                booking.getId(),
-                loggedInUser != null ? loggedInUser.getId() : null,
-                booking.getRefNo()
-        );
+            if(gcResult.certificate() != null)
+                giftCertificateService.preserveGiftCertificate(loggedInUser, booking, gcResult);
 
-        return createBookingResponseDTO;
+            auditService.record("CREATE_BOOKING",
+                    Bookings.class.getName(),
+                    booking.getId(),
+                    loggedInUser != null ? loggedInUser.getId() : null,
+                    booking.getRefNo()
+            );
+
+            return new BookingReservation(loggedInUser, booking, bookingEventDTOs);
+        });
+    }
+
+    private void failReservedBooking(Bookings booking) {
+        executeInBookingTransaction(() -> {
+            Bookings savedBooking = bookingsRepository.findById(booking.getId())
+                    .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", booking.getId())));
+
+            giftCertificateService.cancelCertificateRedemption(savedBooking);
+
+            savedBooking.setStatus(Enums.BookingStatus.FAILED);
+            bookingsRepository.save(savedBooking);
+
+            return null;
+        });
+    }
+
+    private <T> T executeInBookingTransaction(Supplier<T> action) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        return transactionTemplate.execute(status -> action.get());
     }
 
     @Transactional
@@ -403,7 +446,6 @@ public class BookingService {
                 .sum();
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private Bookings createEmptyBooking(Users loggedInUser, Enums.Language language) {
         Bookings booking = Bookings.builder()
                 .refNo(referenceNoGenerator.generateBookingReference())
@@ -686,7 +728,6 @@ public class BookingService {
         return bookingEventsRepository.save(bookingEvent);
     }
 
-    @Transactional
     private BigDecimal processBookingEvents(Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
 
         BigDecimal grandTotal = BigDecimal.ZERO;
@@ -711,7 +752,6 @@ public class BookingService {
                 .toList();
     }
 
-    @Transactional
     private CreateBookingResponseDTO initiateBookingAndPayment(Users user, Bookings booking,
                                                                  CreateBookingRequestDTO request,
                                                                  List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
