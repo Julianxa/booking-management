@@ -147,12 +147,12 @@ public class GiftCertificateService {
                 .orElseThrow(() -> new GCNotFoundException(
                     String.format("Gift certificate with ID %s referenced by booking not found", booking.getGiftCertificateId())));
 
-        if (giftCertificate.getType() == VALUE) {
+        if (giftCertificate.getType() == VALUE || giftCertificate.getType() == PERSONAL_VALUE) {
             GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(giftCertificate.getId())
                     .orElseThrow(() -> new GCNotFoundException(String.format("Value gift certificate %s not found", giftCertificate.getId())));
 
             return new GiftCertificateApplicationResult(giftCertificate, List.of(), item.getValue());
-        } else if (giftCertificate.getType() == EVENT) {
+        } else if (giftCertificate.getType() == EVENT || giftCertificate.getType() == PERSONAL_EVENT) {
             Long bookingEventId = bookingEventsRepository.findIdByBookingIdAndEventId(booking.getId(), giftCertificate.getEventId())
                     .orElseThrow(() -> new BookingEventNotFoundException("Booking event not found"));
 
