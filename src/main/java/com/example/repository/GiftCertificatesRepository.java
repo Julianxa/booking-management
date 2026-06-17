@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface GiftCertificatesRepository extends JpaRepository<GiftCertificates, String> {
+public interface GiftCertificatesRepository extends JpaRepository<GiftCertificates, Long> {
     @Query("SELECT gc.promoCode FROM GiftCertificates gc WHERE gc.id = :id")
     String findPromoCodeById(Long id);
 
@@ -23,12 +23,14 @@ public interface GiftCertificatesRepository extends JpaRepository<GiftCertificat
     @Query("SELECT gc FROM GiftCertificates gc WHERE gc.promoCode = :promoCode")
     Optional<GiftCertificates> findByPromoCodeWithLock(@Param("promoCode") String promoCode);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT gc FROM GiftCertificates gc WHERE gc.id = :id")
+    Optional<GiftCertificates> findByIdWithLock(@Param("id") Long id);
+
     boolean existsByRefNo(String refNo);
 
     boolean existsByPromoCode(String promoCode);
 
     Page<GiftCertificates> findByEventId(Long eventId, Pageable pageable);
 
-    @Query("SELECT gc FROM GiftCertificates gc WHERE gc.id = :id")
-    Optional<GiftCertificates> findById(Long id);
 }

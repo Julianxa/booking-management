@@ -20,7 +20,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -403,11 +402,18 @@ public class GiftCertificateService {
         return giftCertificateApplicationResult;
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void preserveGiftCertificate(Users user, Bookings booking, GiftCertificateApplicationResult giftCertificateApplicationResult) {
         Long userId = user != null ? user.getId() : null;
 
         GiftCertificates gc = giftCertificateApplicationResult.certificate();
+        if (gc == null) {
+            return;
+        }
+        if (gc.getRemainingQuantity() < 1) {
+            throw new InvalidGCException("The gift certificate already redeemed");
+        }
+
         gc.setRemainingQuantity(gc.getRemainingQuantity() - 1);
         giftCertificatesRepository.save(gc);
 
@@ -433,8 +439,15 @@ public class GiftCertificateService {
             return null;
         }
 
-        GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
+        GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingIdWithLock(booking.getId())
                 .orElseThrow(() -> new GCRedemptionNotFoundException("Gift certificate redemption not found"));
+        if (redemption.getStatus() == SUCCESS) {
+            return getCertificateRedemptionResult(booking);
+        }
+        if (redemption.getStatus() != PENDING) {
+            throw new InvalidGCException("Gift certificate redemption is no longer pending");
+        }
+
         redemption.setStatus(SUCCESS);
         redemption.setRedeemedAt(ZonedDateTime.now());
         giftCertificateRedemptionRepository.save(redemption);
@@ -444,16 +457,18 @@ public class GiftCertificateService {
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void cancelCertificateRedemption(Bookings booking) {
-        GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingId(booking.getId())
+        GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingIdWithLock(booking.getId())
                 .orElse(null);
-        if(redemption != null) {
-            redemption.setStatus(FAILED);
-            giftCertificateRedemptionRepository.save(redemption);
-
-            GiftCertificates gc = giftCertificatesRepository.findById(redemption.getGiftCertificateId())
-                    .orElseThrow(() -> new GCNotFoundException("Gift certificate not found"));
-            gc.setRemainingQuantity(gc.getRemainingQuantity() + 1);
-            giftCertificatesRepository.save(gc);
+        if(redemption == null || redemption.getStatus() != PENDING) {
+            return;
         }
+
+        redemption.setStatus(FAILED);
+        giftCertificateRedemptionRepository.save(redemption);
+
+        GiftCertificates gc = giftCertificatesRepository.findByIdWithLock(redemption.getGiftCertificateId())
+                .orElseThrow(() -> new GCNotFoundException("Gift certificate not found"));
+        gc.setRemainingQuantity(gc.getRemainingQuantity() + redemption.getQuantityUsed());
+        giftCertificatesRepository.save(gc);
     }
 }
