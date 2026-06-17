@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -106,10 +107,10 @@ public class BookingService {
 
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
-        CreateBookingResponseDTO createBookingResponseDTO = initiateBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs); // AWAITING_PAYMENT
-
         if(gcResult.certificate() != null)
             giftCertificateService.preserveGiftCertificate(loggedInUser, booking, gcResult);
+
+        CreateBookingResponseDTO createBookingResponseDTO = initiateBookingAndPayment(loggedInUser, booking, request, bookingEventDTOs); // AWAITING_PAYMENT
 
         auditService.record("CREATE_BOOKING",
                 Bookings.class.getName(),
@@ -402,6 +403,7 @@ public class BookingService {
                 .sum();
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private Bookings createEmptyBooking(Users loggedInUser, Enums.Language language) {
         Bookings booking = Bookings.builder()
                 .refNo(referenceNoGenerator.generateBookingReference())
@@ -412,7 +414,15 @@ public class BookingService {
                 .status(Enums.BookingStatus.PENDING)
                 .language(language)
                 .build();
-        return bookingsRepository.save(booking);
+        booking = bookingsRepository.save(booking);
+
+        auditService.record("PENDING_BOOKING",
+                Bookings.class.getName(),
+                booking.getId(),
+                loggedInUser != null ? loggedInUser.getId() : null,
+                booking.getRefNo()
+        );
+        return booking;
     }
 
     private BookingEventProcessingResult processSingleBookingEvent(Bookings booking,

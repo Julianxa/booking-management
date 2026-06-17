@@ -48,6 +48,9 @@ public class GiftCertificates {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "assignee_user_id")
+    private Long assigneeUserId;
+
     @Column(name = "quantity")
     private Integer quantity;
 

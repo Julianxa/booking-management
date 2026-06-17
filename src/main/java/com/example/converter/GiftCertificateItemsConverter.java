@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.example.constant.Enums.GiftCertificateType.PERSONAL_VALUE;
 import static com.example.constant.Enums.GiftCertificateType.VALUE;
 
 @Component
@@ -20,7 +21,7 @@ public class GiftCertificateItemsConverter {
     private final TicketTypesRepository ticketTypesRepository;
 
     public CreateGiftCertificateRequestDTO.GiftCertificateItemDTO toGiftCertificateItemDTO(GiftCertificateItems item) {
-        if (item.getGiftCertificates().getType() == VALUE) {
+        if (item.getGiftCertificates().getType() == VALUE || item.getGiftCertificates().getType() == PERSONAL_VALUE) {
             return CreateGiftCertificateRequestDTO.GiftCertificateItemDTO.builder()
                     .value(item.getValue())
                     .build();
