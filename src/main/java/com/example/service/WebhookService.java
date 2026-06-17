@@ -152,6 +152,9 @@ public class WebhookService {
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
         updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
+
+        giftCertificateService.cancelCertificateRedemption(booking);
+
         auditService.record("PAYMENT_CANCELLED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
     }
 
@@ -186,6 +189,8 @@ public class WebhookService {
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, null, STRIPE, booking);
         updatePaymentStatus(payment, Enums.PaymentStatus.EXPIRED);
+
+        giftCertificateService.cancelCertificateRedemption(booking);
 
         booking.setStatus(Enums.BookingStatus.EXPIRED);
         bookingsRepository.save(booking);
