@@ -1,7 +1,6 @@
 package com.example.service;
 
 import com.example.constant.Enums;
-import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.email.OfficialTemplateDeletionException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
@@ -25,6 +24,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -477,39 +477,33 @@ public class EmailService {
             }
             javaMailSender.send(message);
 
-            EmailLogs logs = EmailLogs.builder()
-                    .userId(userId)
-                    .emailParameters(emailParametersJson)
-                    .templateId(templateId)
-                    .status(Enums.EmailStatus.SUCCESS)
-                    .build();
-
-            emailLogsRepository.save(logs);
-
-            auditService.record("SEND_EMAIL",
-                    Bookings.class.getName(),
-                    null,
-                    null,
-                    "Email sent successfully"
-            );
-        } catch (MessagingException e) {
-            EmailLogs logs = EmailLogs.builder()
-                    .userId(userId)
-                    .emailParameters(emailParametersJson)
-                    .templateId(templateId)
-                    .status(Enums.EmailStatus.FAILED)
-                    .build();
-
-            emailLogsRepository.save(logs);
-
-            auditService.record("SEND_EMAIL",
-                    Bookings.class.getName(),
-                    null,
-                    null,
-                    "Failed to send email"
-            );
-            throw new EmailProcessException("Failed to create and populate the email messages");
+            recordEmailResult(userId, templateId, emailParametersJson, Enums.EmailStatus.SUCCESS, "Email sent successfully");
+        } catch (MessagingException | MailException e) {
+            recordEmailResult(userId, templateId, emailParametersJson, Enums.EmailStatus.FAILED, "Failed to send email");
+            log.error("Failed to send email to {} with subject '{}'", to, subject, e);
         }
+    }
+
+    private void recordEmailResult(Long userId,
+                                   Long templateId,
+                                   String emailParametersJson,
+                                   Enums.EmailStatus status,
+                                   String auditMessage) {
+        EmailLogs logs = EmailLogs.builder()
+                .userId(userId)
+                .emailParameters(emailParametersJson)
+                .templateId(templateId)
+                .status(status)
+                .build();
+
+        emailLogsRepository.save(logs);
+
+        auditService.record("SEND_EMAIL",
+                Bookings.class.getName(),
+                null,
+                null,
+                auditMessage
+        );
     }
 
     private Map<String, String> embedInlineImages() {
