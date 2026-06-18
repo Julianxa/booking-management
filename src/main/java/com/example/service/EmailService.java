@@ -1,7 +1,6 @@
 package com.example.service;
 
 import com.example.constant.Enums;
-import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.email.OfficialTemplateDeletionException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
@@ -25,6 +24,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -492,24 +492,29 @@ public class EmailService {
                     null,
                     "Email sent successfully"
             );
-        } catch (MessagingException e) {
-            EmailLogs logs = EmailLogs.builder()
-                    .userId(userId)
-                    .emailParameters(emailParametersJson)
-                    .templateId(templateId)
-                    .status(Enums.EmailStatus.FAILED)
-                    .build();
-
-            emailLogsRepository.save(logs);
-
-            auditService.record("SEND_EMAIL",
-                    Bookings.class.getName(),
-                    null,
-                    null,
-                    "Failed to send email"
-            );
-            throw new EmailProcessException("Failed to create and populate the email messages");
+        } catch (MessagingException | MailException e) {
+            recordFailedEmail(userId, templateId, emailParametersJson, to, e);
         }
+    }
+
+    private void recordFailedEmail(Long userId, Long templateId, String emailParametersJson, String to, Exception exception) {
+        log.warn("Failed to send email to {}", to, exception);
+
+        EmailLogs logs = EmailLogs.builder()
+                .userId(userId)
+                .emailParameters(emailParametersJson)
+                .templateId(templateId)
+                .status(Enums.EmailStatus.FAILED)
+                .build();
+
+        emailLogsRepository.save(logs);
+
+        auditService.record("SEND_EMAIL",
+                Bookings.class.getName(),
+                null,
+                null,
+                "Failed to send email"
+        );
     }
 
     private Map<String, String> embedInlineImages() {
