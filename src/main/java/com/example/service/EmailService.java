@@ -1,7 +1,6 @@
 package com.example.service;
 
 import com.example.constant.Enums;
-import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.email.OfficialTemplateDeletionException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
@@ -25,6 +24,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -492,7 +492,9 @@ public class EmailService {
                     null,
                     "Email sent successfully"
             );
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
+            log.error("Failed to send email to {} using template {}", to, templateId, e);
+
             EmailLogs logs = EmailLogs.builder()
                     .userId(userId)
                     .emailParameters(emailParametersJson)
@@ -508,7 +510,6 @@ public class EmailService {
                     null,
                     "Failed to send email"
             );
-            throw new EmailProcessException("Failed to create and populate the email messages");
         }
     }
 

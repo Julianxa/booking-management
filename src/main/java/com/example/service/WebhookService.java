@@ -278,18 +278,30 @@ public class WebhookService {
     // Listener functions
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCreatedEvent(EmailService.BookingCreatedEvent event) {
-        emailService.sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.bookingEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
-        emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        dispatchBookingEmailAfterCommit("booking-created", event.booking(), () -> {
+            emailService.sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.bookingEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
+            emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        });
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingRestoreEvent(EmailService.BookingRestoreEvent event) {
-        emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        dispatchBookingEmailAfterCommit("booking-restored", event.booking(), () ->
+                emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads()));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCancelledEvent(BookingService.BookingCancelledEvent event) {
-        emailService.sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads());
+        dispatchBookingEmailAfterCommit("booking-cancelled", event.booking(), () ->
+                emailService.sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads()));
+    }
+
+    private void dispatchBookingEmailAfterCommit(String eventName, Bookings booking, Runnable emailDispatch) {
+        try {
+            emailDispatch.run();
+        } catch (RuntimeException e) {
+            log.error("Failed to dispatch {} emails for booking {}", eventName, booking.getRefNo(), e);
+        }
     }
 
     void updateBookingStatus(Bookings booking, Enums.BookingStatus status) {
