@@ -29,6 +29,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static com.example.constant.Enums.PaymentPlatform.STRIPE;
 import static com.example.constant.Enums.PaymentStatus.INITIATED;
@@ -204,7 +205,10 @@ public class WebhookService {
 
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
 
-        GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
+        GiftCertificates giftCertificate = Optional.ofNullable(booking.getGiftCertificateId())
+                .map(giftCertificatesRepository::findById)
+                .map(opt -> opt.orElse(null))
+                .orElse(null);
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
 
         GiftCertificateApplicationResult result = giftCertificateService.confirmCertificateRedemption(booking, giftCertificate, user != null ? user.getId() : null);
@@ -220,7 +224,10 @@ public class WebhookService {
     public void confirmOfflinePayment(Users user, Bookings booking) {
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
 
-        GiftCertificates giftCertificate = giftCertificatesRepository.findById(booking.getGiftCertificateId()).orElse(null);
+        GiftCertificates giftCertificate = Optional.ofNullable(booking.getGiftCertificateId())
+                .map(giftCertificatesRepository::findById)
+                .map(opt -> opt.orElse(null))
+                .orElse(null);
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
 
         GiftCertificateApplicationResult result = giftCertificateService.confirmCertificateRedemption(booking, giftCertificate, user != null ? user.getId() : null);
