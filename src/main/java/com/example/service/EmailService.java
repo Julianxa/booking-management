@@ -8,12 +8,9 @@ import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
-import com.example.converter.BookingsConverter;
-import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.EmailLogsRepository;
 import com.example.repository.EmailTemplatesRepository;
 import com.example.repository.TicketTypesRepository;
-import com.example.repository.UsersRepository;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,12 +34,9 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import static com.example.constant.Enums.UserRole.AGENT;
 
@@ -59,9 +53,6 @@ public class EmailService {
     private final AuditService auditService;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final EmailLogsRepository emailLogsRepository;
-    private final BookingsConverter bookingsConverter;
-    private final GiftCertificateService giftCertificateService;
-    private final UsersRepository usersRepository;
     @Value("${app.mail.from}")
     String senderEmail;
 
@@ -547,34 +538,7 @@ public class EmailService {
         }
     }
 
-    public void sendPaymentConfirmationEmailsAsync(Bookings booking) {
-        List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs =
-                bookingsConverter.toBookingEventDTOs(booking, null);
-
-        List<BookingEmailPayload> emailPayloads = bookingEventDTOs.stream()
-                .filter(dto -> dto.getAttendees() != null)
-                .flatMap(dto -> buildDummyPayloadsForOrderSummary(dto.getAttendees()).stream())
-                .toList();
-
-        GiftCertificateApplicationResult giftResult =
-                giftCertificateService.getCertificateRedemptionResult(booking);
-
-        String promoCode = "";
-        List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = Collections.emptyList();
-        if (giftResult != null && giftResult.certificate() != null) {
-            promoCode = Objects.toString(giftResult.certificate().getPromoCode(), "");
-            redeemedTickets = giftResult.redeemedTicketTypes() != null
-                    ? giftResult.redeemedTicketTypes()
-                    : Collections.emptyList();
-        }
-
-        Users user = usersRepository.findById(booking.getUserId()).orElse(null);
-
-        sendPaymentConfirmationEmailsAsync(
-                user, booking, bookingEventDTOs, promoCode, redeemedTickets, emailPayloads);
-    }
-
-    void sendPaymentConfirmationEmailsAsync(Users loggedInUser,
+    public void sendPaymentConfirmationEmailsAsync(Users loggedInUser,
                                             Bookings booking,
                                             List<CreateBookingRequestDTO.BookingEventDTO> eventList,
                                             String promoCode,
@@ -592,15 +556,6 @@ public class EmailService {
                 }
             }
         }
-    }
-
-    private List<BookingEmailPayload> buildDummyPayloadsForOrderSummary(
-            List<CreateBookingRequestDTO.AttendeeDTO> attendees) {
-        List<BookingEmailPayload> emailPayloads = new ArrayList<>();
-        for (CreateBookingRequestDTO.AttendeeDTO attendee : attendees) {
-            emailPayloads.add(new BookingEmailPayload(attendee, null, null, attendees));
-        }
-        return emailPayloads;
     }
 
     void sendBookingOrderSummaryEmailsAsync(Users loggedInUser,
