@@ -611,29 +611,7 @@ public class BookingService {
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
 
         if(emailType == PAYMENT_CONFIRMATION) {
-            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
-
-            List<EmailService.BookingEmailPayload> emailPayloads = new ArrayList<>();
-
-            for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
-                if (bookingEventDTO.getAttendees() != null) {
-                    emailPayloads = buildDummyPayloadsForOrderSummary(bookingEventDTO.getAttendees());
-                }
-            }
-
-            GiftCertificateApplicationResult giftResult = giftCertificateService.getCertificateRedemptionResult(booking);
-            String promoCode = "";
-            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = Collections.emptyList();
-            if (giftResult != null && giftResult.certificate() != null) {
-                promoCode = Objects.toString(giftResult.certificate().getPromoCode(), "");
-                redeemedTickets = giftResult.redeemedTicketTypes() != null
-                        ? giftResult.redeemedTicketTypes()
-                        : Collections.emptyList();
-            }
-            Users user = usersRepository.findById(booking.getUserId()).orElse(null);
-
-            emailService.sendBookingOrderSummaryEmailsAsync(user , booking, bookingEventDTOs,
-                    promoCode, redeemedTickets, emailPayloads);
+            emailService.sendPaymentConfirmationEmailsAsync(booking);
         } else {
             List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
 
@@ -656,17 +634,6 @@ public class BookingService {
                 .bookingId(bookingId)
                 .timestamp(ZonedDateTime.now())
                 .build();
-    }
-
-    private List<EmailService.BookingEmailPayload> buildDummyPayloadsForOrderSummary (
-            List<CreateBookingRequestDTO.AttendeeDTO> attendees) {
-
-        List<EmailService.BookingEmailPayload> emailPayloads = new ArrayList<>();
-        for (CreateBookingRequestDTO.AttendeeDTO attendee : attendees) {
-            emailPayloads.add(new EmailService.BookingEmailPayload(
-                    attendee, null, null, attendees));
-        }
-        return emailPayloads;
     }
 
     private List<EmailService.BookingEmailPayload> buildEmailPayloads(
