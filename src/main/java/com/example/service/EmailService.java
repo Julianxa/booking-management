@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.constant.Enums;
+import com.example.converter.BookingsConverter;
 import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.email.OfficialTemplateDeletionException;
@@ -8,9 +9,11 @@ import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
+import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.EmailLogsRepository;
 import com.example.repository.EmailTemplatesRepository;
 import com.example.repository.TicketTypesRepository;
+import com.example.repository.UsersRepository;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,9 +37,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import static com.example.constant.Enums.UserRole.AGENT;
 
@@ -53,6 +54,10 @@ public class EmailService {
     private final AuditService auditService;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final EmailLogsRepository emailLogsRepository;
+    private final BookingsConverter bookingsConverter;
+    private final GiftCertificateService giftCertificateService;
+    private final UsersRepository usersRepository;
+
     @Value("${app.mail.from}")
     String senderEmail;
 
@@ -205,8 +210,7 @@ public class EmailService {
         return deleteEmailTemplateResponseDTO;
     }
 
-    @Async
-    public void sendBookingOrderSummaryEmail(Users user, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> eventList, String giftCertificatePromoCode, List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTicketList) {
+    public void sendPaymentConfirmationEmail(Users user, Bookings booking, List<CreateBookingRequestDTO.BookingEventDTO> eventList, String giftCertificatePromoCode, List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTicketList) {
         Context context = new Context();
 
         Map<String, String> inlineImages = embedInlineImages();
@@ -257,7 +261,6 @@ public class EmailService {
         sendEmail(user.getId(), template.getId(), emailParametersJson, user.getEmail(), subject, htmlContent, inlineImages);
     }
 
-    @Async
     public void sendBookingConfirmationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
                                              Bookings booking,
                                              BookingEvents bookingEvent,
@@ -319,7 +322,6 @@ public class EmailService {
         sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages);
     }
 
-    @Async
     public void sendBookingCancellationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
                                              Bookings booking,
                                              BookingEvents bookingEvent,
@@ -379,7 +381,6 @@ public class EmailService {
         sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages);
     }
 
-    @Async
     public void sendBookingReminderEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
                                              Bookings booking,
                                              BookingEvents bookingEvent,
@@ -526,6 +527,7 @@ public class EmailService {
         return inlineImages;
     }
 
+    @Async
     public void sendBookingConfirmationEmailsAsync(Bookings booking, List<BookingEmailPayload> payloads) {
         for (BookingEmailPayload payload : payloads) {
             sendBookingConfirmationEmail(
@@ -538,26 +540,43 @@ public class EmailService {
         }
     }
 
-    void sendBookingOrderSummaryEmailsAsync(Users loggedInUser,
-                                            Bookings booking,
-                                            List<CreateBookingRequestDTO.BookingEventDTO> eventList,
-                                            String promoCode,
-                                            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets,
-                                            List<BookingEmailPayload> payloads) {
-        if (loggedInUser != null && loggedInUser.getRole() == AGENT) {
-            sendBookingOrderSummaryEmail(loggedInUser, booking, eventList, promoCode, redeemedTickets);
+    @Async
+    public void sendPaymentConfirmationEmailsAsync(Bookings booking) {
+        List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs =
+                bookingsConverter.toBookingEventDTOs(booking, null);
+        List<EmailService.BookingEmailPayload> emailPayloads = new ArrayList<>();
+        for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
+            if (bookingEventDTO.getAttendees() != null) {
+                emailPayloads.addAll(buildDummyPayloadsForOrderSummary(bookingEventDTO.getAttendees()));
+            }
+        }
+        GiftCertificateApplicationResult giftResult =
+                giftCertificateService.getCertificateRedemptionResult(booking);
+        String promoCode = "";
+        List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = Collections.emptyList();
+        if (giftResult != null && giftResult.certificate() != null) {
+            promoCode = Objects.toString(giftResult.certificate().getPromoCode(), "");
+            redeemedTickets = giftResult.redeemedTicketTypes() != null
+                    ? giftResult.redeemedTicketTypes()
+                    : Collections.emptyList();
+        }
+        Users user = usersRepository.findById(booking.getUserId()).orElse(null);
+
+        if (user != null && user.getRole() == AGENT) {
+            sendPaymentConfirmationEmail(user, booking, bookingEventDTOs, promoCode, redeemedTickets);
         } else {
-            for (BookingEmailPayload payload : payloads) {
+            for (BookingEmailPayload payload : emailPayloads) {
                 if (payload.attendee().getSequence() == 1) {
                     Users guestAttendee = new Users();
                     guestAttendee.setEmail(payload.attendee().getEmail());
-                    guestAttendee.setFirstName(payload.attendee.getFirstName());
-                    sendBookingOrderSummaryEmail(guestAttendee, booking, eventList, promoCode, redeemedTickets);
+                    guestAttendee.setFirstName(payload.attendee().getFirstName());
+                    sendPaymentConfirmationEmail(guestAttendee, booking, bookingEventDTOs, promoCode, redeemedTickets);
                 }
             }
         }
     }
 
+    @Async
     void sendBookingCancellationEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
         for (EmailService.BookingEmailPayload payload : payloads) {
             sendBookingCancellationEmail(
@@ -598,5 +617,16 @@ public class EmailService {
             return template.getSubjectZhHk();
         }
         return template.getSubject();
+    }
+
+    private List<EmailService.BookingEmailPayload> buildDummyPayloadsForOrderSummary (
+            List<CreateBookingRequestDTO.AttendeeDTO> attendees) {
+
+        List<EmailService.BookingEmailPayload> emailPayloads = new ArrayList<>();
+        for (CreateBookingRequestDTO.AttendeeDTO attendee : attendees) {
+            emailPayloads.add(new EmailService.BookingEmailPayload(
+                    attendee, null, null, attendees));
+        }
+        return emailPayloads;
     }
 }

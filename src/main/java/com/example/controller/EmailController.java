@@ -21,6 +21,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+
 @Tag(name = "Emails", description = "Email management APIs")
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -55,11 +57,23 @@ public class EmailController {
         return ResponseEntity.ok(deleteEmailTemplateResponseDTO);
     }
 
-    @Operation(summary = "Resend an email by bookingId")
+    @Operation(summary = "Resend email(s) for a booking",
+            description = "Emails for BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION and BOOKING_CANCELLATION on booking level.")
     @PostMapping("/emails/booking/{bookingId}/resend")
-    public ResponseEntity<?> resendEmail(@PathVariable String bookingId,
-                                         @RequestBody ResendEmailRequestDTO dto) {
-        ResendEmailResponseDTO response = bookingService.resendEmail(bookingId, dto.getEmailType());
+    public ResponseEntity<?> resendBookingEmail(@PathVariable String bookingId,
+                                         @RequestBody ResendBookingEmailRequestDTO dto) {
+        ResendBookingEmailResponseDTO response = bookingService.resendBookingEmail(bookingId, dto.getEmailType());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Resend email(s) for booked event(s) in a specific date and time",
+            description = "Emails for BOOKING_CONFIRMATION on booked event level.")
+    @PostMapping("/emails/event/{eventId}/resend")
+    public ResponseEntity<?> resendEventEmail(@PathVariable String eventId,
+                                                     @RequestParam LocalDate eventDate,
+                                                     @RequestParam String eventTime,
+                                            @RequestBody ResendEventEmailRequestDTO dto) {
+        ResendEventEmailResponseDTO response = bookingService.resendEventEmail(eventId, eventDate, eventTime, dto.getEmailType());
         return ResponseEntity.ok(response);
     }
 

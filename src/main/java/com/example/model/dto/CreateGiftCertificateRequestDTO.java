@@ -43,9 +43,6 @@ public class CreateGiftCertificateRequestDTO {
     @JsonProperty("event_id")
     private String eventId;
 
-    @JsonProperty("assignee_user_id")
-    private String assigneeUserId;
-
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Quantity is required")
     @Positive(message = "Quantity must be greater than 0")

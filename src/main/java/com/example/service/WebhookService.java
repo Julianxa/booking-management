@@ -201,6 +201,11 @@ public class WebhookService {
     // Utility functions
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void confirmOnlinePayment(Users user, Bookings booking, Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
+        if (booking.getStatus() == Enums.BookingStatus.SUCCESS
+                || booking.getStatus() == Enums.BookingStatus.PAID) {
+            return;
+        }
+
         updateSuccessPaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
 
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
@@ -278,7 +283,7 @@ public class WebhookService {
     // Listener functions
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCreatedEvent(EmailService.BookingCreatedEvent event) {
-        emailService.sendBookingOrderSummaryEmailsAsync(event.loggedInUser(), event.booking(), event.bookingEvents(), event.promoCode(), event.redeemedTickets(), event.emailPayloads());
+        emailService.sendPaymentConfirmationEmailsAsync(event.booking());
         emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
     }
 

@@ -11,7 +11,7 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface GiftCertificateMapper {
-    default CreateGiftCertificateResponseDTO toCreateResponseDTO(String userRefNo, String assigneeUserRefNo, String eventId, GiftCertificates giftCertificates, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> giftCertificateItemDTOs) {
+    default CreateGiftCertificateResponseDTO toCreateResponseDTO(String userRefNo, String eventId, GiftCertificates giftCertificates, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> giftCertificateItemDTOs) {
         return CreateGiftCertificateResponseDTO.builder()
                 .promoCode(giftCertificates.getPromoCode())
                 .type(giftCertificates.getType())
@@ -19,7 +19,6 @@ public interface GiftCertificateMapper {
                 .effectiveDate(giftCertificates.getEffectiveDate())
                 .eventId(eventId)
                 .userId(userRefNo)
-                .assigneeUserId(assigneeUserRefNo)
                 .quantity(giftCertificates.getQuantity())
                 .remainingQuantity(giftCertificates.getRemainingQuantity())
                 .messageToRecipient(giftCertificates.getMessageToRecipient())

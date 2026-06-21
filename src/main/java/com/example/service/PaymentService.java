@@ -150,7 +150,7 @@ public class PaymentService {
                     .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
             RefundCreateParams.Builder refundParams = RefundCreateParams.builder()
                     .setPaymentIntent(payment.getPaymentIntentId())
-                    .setAmount(payment.getAmount().longValue() * 100)
+                    .setAmount(payment.getAmount().multiply(BigDecimal.valueOf(100)).longValueExact())
                     .putMetadata("bookingRefNo", booking.getRefNo())
                     .putMetadata("paymentIntentId", payment.getPaymentIntentId());
             try {

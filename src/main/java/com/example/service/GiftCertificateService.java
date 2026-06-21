@@ -57,12 +57,7 @@ public class GiftCertificateService {
         Users user = usersRepository.findByUserSub(userSub)
                 .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userSub)));
 
-        Long assigneeUserId = null;
         if(dto.getType() == PERSONAL_EVENT || dto.getType() == PERSONAL_VALUE) {
-            Users assigneeUser = usersRepository.findByRefNo(dto.getAssigneeUserId())
-                    .orElseThrow(() -> new UserNotFoundException(String.format("Assignee user %s not found", dto.getAssigneeUserId())));
-            assigneeUserId = assigneeUser.getId();
-
             if(dto.getQuantity() != 1) {
                 throw new InvalidGCException("Quantity must be 1 for this type of gift certificate");
             }
@@ -78,7 +73,7 @@ public class GiftCertificateService {
             eventId = eventsRepository.findIdByRefNo(dto.getEventId()).orElse(null);
         }
         
-        GiftCertificates gc = buildGiftCertificate(user.getId(), assigneeUserId, eventId, dto);
+        GiftCertificates gc = buildGiftCertificate(user.getId(), eventId, dto);
 
         if (giftCertificatesRepository.existsByPromoCode(gc.getPromoCode())) {
             throw new GCPromoCodeExistsException(String.format("Promotion code %s already exists", gc.getPromoCode()));
@@ -99,7 +94,7 @@ public class GiftCertificateService {
                 "Create gift certificate successfully"
         );
 
-        return buildResponse(gc, user.getRefNo(), dto.getAssigneeUserId(), dto.getEventId());
+        return buildResponse(gc, user.getRefNo(), dto.getEventId());
     }
 
     @Transactional
@@ -168,13 +163,12 @@ public class GiftCertificateService {
         }
     }
 
-    private GiftCertificates buildGiftCertificate(Long userId, Long assigneeUserId, Long eventId, CreateGiftCertificateRequestDTO dto) {
+    private GiftCertificates buildGiftCertificate(Long userId, Long eventId, CreateGiftCertificateRequestDTO dto) {
         return GiftCertificates.builder()
                 .refNo(referenceNoGenerator.generateGiftCertificateReference())
                 .promoCode(dto.getPromoCode())
                 .eventId(eventId)
                 .userId(userId)
-                .assigneeUserId(assigneeUserId)
                 .type(dto.getType())
                 .effectiveDate(dto.getEffectiveDate())
                 .expiryDate(dto.getExpiryDate())
@@ -221,11 +215,10 @@ public class GiftCertificateService {
                 .orElseThrow(() -> new GCNotFoundException(String.format("Gift certificate with promotion code %s not found", promoCode)));
 
         String userRefNo = usersRepository.findRefNoById(gc.getUserId()).orElse(null);
-        String assigneeUserRefNo = usersRepository.findRefNoById(gc.getAssigneeUserId()).orElse(null);
         String eventRefNo = eventsRepository.findRefNoById(gc.getEventId()).orElse(null);
 
         CreateGiftCertificateResponseDTO response = giftCertificateMapper.toCreateResponseDTO(
-                userRefNo, assigneeUserRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
+                userRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
 
         response.setStatus(findStatusByCertificate(gc));
         return response;
@@ -247,13 +240,11 @@ public class GiftCertificateService {
                 .map(giftCertificate -> {
                     String userRefNo = usersRepository.findRefNoById(giftCertificate.getUserId())
                             .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", giftCertificate.getUserId())));
-                    String assigneeUserRefNo = usersRepository.findRefNoById(giftCertificate.getAssigneeUserId())
-                            .orElse(null);
 
                     String evtRefNo = eventsRepository.findRefNoById(giftCertificate.getEventId())
                             .orElse(null);
 
-                    return buildResponse(giftCertificate, userRefNo, assigneeUserRefNo,evtRefNo);
+                    return buildResponse(giftCertificate, userRefNo,evtRefNo);
                 })
                 .toList();
 
@@ -281,7 +272,6 @@ public class GiftCertificateService {
         if (gc.getRemainingQuantity() < 1) throw new InvalidGCException("The gift certificate already redeemed");
         if (gc.isExpired()) throw new InvalidGCException("The gift certificate has expired");
         if (!gc.isEffective()) throw new InvalidGCException("This gift certificate is not effective");
-        if (gc.getAssigneeUserId() != null && !gc.getAssigneeUserId().equals(userId)) throw new InvalidGCException("This gift certificate is not assigned to the user");
         return gc;
     }
 
@@ -331,9 +321,9 @@ public class GiftCertificateService {
         return new GiftCertificateApplicationResult(gc, redeemedTickets, discount);
     }
 
-    private CreateGiftCertificateResponseDTO buildResponse(GiftCertificates gc, String userRefNo, String assigneeUserRefNo, String eventRefNo) {
+    private CreateGiftCertificateResponseDTO buildResponse(GiftCertificates gc, String userRefNo, String eventRefNo) {
         CreateGiftCertificateResponseDTO response = giftCertificateMapper.toCreateResponseDTO(
-                userRefNo, assigneeUserRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
+                userRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
         response.setStatus(findStatusByCertificate(gc));
         return response;
     }
@@ -393,7 +383,7 @@ public class GiftCertificateService {
         GiftCertificates gc = validateGiftCertificateForBooking(promoCode, userId);
 
         GiftCertificateApplicationResult giftCertificateApplicationResult;
-        if (gc.getType() == VALUE) {
+        if (gc.getType() == VALUE || gc.getType() == PERSONAL_VALUE) {
             giftCertificateApplicationResult = applyValueType(gc);
         } else {
             giftCertificateApplicationResult = applyEventType(gc, bookingEventDTOs);

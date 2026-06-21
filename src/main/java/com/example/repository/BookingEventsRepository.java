@@ -36,6 +36,21 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
 
     BookingEvents findByBooking_RefNoAndEvent_RefNoAndEventDateAndEventTime(String bookingRefNo, String eventRefNo, LocalDate eventDate, String eventTime);
 
+    @Query("""
+    SELECT be FROM BookingEvents be
+    JOIN FETCH be.booking b
+    JOIN FETCH be.event e
+    WHERE e.refNo = :eventRefNo
+      AND be.eventDate = :eventDate
+      AND be.eventTime = :eventTime
+      AND be.cancelledAt IS NULL
+      AND be.status IN ('AVAILABLE')
+    """)
+    List<BookingEvents> findActiveByEventRefNoAndEventDateAndEventTime(
+            @Param("eventRefNo") String eventRefNo,
+            @Param("eventDate") LocalDate eventDate,
+            @Param("eventTime") String eventTime);
+
     @Query(value = """
             SELECT ba.*
             FROM booking_events be

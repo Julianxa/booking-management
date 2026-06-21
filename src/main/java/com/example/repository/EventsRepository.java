@@ -40,7 +40,7 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
                OR LOWER(e.category) LIKE LOWER(CONCAT('%', :search, '%'))
                OR LOWER(e.description) LIKE LOWER(CONCAT('%', :search, '%')))
             """)
-    Page<Events> findBySearchTermWithPublishFilter(@Param("publishedOnly") Boolean isPublishedOnly, @Param("search") String search, Pageable pageable);
+    Page<Events> findBySearchTermWithPublishFilter(@Param("isPublishedOnly") Boolean isPublishedOnly, @Param("search") String search, Pageable pageable);
 
     @Query("""
             SELECT e

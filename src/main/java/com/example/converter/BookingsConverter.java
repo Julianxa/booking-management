@@ -45,12 +45,9 @@ public class BookingsConverter {
 
     public List<CreateBookingRequestDTO.BookingEventDTO> toBookingEventDTOs(Bookings booking, String eventRefNo) {
         List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
-        List<CreateBookingRequestDTO.AttendeeDTO> attendees = bookingAttendeesRepository.findAttendeesByBookingId(booking.getId());
-
         Map<Long, List<BookingItems>> itemsByEvent = bookingEventsConverter.toBookingItemsByEventMap(bookingEvents);
-
         return bookingEvents.stream()
-                .map(bookingEvent -> buildBookingEventDTO(booking, eventRefNo, bookingEvent, attendees, itemsByEvent))
+                .map(bookingEvent -> buildBookingEventDTO(booking, eventRefNo, bookingEvent, itemsByEvent))
                 .toList();
     }
 
@@ -58,8 +55,9 @@ public class BookingsConverter {
             Bookings booking,
             String eventRefNo,
             BookingEvents bookingEvent,
-            List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs,
             Map<Long, List<BookingItems>> itemsByEvent) {
+        List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs =
+                bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
 
         List<BookingItems> bookingItems = itemsByEvent.getOrDefault(bookingEvent.getId(), List.of());
 

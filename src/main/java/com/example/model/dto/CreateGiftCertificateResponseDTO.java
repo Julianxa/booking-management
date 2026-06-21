@@ -28,8 +28,6 @@ public class CreateGiftCertificateResponseDTO {
     private String eventId;
     @JsonProperty("user_id")
     private String userId;
-    @JsonProperty("assignee_user_id")
-    private String assigneeUserId;
     @JsonProperty("quantity")
     private Integer quantity;
     @JsonProperty("remaining_quantity")

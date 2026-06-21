@@ -61,7 +61,6 @@ public class ReminderScheduler {
         sendRemindersForTomorrow();
     }
 
-    @Transactional
     private void sendRemindersForTomorrow() {
         Integer reminderInterval = templatesRepository
                 .findReminderDayInterval()
