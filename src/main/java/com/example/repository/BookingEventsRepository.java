@@ -124,13 +124,6 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
             @Param("status") String status,
             @Param("cancelledAt") ZonedDateTime cancelledAt);
 
-    @Query("SELECT be FROM BookingEvents be " +
-            "LEFT JOIN FETCH be.event e " +
-            "WHERE be.eventDate = :tomorrow " +
-            "AND be.status = 'AVAILABLE' " +
-            "AND be.reminderSentAt IS NULL")
-    List<BookingEvents> findUpcomingEventsForReminder(@Param("tomorrow") LocalDate tomorrow);
-
     @Query(value = """
             SELECT be.id
             FROM booking_events be

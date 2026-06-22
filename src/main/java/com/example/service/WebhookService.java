@@ -54,6 +54,7 @@ public class WebhookService {
     private final DateUtils dateUtils;
     private final StatusTransitioner statusTransitioner;
     private final StripeUtils stripeUtils;
+    private final EventSlotReservationService eventSlotReservationService;
 
     // Webhook services
     @Transactional
@@ -93,6 +94,7 @@ public class WebhookService {
                 .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment %s not found", paymentIntentId)));
         Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
         updateRefundStatus(r, Enums.RefundStatus.SUCCESS);
+        eventSlotReservationService.releaseCapacityForBooking(booking);
         updateBookingStatus(booking, Enums.BookingStatus.REFUNDED);
         updatePaymentStatus(payment, Enums.PaymentStatus.REFUNDED);
         auditService.record("REFUND_UPDATED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + r.getId() + ", paymentIntent:" + paymentIntentId);
@@ -139,6 +141,8 @@ public class WebhookService {
 
         giftCertificateService.cancelCertificateRedemption(booking);
 
+        eventSlotReservationService.releaseCapacityForBooking(booking);
+
         booking.setStatus(Enums.BookingStatus.FAILED);
         bookingsRepository.save(booking);
         auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
@@ -155,6 +159,11 @@ public class WebhookService {
         updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
 
         giftCertificateService.cancelCertificateRedemption(booking);
+
+        eventSlotReservationService.releaseCapacityForBooking(booking);
+
+        booking.setStatus(Enums.BookingStatus.FAILED);
+        bookingsRepository.save(booking);
 
         auditService.record("PAYMENT_CANCELLED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
     }
@@ -192,6 +201,8 @@ public class WebhookService {
         updatePaymentStatus(payment, Enums.PaymentStatus.EXPIRED);
 
         giftCertificateService.cancelCertificateRedemption(booking);
+
+        eventSlotReservationService.releaseCapacityForBooking(booking);
 
         booking.setStatus(Enums.BookingStatus.EXPIRED);
         bookingsRepository.save(booking);

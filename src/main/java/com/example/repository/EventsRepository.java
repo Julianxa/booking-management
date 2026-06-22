@@ -24,6 +24,9 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
     @Query("SELECT e FROM Events e WHERE e.refNo = :refNo")
     Optional<Events> findByRefNo(String refNo);
 
+    @Query("SELECT e FROM Events e WHERE e.refNo = :refNo AND e.deletedAt IS NULL AND e.isPublish = true")
+    Optional<Events> findByRefNoAndOpenStatusAndPublished(@Param("refNo") String refNo);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Events e WHERE e.refNo = :refNo AND e.deletedAt IS NULL AND e.isPublish = true")
     Optional<Events> findByRefNoAndOpenStatusAndPublishedForUpdate(@Param("refNo") String refNo);
@@ -108,24 +111,6 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
           AND b.status IN ('PENDING', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
         """, nativeQuery = true)
     EventBookingSummary getBookingSummary(
-            @Param("eventId") Long eventId,
-            @Param("filterDate") LocalDate filterDate,
-            @Param("eventTime") String eventTime);
-
-    @Query(value = """
-        SELECT
-            COALESCE(SUM(bi.quantity), 0) AS total_booked,
-            COALESCE(SUM(CASE WHEN be.status = 'CHECKED_IN' THEN bi.quantity ELSE 0 END), 0) AS total_used
-        FROM booking_events be
-        INNER JOIN bookings b ON be.booking_id = b.id
-        LEFT JOIN booking_items bi ON be.id = bi.booking_event_id
-        WHERE be.event_id = :eventId
-          AND be.event_date = :filterDate
-          AND be.event_time = :eventTime
-          AND b.status IN ('PENDING', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
-        FOR UPDATE
-        """, nativeQuery = true)
-    EventBookingSummary getLockedBookingSummary(
             @Param("eventId") Long eventId,
             @Param("filterDate") LocalDate filterDate,
             @Param("eventTime") String eventTime);

@@ -66,6 +66,7 @@ public class EventService {
     private final DateUtils dateUtils;
     private final DataUtils dataUtils;
     private final BookingItemsConverter bookingItemsConverter;
+    private final EventSlotReservationService eventSlotReservationService;
 
     // ====================== Public API ======================
     @Transactional
@@ -667,13 +668,15 @@ public class EventService {
         List<EventDailySlot> slots = eventsRepository.getAllEventsScheduleSlots(true, filterDate, dayValue);
 
         return slots.stream().map(slot -> {
+            int totalBooked = eventSlotReservationService.getReservedQty(
+                    slot.eventId(), filterDate, slot.eventTime());
             EventBookingSummary summary = eventsRepository.getBookingSummary(
                     slot.eventId(), filterDate, slot.eventTime()
             );
 
             int maxCap = slot.maxCapacity() != null ? slot.maxCapacity().intValue() : 0;
 
-            BigDecimal bookingPct = dataUtils.calculatePercentage(summary.totalBooked().intValue(), maxCap);
+            BigDecimal bookingPct = dataUtils.calculatePercentage(totalBooked, maxCap);
             BigDecimal checkInPct = dataUtils.calculatePercentage(summary.totalCheckedIn().intValue(), maxCap);
 
             return new EventBookingStats(
@@ -683,7 +686,7 @@ public class EventService {
                     slot.scheduleDay(),
                     slot.eventTime(),
                     maxCap,
-                    summary.totalBooked().intValue(),
+                    totalBooked,
                     summary.totalCheckedIn().intValue(),
                     bookingPct,
                     checkInPct
@@ -700,13 +703,15 @@ public class EventService {
         List<EventDailySlot> slots = eventsRepository.getEventScheduleSlots(isPublishedOnly, eventId, filterDate, dayValue);
 
         return slots.stream().map(slot -> {
+            int totalBooked = eventSlotReservationService.getReservedQty(
+                    slot.eventId(), filterDate, slot.eventTime());
             EventBookingSummary summary = eventsRepository.getBookingSummary(
                     slot.eventId(), filterDate, slot.eventTime()
             );
 
             int maxCap = slot.maxCapacity() != null ? slot.maxCapacity().intValue() : 0;
 
-            BigDecimal bookingPct = dataUtils.calculatePercentage(summary.totalBooked().intValue(), maxCap);
+            BigDecimal bookingPct = dataUtils.calculatePercentage(totalBooked, maxCap);
             BigDecimal checkInPct = dataUtils.calculatePercentage(summary.totalCheckedIn().intValue(), maxCap);
 
             return new EventBookingStats(
@@ -716,7 +721,7 @@ public class EventService {
                     slot.scheduleDay(),
                     slot.eventTime(),
                     maxCap,
-                    summary.totalBooked().intValue(),
+                    totalBooked,
                     summary.totalCheckedIn().intValue(),
                     bookingPct,
                     checkInPct

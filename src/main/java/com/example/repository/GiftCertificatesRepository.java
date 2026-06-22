@@ -14,9 +14,6 @@ import java.util.Optional;
 
 @Repository
 public interface GiftCertificatesRepository extends JpaRepository<GiftCertificates, Long> {
-    @Query("SELECT gc.promoCode FROM GiftCertificates gc WHERE gc.id = :id")
-    String findPromoCodeById(Long id);
-
     Optional<GiftCertificates> findByPromoCode(String promoCode);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

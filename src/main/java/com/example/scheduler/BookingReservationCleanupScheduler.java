@@ -3,6 +3,7 @@ package com.example.scheduler;
 import com.example.constant.Enums;
 import com.example.model.entity.Bookings;
 import com.example.repository.BookingsRepository;
+import com.example.service.EventSlotReservationService;
 import com.example.service.GiftCertificateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ import java.util.List;
 public class BookingReservationCleanupScheduler {
     private final BookingsRepository bookingsRepository;
     private final GiftCertificateService giftCertificateService;
+    private final EventSlotReservationService eventSlotReservationService;
 
     @Value("${app.booking.cleanup.pending-timeout-minutes:5}")
     private long pendingTimeoutMinutes;
@@ -70,6 +72,7 @@ public class BookingReservationCleanupScheduler {
                 PageRequest.of(0, batchSize));
 
         for (Bookings booking : staleBookings) {
+            eventSlotReservationService.releaseCapacityForBooking(booking);
             giftCertificateService.cancelCertificateRedemption(booking);
             booking.setStatus(terminalStatus);
             bookingsRepository.save(booking);

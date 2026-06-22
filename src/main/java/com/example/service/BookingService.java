@@ -4,7 +4,6 @@ import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
 import com.example.converter.BookingsConverter;
 import com.example.exception.booking.*;
-import com.example.exception.event.EventCapacityExceededException;
 import com.example.exception.event.EventDayScheduleNotFoundException;
 import com.example.exception.event.EventNotFoundException;
 import com.example.exception.general.MissingRequiredFieldException;
@@ -15,7 +14,6 @@ import com.example.mapper.BookingEventsMapper;
 import com.example.mapper.BookingMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
-import com.example.model.record.EventBookingSummary;
 import com.example.model.record.EventTimeSlotException;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
@@ -77,6 +75,7 @@ public class BookingService {
     private final BookingsConverter bookingsConverter;
     private final com.example.service.AuditService auditService;
     private final PlatformTransactionManager transactionManager;
+    private final EventSlotReservationService eventSlotReservationService;
 
     public record BookingEventProcessingResult(
             CreateBookingRequestDTO.BookingEventDTO responseEventDTO,
@@ -150,6 +149,8 @@ public class BookingService {
         executeInBookingTransaction(() -> {
             Bookings savedBooking = bookingsRepository.findById(booking.getId())
                     .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", booking.getId())));
+
+            eventSlotReservationService.releaseCapacityForBooking(savedBooking);
 
             giftCertificateService.cancelCertificateRedemption(savedBooking);
 
@@ -471,7 +472,7 @@ public class BookingService {
                                                                    CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
 
         // 1. Fetch and validate Event
-        Events event = eventsRepository.findByRefNoAndOpenStatusAndPublishedForUpdate(bookingEventDTO.getEvent().getId())
+        Events event = eventsRepository.findByRefNoAndOpenStatusAndPublished(bookingEventDTO.getEvent().getId())
                 .orElseThrow(() -> new EventNotFoundException(
                         String.format("Active Event %s not found", bookingEventDTO.getEvent().getId())));
 
@@ -499,8 +500,8 @@ public class BookingService {
                         String.format("Schedule not found for event %s on %s at %s",
                                 event.getName(), dayValue, bookingEventDTO.getEvent().getEventTime())));
 
-        // 5. Capacity Check
-        checkEventTimeSlotQuotaWithLock(event, bookingEventDTO);
+        // 5. Atomic capacity reservation (per timeslot counter row)
+        reserveEventSlotCapacity(event, bookingEventDTO);
 
         // 6. Create Booking Event
         BookingEvents bookingEvent = registerBookingEvent(booking, event, bookingEventDTO);
@@ -573,37 +574,18 @@ public class BookingService {
         bookingAttendeesRepository.save(attendee);
     }
 
-    private void checkEventTimeSlotQuotaWithLock(Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
+    private void reserveEventSlotCapacity(Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
         int requestedParticipants = calculateTotalParticipants(bookingEventDTO.getTickets());
-
         if (requestedParticipants == 0) {
             return;
         }
-
-        EventBookingSummary summary = eventsRepository.getLockedBookingSummary(
+        eventSlotReservationService.reserveCapacity(
                 event.getId(),
                 bookingEventDTO.getEvent().getEventDate(),
-                bookingEventDTO.getEvent().getEventTime());
-
-        int totalBooked = summary.totalBooked() != null ? summary.totalBooked().intValue() : 0;
-
-        if (totalBooked + requestedParticipants > event.getMaxCapacity()) {
-            String errorMsg = String.format("Insufficient capacity for %s on %s at %s. Requested: %d, Available: %d", 
-                event.getName(), 
-                bookingEventDTO.getEvent().getEventDate(), 
                 bookingEventDTO.getEvent().getEventTime(),
                 requestedParticipants,
-                event.getMaxCapacity() - totalBooked);
-            
-            log.warn("Capacity exceeded: {}", errorMsg);
-            throw new EventCapacityExceededException(errorMsg);
-        }
-        
-        log.debug("Capacity check passed for event: {} on {}, booked: {}/{}", 
-            event.getName(), 
-            bookingEventDTO.getEvent().getEventDate(),
-            totalBooked + requestedParticipants,
-            event.getMaxCapacity());
+                event.getMaxCapacity(),
+                event.getName());
     }
 
     public ResendEventEmailResponseDTO resendEventEmail(
@@ -790,15 +772,25 @@ public class BookingService {
     private void updateEventStatusAndPublishEvent(BookingEvents event, Enums.BookingEventStatus newStatus,
                                                   Users user, Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
 
+        Enums.BookingEventStatus previousStatus = event.getStatus();
+        Events parentEvent = event.getEvent();
+
         event.setStatus(newStatus);
         event.setUpdatedAt(ZonedDateTime.now());
 
         if (newStatus == AVAILABLE) {
+            if (previousStatus == CANCELLED) {
+                eventSlotReservationService.reserveCapacityForBookingEvent(
+                        event, parentEvent.getMaxCapacity(), parentEvent.getName());
+            }
             event.setCancelledAt(null);
             bookingEventsRepository.save(event);
             applicationEventPublisher.publishEvent(new EmailService.BookingRestoreEvent(user, booking, payloads));
         }
         else if (newStatus == CANCELLED) {
+            if (previousStatus != CANCELLED) {
+                eventSlotReservationService.releaseCapacityForBookingEvent(event);
+            }
             event.setCancelledAt(ZonedDateTime.now());
             bookingEventsRepository.save(event);
             applicationEventPublisher.publishEvent(new BookingCancelledEvent(user, booking, payloads));

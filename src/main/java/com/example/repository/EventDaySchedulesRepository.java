@@ -23,8 +23,6 @@ public interface EventDaySchedulesRepository extends JpaRepository<EventDaySched
             @Param("startTime") String startTime
     );
 
-    List<EventDaySchedules> findByIdEventIdAndIdDay(Long eventId, String day);
-
     @Query("""
             SELECT s FROM EventDaySchedules s 
             WHERE s.id.eventId = :eventId 
