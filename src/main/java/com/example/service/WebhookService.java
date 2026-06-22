@@ -130,21 +130,25 @@ public class WebhookService {
     @Transactional
     public void processFailedPayment(Event event) {
         PaymentIntent intent = stripeUtils.getPaymentIntentFromEvent(event);
-        String sessionId = intent.getPaymentDetails().getOrderReference();
+        String sessionId = intent.getPaymentDetails() != null
+                ? intent.getPaymentDetails().getOrderReference()
+                : null;
 
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
 
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
+        if (shouldIgnorePaymentFailureWebhook(booking, payment)) {
+            log.info("Ignoring payment_intent.payment_failed for booking {} (status={}, payment={})",
+                    booking.getRefNo(), booking.getStatus(), payment.getPaymentStatus());
+            return;
+        }
+
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
-
         giftCertificateService.cancelCertificateRedemption(booking);
-
         eventSlotReservationService.releaseCapacityForBooking(booking);
-
-        booking.setStatus(Enums.BookingStatus.FAILED);
-        bookingsRepository.save(booking);
+        updateBookingStatus(booking, Enums.BookingStatus.FAILED);
         auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
     }
 
@@ -154,44 +158,39 @@ public class WebhookService {
         String bookingRefNo = session.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException("Booking " + bookingRefNo + " not found"));
-        if (isTerminalBookingState(booking.getStatus())) {
-            log.warn("Ignoring async payment failed for terminal booking {}", booking.getRefNo());
-            return;
-        }
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(
                 session.getId(), session.getPaymentIntent(), STRIPE, booking);
+        if (shouldIgnorePaymentFailureWebhook(booking, payment)) {
+            log.info("Ignoring checkout.session.async_payment_failed for booking {} (status={}, payment={})",
+                    booking.getRefNo(), booking.getStatus(), payment.getPaymentStatus());
+            return;
+        }
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
         giftCertificateService.cancelCertificateRedemption(booking);
         eventSlotReservationService.releaseCapacityForBooking(booking);
         updateBookingStatus(booking, Enums.BookingStatus.FAILED);
     }
 
-    private boolean isTerminalBookingState(Enums.BookingStatus status) {
-        if (status == null) {
-            return false;
-        }
-        return switch (status) {
-            case SUCCESS, PAID, REFUNDED, CANCELLED, FAILED, EXPIRED -> true;
-            default -> false;
-        };
-    }
-
     @Transactional
     public void processPaymentIntentCanceled(Event event) {
         PaymentIntent intent = stripeUtils.getPaymentIntentFromEvent(event);
-        String sessionId = intent.getPaymentDetails().getOrderReference();
+        String sessionId = intent.getPaymentDetails() != null
+                ? intent.getPaymentDetails().getOrderReference()
+                : null;
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
+        if (shouldIgnorePaymentFailureWebhook(booking, payment)) {
+            log.info("Ignoring payment_intent.canceled for booking {} (status={}, payment={})",
+                    booking.getRefNo(), booking.getStatus(), payment.getPaymentStatus());
+            return;
+        }
+
         updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
-
         giftCertificateService.cancelCertificateRedemption(booking);
-
         eventSlotReservationService.releaseCapacityForBooking(booking);
-
-        booking.setStatus(Enums.BookingStatus.FAILED);
-        bookingsRepository.save(booking);
+        updateBookingStatus(booking, Enums.BookingStatus.FAILED);
 
         auditService.record("PAYMENT_CANCELLED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
     }
@@ -250,14 +249,17 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, null, STRIPE, booking);
+
+        if (shouldIgnorePaymentFailureWebhook(booking, payment)) {
+            log.info("Ignoring checkout.session.expired for booking {} (status={}, payment={})",
+                    booking.getRefNo(), booking.getStatus(), payment.getPaymentStatus());
+            return;
+        }
+
         updatePaymentStatus(payment, Enums.PaymentStatus.EXPIRED);
-
         giftCertificateService.cancelCertificateRedemption(booking);
-
         eventSlotReservationService.releaseCapacityForBooking(booking);
-
-        booking.setStatus(Enums.BookingStatus.EXPIRED);
-        bookingsRepository.save(booking);
+        updateBookingStatus(booking, Enums.BookingStatus.EXPIRED);
         auditService.record("PAYMENT_EXPIRED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "sessionId:" + sessionId);
     }
 
@@ -392,6 +394,24 @@ public class WebhookService {
                 refundsRepository.save(refund);
             }
         }
+    }
+
+    private boolean isTerminalBookingState(Enums.BookingStatus status) {
+        if (status == null) {
+            return false;
+        }
+        return switch (status) {
+            case SUCCESS, PAID, REFUNDED, CANCELLED, FAILED, EXPIRED -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isPaymentAlreadySucceeded(Payments payment) {
+        return payment != null && payment.getPaymentStatus() == Enums.PaymentStatus.SUCCEEDED;
+    }
+
+    private boolean shouldIgnorePaymentFailureWebhook(Bookings booking, Payments payment) {
+        return isTerminalBookingState(booking.getStatus()) || isPaymentAlreadySucceeded(payment);
     }
 
     private String resolvePaymentMethod(Session session) {
