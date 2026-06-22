@@ -1,7 +1,6 @@
 package com.example.service;
 
 import com.example.constant.Enums;
-import com.example.converter.BookingsConverter;
 import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.email.OfficialTemplateDeletionException;
@@ -9,12 +8,9 @@ import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
-import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.EmailLogsRepository;
 import com.example.repository.EmailTemplatesRepository;
-import com.example.repository.BookingEventsRepository;
 import com.example.repository.TicketTypesRepository;
-import com.example.repository.UsersRepository;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +27,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
@@ -40,7 +35,6 @@ import org.thymeleaf.context.Context;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import static com.example.constant.Enums.UserRole.AGENT;
 
 @Slf4j
 @Service
@@ -55,10 +49,6 @@ public class EmailService {
     private final AuditService auditService;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final EmailLogsRepository emailLogsRepository;
-    private final BookingsConverter bookingsConverter;
-    private final GiftCertificateService giftCertificateService;
-    private final UsersRepository usersRepository;
-    private final BookingEventsRepository bookingEventsRepository;
 
     @Value("${app.mail.from}")
     String senderEmail;
@@ -529,80 +519,6 @@ public class EmailService {
         return inlineImages;
     }
 
-    @Async
-    public void sendBookingConfirmationEmailsAsync(Bookings booking, List<BookingEmailPayload> payloads) {
-        for (BookingEmailPayload payload : payloads) {
-            BookingEvents bookingEvent = loadBookingEventForEmail(payload.bookingEvent());
-            sendBookingConfirmationEmail(
-                    payload.attendee(),
-                    booking,
-                    bookingEvent,
-                    payload.tickets(),
-                    payload.allAttendees()
-            );
-        }
-    }
-
-    @Async
-    public void sendPaymentConfirmationEmailsAsync(Bookings booking) {
-        List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs =
-                bookingsConverter.toBookingEventDTOs(booking, null);
-        List<EmailService.BookingEmailPayload> emailPayloads = new ArrayList<>();
-        for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
-            if (bookingEventDTO.getAttendees() != null) {
-                emailPayloads.addAll(buildDummyPayloadsForOrderSummary(bookingEventDTO.getAttendees()));
-            }
-        }
-        GiftCertificateApplicationResult giftResult =
-                giftCertificateService.getCertificateRedemptionResult(booking);
-        String promoCode = "";
-        List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = Collections.emptyList();
-        if (giftResult != null && giftResult.certificate() != null) {
-            promoCode = Objects.toString(giftResult.certificate().getPromoCode(), "");
-            redeemedTickets = giftResult.redeemedTicketTypes() != null
-                    ? giftResult.redeemedTicketTypes()
-                    : Collections.emptyList();
-        }
-        Users user = booking.getUserId() != null
-                ? usersRepository.findById(booking.getUserId()).orElse(null)
-                : null;
-
-        if (user != null && user.getRole() == AGENT) {
-            sendPaymentConfirmationEmail(user, booking, bookingEventDTOs, promoCode, redeemedTickets);
-        } else {
-            for (BookingEmailPayload payload : emailPayloads) {
-                if (payload.attendee().getSequence() == 1) {
-                    Users guestAttendee = new Users();
-                    guestAttendee.setEmail(payload.attendee().getEmail());
-                    guestAttendee.setFirstName(payload.attendee().getFirstName());
-                    sendPaymentConfirmationEmail(guestAttendee, booking, bookingEventDTOs, promoCode, redeemedTickets);
-                }
-            }
-        }
-    }
-
-    @Async
-    void sendBookingCancellationEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
-        for (EmailService.BookingEmailPayload payload : payloads) {
-            BookingEvents bookingEvent = loadBookingEventForEmail(payload.bookingEvent());
-            sendBookingCancellationEmail(
-                    payload.attendee(),
-                    booking,
-                    bookingEvent,
-                    payload.tickets(),
-                    payload.allAttendees()
-            );
-        }
-    }
-
-    private BookingEvents loadBookingEventForEmail(BookingEvents bookingEvent) {
-        if (bookingEvent == null || bookingEvent.getId() == null) {
-            return bookingEvent;
-        }
-        return bookingEventsRepository.findByIdWithBookingAndEvent(bookingEvent.getId())
-                .orElse(bookingEvent);
-    }
-
     private String convertContextToJson(Context context) {
         try {
             Map<String, Object> variables = new HashMap<>();
@@ -631,16 +547,5 @@ public class EmailService {
             return template.getSubjectZhHk();
         }
         return template.getSubject();
-    }
-
-    private List<EmailService.BookingEmailPayload> buildDummyPayloadsForOrderSummary (
-            List<CreateBookingRequestDTO.AttendeeDTO> attendees) {
-
-        List<EmailService.BookingEmailPayload> emailPayloads = new ArrayList<>();
-        for (CreateBookingRequestDTO.AttendeeDTO attendee : attendees) {
-            emailPayloads.add(new EmailService.BookingEmailPayload(
-                    attendee, null, null, attendees));
-        }
-        return emailPayloads;
     }
 }

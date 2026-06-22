@@ -17,11 +17,24 @@ public class AsyncConfig {
             @Value("${app.reminder.executor.core-pool-size:4}") int corePoolSize,
             @Value("${app.reminder.executor.max-pool-size:16}") int maxPoolSize,
             @Value("${app.reminder.executor.queue-capacity:500}") int queueCapacity) {
+        return createExecutor(corePoolSize, maxPoolSize, queueCapacity, "reminder-");
+    }
+
+    @Bean(name = "emailExecutor")
+    public Executor emailExecutor(
+            @Value("${app.email.executor.core-pool-size:4}") int corePoolSize,
+            @Value("${app.email.executor.max-pool-size:16}") int maxPoolSize,
+            @Value("${app.email.executor.queue-capacity:500}") int queueCapacity) {
+        return createExecutor(corePoolSize, maxPoolSize, queueCapacity, "email-");
+    }
+
+    private static ThreadPoolTaskExecutor createExecutor(
+            int corePoolSize, int maxPoolSize, int queueCapacity, String threadNamePrefix) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(corePoolSize);
         executor.setMaxPoolSize(maxPoolSize);
         executor.setQueueCapacity(queueCapacity);
-        executor.setThreadNamePrefix("reminder-");
+        executor.setThreadNamePrefix(threadNamePrefix);
         executor.initialize();
         return executor;
     }

@@ -47,7 +47,7 @@ public class WebhookService {
     private final RefundsRepository refundsRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final PaymentService paymentService;
-    private final EmailService emailService;
+    private final EmailDispatchService emailDispatchService;
     private final BookingsConverter bookingsConverter;
     private final GiftCertificateService giftCertificateService;
     private final AuditService auditService;
@@ -398,18 +398,18 @@ public class WebhookService {
     // Listener functions
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCreatedEvent(EmailService.BookingCreatedEvent event) {
-        emailService.sendPaymentConfirmationEmailsAsync(event.booking());
-        emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        emailDispatchService.sendPaymentConfirmationEmailsAsync(event);
+        emailDispatchService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingRestoreEvent(EmailService.BookingRestoreEvent event) {
-        emailService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        emailDispatchService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCancelledEvent(BookingService.BookingCancelledEvent event) {
-        emailService.sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads());
+        emailDispatchService.sendBookingCancellationEmailsAsync(event.booking(), event.emailPayloads());
     }
 
     void updateBookingStatus(Bookings booking, Enums.BookingStatus status) {
@@ -421,7 +421,7 @@ public class WebhookService {
 
     public void updateSuccessPaymentRecord(Payments payment, String paymentIntent,
                                     String paymentMethod, Enums.PaymentStatus status, ZonedDateTime paidAt) {
-        if (status == null || !statusTransitioner.shouldUpdatePaymentStatus(payment.getPaymentStatus(), status)) {
+        if (payment == null || status == null || !statusTransitioner.shouldUpdatePaymentStatus(payment.getPaymentStatus(), status)) {
             return;
         }
 
@@ -442,7 +442,7 @@ public class WebhookService {
             Enums.PaymentStatus status,
             String failureReason,
             String paymentMethod) {
-        if (status == null) {
+        if (payment == null || status == null) {
             return;
         }
 

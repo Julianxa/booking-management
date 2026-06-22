@@ -61,7 +61,7 @@ public class BookingService {
     private final BookingMapper bookingMapper;
     private final BookingEventsMapper bookingEventsMapper;
     private final PaymentService paymentService;
-    private final EmailService emailService;
+    private final EmailDispatchService emailDispatchService;
     private final WebhookService webhookService;
     private final GiftCertificateService giftCertificateService;
     private final ReferenceNoGenerator referenceNoGenerator;
@@ -606,7 +606,7 @@ public class BookingService {
             bookingEvents.stream()
                     .map(BookingEvents::getBooking)
                     .distinct()
-                    .forEach(emailService::sendPaymentConfirmationEmailsAsync);
+                    .forEach(emailDispatchService::sendPaymentConfirmationEmailsAsync);
         } else {
             for (BookingEvents bookingEvent : bookingEvents) {
                 Bookings booking = bookingEvent.getBooking();
@@ -620,9 +620,9 @@ public class BookingService {
                         buildEmailPayloads(bookingEvent, attendees, ticketDTOs);
                 switch (emailType) {
                     case BOOKING_CONFIRMATION ->
-                            emailService.sendBookingConfirmationEmailsAsync(booking, payloads);
+                            emailDispatchService.sendBookingConfirmationEmailsAsync(booking, payloads);
                     case BOOKING_CANCELLATION ->
-                            emailService.sendBookingCancellationEmailsAsync(booking, payloads);
+                            emailDispatchService.sendBookingCancellationEmailsAsync(booking, payloads);
                 }
             }
         }
@@ -641,7 +641,7 @@ public class BookingService {
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
 
         if(emailType == PAYMENT_CONFIRMATION) {
-            emailService.sendPaymentConfirmationEmailsAsync(booking);
+            emailDispatchService.sendPaymentConfirmationEmailsAsync(booking);
         } else {
             List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
 
@@ -652,8 +652,8 @@ public class BookingService {
                 List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
 
                 switch (emailType) {
-                    case BOOKING_CONFIRMATION -> emailService.sendBookingConfirmationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs));
-                    case BOOKING_CANCELLATION -> emailService.sendBookingCancellationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs));
+                    case BOOKING_CONFIRMATION -> emailDispatchService.sendBookingConfirmationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs));
+                    case BOOKING_CANCELLATION -> emailDispatchService.sendBookingCancellationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs));
                 }
             }
         }
