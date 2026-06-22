@@ -73,6 +73,29 @@ public class ReferenceNoGenerator {
         return generateUniqueReference("GC-", 10, giftCertificatesRepository);
     }
 
+    public String generateGiftCertificatePromoCode() {
+        return generateUniquePromoCode("PC-", 10);
+    }
+
+    private String generateUniquePromoCode(String prefix, int randomLength) {
+        final int MAX_ATTEMPTS = 10;
+
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            String randomPart = generateRandomString(randomLength);
+            String promoCode = prefix + randomPart;
+
+            if (!giftCertificatesRepository.existsByPromoCode(promoCode)) {
+                return promoCode;
+            }
+
+            if (attempt > 3) {
+                System.out.println("Warning: Promo code collision on attempt " + attempt);
+            }
+        }
+
+        throw new RandomReferenceNoException("Failed to generate unique promo code after " + MAX_ATTEMPTS + " attempts.");
+    }
+
     private String generateUniqueReference(String prefix, int randomLength, Object repository) {
         final int MAX_ATTEMPTS = 10;
 

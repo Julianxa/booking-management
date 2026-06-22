@@ -40,6 +40,7 @@ public class CreateGiftCertificateRequestDTO {
     @JsonProperty("expiry_date")
     private LocalDate expiryDate;
 
+    @Schema(description = "Required for EVENT and PERSONAL_EVENT. Optional for VALUE and PERSONAL_VALUE.")
     @JsonProperty("event_id")
     private String eventId;
 

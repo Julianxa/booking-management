@@ -26,7 +26,7 @@ public class GiftCertificates {
     @Column(name = "id", unique = true, nullable = false)
     private Long id;
 
-    @Column(name = "ref_no", nullable = false, unique = true, length = 50)
+    @Column(name = "ref_no", nullable = false, length = 50)
     private String refNo;
 
     @Column(name = "promo_code", nullable = false, unique = true, length = 20)

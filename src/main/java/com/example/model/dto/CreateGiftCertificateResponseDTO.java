@@ -16,6 +16,8 @@ import java.util.List;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CreateGiftCertificateResponseDTO {
+    @JsonProperty("id")
+    private String id;
     @JsonProperty("promo_code")
     private String promoCode;
     @JsonProperty("type")

@@ -5,6 +5,7 @@ import com.example.converter.BookingItemsConverter;
 import com.example.converter.GiftCertificateItemsConverter;
 import com.example.exception.booking.BookingEventNotFoundException;
 import com.example.exception.event.EventNotFoundException;
+import com.example.exception.general.MissingRequiredFieldException;
 import com.example.exception.giftCertificate.*;
 import com.example.exception.ticket.TicketPricePeriodNotFoundException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
@@ -52,49 +53,104 @@ public class GiftCertificateService {
     private final GiftCertificateItemsConverter giftCertificateItemsConverter;
 
     @Transactional
-    public CreateGiftCertificateResponseDTO createCertificate(String userSub, CreateGiftCertificateRequestDTO dto) {
-
+    public CreateGiftCertificatesResponseDTO createCertificate(String userSub, CreateGiftCertificateRequestDTO dto) {
         Users user = usersRepository.findByUserSub(userSub)
                 .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", userSub)));
 
-        if(dto.getType() == PERSONAL_EVENT || dto.getType() == PERSONAL_VALUE) {
-            if(dto.getQuantity() != 1) {
-                throw new InvalidGCException("Quantity must be 1 for this type of gift certificate");
-            }
+        Long eventId = resolveEventId(dto);
+        int certificateCount = resolveCertificateCount(dto);
+        boolean personalCertificate = isPersonalCertificate(dto);
+        String giftCertificateId = personalCertificate
+                ? referenceNoGenerator.generateGiftCertificateReference()
+                : null;
+
+        if (!personalCertificate) {
+            validatePromoCodeAvailable(dto.getPromoCode());
         }
 
-        Long eventId;
+        List<CreateGiftCertificateResponseDTO> certificates = new ArrayList<>();
+        int perCertificateQuantity = personalCertificate ? 1 : dto.getQuantity();
+        for (int index = 0; index < certificateCount; index++) {
+            String promoCode = personalCertificate
+                    ? referenceNoGenerator.generateGiftCertificatePromoCode()
+                    : dto.getPromoCode();
+            String refNo = personalCertificate
+                    ? giftCertificateId
+                    : referenceNoGenerator.generateGiftCertificateReference();
+
+            GiftCertificates gc = buildGiftCertificate(
+                    user.getId(),
+                    eventId,
+                    dto,
+                    perCertificateQuantity,
+                    refNo,
+                    promoCode);
+            addCertificateItems(gc, dto);
+
+            gc = giftCertificatesRepository.save(gc);
+
+            auditService.record("CREATE_CERTIFICATE",
+                    GiftCertificates.class.getName(),
+                    gc.getId(),
+                    user.getId(),
+                    "Create gift certificate successfully");
+
+            certificates.add(buildResponse(gc, user.getRefNo(), dto.getEventId()));
+        }
+
+        String message = certificateCount == 1
+                ? "Gift certificate created successfully"
+                : String.format("%d gift certificates created successfully", certificateCount);
+
+        return CreateGiftCertificatesResponseDTO.builder()
+                .giftCertificateId(giftCertificateId)
+                .certificates(certificates)
+                .message(message)
+                .timestamp(ZonedDateTime.now())
+                .build();
+    }
+
+    private Long resolveEventId(CreateGiftCertificateRequestDTO dto) {
         if (dto.getType() == EVENT || dto.getType() == PERSONAL_EVENT) {
-            // For EVENT type certificates, event ID is required
-            eventId = eventsRepository.findIdByRefNo(dto.getEventId())
-                    .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found for EVENT type certificate", dto.getEventId())));
-        } else {
-            // For VALUE type certificates, event ID is optional
-            eventId = eventsRepository.findIdByRefNo(dto.getEventId()).orElse(null);
-        }
-        
-        GiftCertificates gc = buildGiftCertificate(user.getId(), eventId, dto);
-
-        if (giftCertificatesRepository.existsByPromoCode(gc.getPromoCode())) {
-            throw new GCPromoCodeExistsException(String.format("Promotion code %s already exists", gc.getPromoCode()));
+            if (dto.getEventId() == null || dto.getEventId().isBlank()) {
+                throw new MissingRequiredFieldException("event_id is required for EVENT and PERSONAL_EVENT gift certificates");
+            }
+            return eventsRepository.findIdByRefNo(dto.getEventId())
+                    .orElseThrow(() -> new EventNotFoundException(
+                            String.format("Event %s not found", dto.getEventId())));
         }
 
+        if (dto.getEventId() == null || dto.getEventId().isBlank()) {
+            return null;
+        }
+        return eventsRepository.findIdByRefNo(dto.getEventId())
+                .orElseThrow(() -> new EventNotFoundException(
+                        String.format("Event %s not found", dto.getEventId())));
+    }
+
+    private int resolveCertificateCount(CreateGiftCertificateRequestDTO dto) {
+        if (isPersonalCertificate(dto)) {
+            return dto.getQuantity();
+        }
+        return 1;
+    }
+
+    private boolean isPersonalCertificate(CreateGiftCertificateRequestDTO dto) {
+        return isPersonalCertificate(dto.getType());
+    }
+
+    private void validatePromoCodeAvailable(String promoCode) {
+        if (giftCertificatesRepository.existsByPromoCode(promoCode)) {
+            throw new GCPromoCodeExistsException(String.format("Promotion code %s already exists", promoCode));
+        }
+    }
+
+    private void addCertificateItems(GiftCertificates gc, CreateGiftCertificateRequestDTO dto) {
         if (dto.getType() == EVENT || dto.getType() == PERSONAL_EVENT) {
             validateAndAddEventItems(gc, dto.getItems());
         } else {
             validateAndAddValueItems(gc, dto.getItems());
         }
-
-        gc = giftCertificatesRepository.save(gc);
-
-        auditService.record("CREATE_CERTIFICATE",
-                GiftCertificates.class.getName(),
-                gc.getId(),
-                null,
-                "Create gift certificate successfully"
-        );
-
-        return buildResponse(gc, user.getRefNo(), dto.getEventId());
     }
 
     @Transactional
@@ -163,17 +219,23 @@ public class GiftCertificateService {
         }
     }
 
-    private GiftCertificates buildGiftCertificate(Long userId, Long eventId, CreateGiftCertificateRequestDTO dto) {
+    private GiftCertificates buildGiftCertificate(
+            Long userId,
+            Long eventId,
+            CreateGiftCertificateRequestDTO dto,
+            int quantity,
+            String refNo,
+            String promoCode) {
         return GiftCertificates.builder()
-                .refNo(referenceNoGenerator.generateGiftCertificateReference())
-                .promoCode(dto.getPromoCode())
+                .refNo(refNo)
+                .promoCode(promoCode)
                 .eventId(eventId)
                 .userId(userId)
                 .type(dto.getType())
                 .effectiveDate(dto.getEffectiveDate())
                 .expiryDate(dto.getExpiryDate())
-                .quantity(dto.getQuantity())
-                .remainingQuantity(dto.getQuantity())
+                .quantity(quantity)
+                .remainingQuantity(quantity)
                 .messageToRecipient(dto.getMessageToRecipient())
                 .build();
     }
@@ -217,11 +279,7 @@ public class GiftCertificateService {
         String userRefNo = usersRepository.findRefNoById(gc.getUserId()).orElse(null);
         String eventRefNo = eventsRepository.findRefNoById(gc.getEventId()).orElse(null);
 
-        CreateGiftCertificateResponseDTO response = giftCertificateMapper.toCreateResponseDTO(
-                userRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
-
-        response.setStatus(findStatusByCertificate(gc));
-        return response;
+        return buildResponse(gc, userRefNo, eventRefNo);
     }
 
     public GetListGiftCertificateResponseDTO getGiftCertificates(
@@ -329,7 +387,14 @@ public class GiftCertificateService {
         CreateGiftCertificateResponseDTO response = giftCertificateMapper.toCreateResponseDTO(
                 userRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
         response.setStatus(findStatusByCertificate(gc));
+        if (isPersonalCertificate(gc.getType())) {
+            response.setId(gc.getRefNo());
+        }
         return response;
+    }
+
+    private boolean isPersonalCertificate(Enums.GiftCertificateType type) {
+        return type == PERSONAL_EVENT || type == PERSONAL_VALUE;
     }
 
     public BigDecimal getGiftCertificateDiscount(List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets) {

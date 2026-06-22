@@ -31,13 +31,13 @@ public class GiftCertificateController {
 
     @Operation(
             summary = "Create a new gift certificate",
-            description = "Create VALUE/EVENT gift certificate. ",
+            description = "Create VALUE/EVENT gift certificate.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Gift Certificate created successfully",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(implementation = CreateGiftCertificateResponseDTO.class))),
+                                    schema = @Schema(implementation = CreateGiftCertificatesResponseDTO.class))),
                     @ApiResponse(
                             responseCode = "400",
                             description = "Invalid request data",
@@ -52,7 +52,8 @@ public class GiftCertificateController {
             @Valid @RequestBody CreateGiftCertificateRequestDTO createGiftCertificateRequestDTO) {
         String userSub = userUtils.extractUserSub(authorizationHeader);
 
-        CreateGiftCertificateResponseDTO response = giftCertificateService.createCertificate(userSub, createGiftCertificateRequestDTO);
+        CreateGiftCertificatesResponseDTO response =
+                giftCertificateService.createCertificate(userSub, createGiftCertificateRequestDTO);
         return ResponseEntity.ok(response);
     }
 
