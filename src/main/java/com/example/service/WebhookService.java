@@ -77,10 +77,16 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
 
-        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+        Optional<Refunds> ongoing = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+        if (ongoing.isEmpty()) {
+            log.warn("REFUND_CREATED_WEBHOOK: no in-flight refund row for booking {} (stripeRefund={})",
+                    booking.getRefNo(), refund.getId());
+            return;
+        }
+
+        Refunds r = ongoing.get();
         updateRefundStatus(r, Enums.RefundStatus.PROCESSING);
         auditService.record("REFUND_CREATED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + refund.getId());
-
     }
 
     @Transactional
@@ -90,9 +96,23 @@ public class WebhookService {
         String paymentIntentId = refund.getMetadata().get("paymentIntentId");
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
+
+        if (booking.getStatus() == Enums.BookingStatus.REFUNDED) {
+            log.info("Ignoring duplicate refund.updated for booking {}", booking.getRefNo());
+            return;
+        }
+
         Payments payment = paymentsRepository.findByPaymentIntentId(paymentIntentId)
                 .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment %s not found", paymentIntentId)));
-        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+
+        Optional<Refunds> ongoing = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+        if (ongoing.isEmpty()) {
+            log.warn("REFUND_UPDATED_WEBHOOK: no in-flight refund row for booking {} (stripeRefund={})",
+                    booking.getRefNo(), refund.getId());
+            return;
+        }
+
+        Refunds r = ongoing.get();
         updateRefundStatus(r, Enums.RefundStatus.SUCCESS);
         eventSlotReservationService.releaseCapacityForBooking(booking);
         updateBookingStatus(booking, Enums.BookingStatus.REFUNDED);
@@ -107,7 +127,14 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
 
-        Refunds r = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+        Optional<Refunds> ongoing = refundsRepository.findByBookingIdAndOngoingStatus(booking.getId());
+        if (ongoing.isEmpty()) {
+            log.warn("REFUND_FAILED_WEBHOOK: no in-flight refund row for booking {} (stripeRefund={})",
+                    booking.getRefNo(), refund.getId());
+            return;
+        }
+
+        Refunds r = ongoing.get();
         updateRefundStatus(r, Enums.RefundStatus.FAILED);
         auditService.record("REFUND_FAILED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + r.getId());
     }
@@ -388,11 +415,12 @@ public class WebhookService {
     }
 
     void updateRefundStatus(Refunds refund, Enums.RefundStatus status) {
-        if (status != null) {
-            if(statusTransitioner.shouldUpdateRefundStatus(refund.getStatus(), status)) {
-                refund.setStatus(status);
-                refundsRepository.save(refund);
-            }
+        if (refund == null || status == null) {
+            return;
+        }
+        if(statusTransitioner.shouldUpdateRefundStatus(refund.getStatus(), status)) {
+            refund.setStatus(status);
+            refundsRepository.save(refund);
         }
     }
 

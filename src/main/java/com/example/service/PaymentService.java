@@ -127,11 +127,12 @@ public class PaymentService {
         Bookings booking = bookingsRepository.findByRefNo(requestDTO.getBookingId())
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", requestDTO.getBookingId())));
 
-        if (refundsRepository.findByBookingIdAndSuccessOrProcessingStatus(booking.getId()) != null) {
-            throw new AlreadyRefundedException("This payment has already been fully refunded/processing refund");
+        if (refundsRepository.findActiveByBookingId(booking.getId()).isPresent()) {
+            throw new AlreadyRefundedException("This payment has already been fully refunded or a refund is in progress");
         }
 
-        if(!booking.getCurrency().equals(requestDTO.getRefundCurrency())) {
+        if (requestDTO.getRefundCurrency() == null
+                || !booking.getCurrency().equals(requestDTO.getRefundCurrency())) {
             throw new MismatchedCurrencyException("Invalid currency for this refund");
         }
 
@@ -142,12 +143,18 @@ public class PaymentService {
         refund.setAmount(requestDTO.getRefundAmount());
         refund.setRemarks(requestDTO.getRemarks());
 
-        if(requestDTO.getIsFullRefund() && booking.getType().equals(Enums.BookingType.ONLINE_PAYMENT)) {
+        if (Boolean.TRUE.equals(requestDTO.getIsFullRefund())
+                && booking.getType().equals(Enums.BookingType.ONLINE_PAYMENT)) {
             if (booking.getFinalPaidAmount().compareTo(requestDTO.getRefundAmount()) != 0) {
                 throw new RuntimeException("Invalid amount for full amount");
             }
             Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
                     .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
+
+            refund.setType(Enums.RefundType.ONLINE_REFUND);
+            refund.setStatus(Enums.RefundStatus.PENDING);
+            refundsRepository.save(refund);
+
             RefundCreateParams.Builder refundParams = RefundCreateParams.builder()
                     .setPaymentIntent(payment.getPaymentIntentId())
                     .setAmount(payment.getAmount().multiply(BigDecimal.valueOf(100)).longValueExact())
@@ -155,13 +162,11 @@ public class PaymentService {
                     .putMetadata("paymentIntentId", payment.getPaymentIntentId());
             try {
                 stripeClient.v1().refunds().create(refundParams.build());
-            } catch(StripeException e) {
+            } catch (StripeException e) {
+                refund.setStatus(Enums.RefundStatus.FAILED);
+                refundsRepository.save(refund);
                 throw new CreateRefundException("Failed to create refund");
             }
-
-            refund.setType(Enums.RefundType.ONLINE_REFUND);
-            refund.setStatus(Enums.RefundStatus.PENDING);
-            refundsRepository.save(refund);
         } else if (booking.getType().equals(Enums.BookingType.OFFLINE_PAYMENT)) { // Offline Payment with Offline Refund
             booking.setStatus(Enums.BookingStatus.REFUNDED);
             bookingsRepository.save(booking);
