@@ -43,6 +43,7 @@ public class PaymentService {
     private final RefundsRepository refundsRepository;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final RefundMapper refundMapper;
+    private final EventSlotReservationService eventSlotReservationService;
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Session createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
@@ -168,23 +169,11 @@ public class PaymentService {
                 throw new CreateRefundException("Failed to create refund");
             }
         } else if (booking.getType().equals(Enums.BookingType.OFFLINE_PAYMENT)) { // Offline Payment with Offline Refund
-            booking.setStatus(Enums.BookingStatus.REFUNDED);
-            bookingsRepository.save(booking);
-
-            refund.setType(Enums.RefundType.OFFLINE_REFUND);
-            refund.setStatus(Enums.RefundStatus.SUCCESS);
-            refundsRepository.save(refund);
+            finalizeOfflineRefund(booking, refund, Enums.RefundType.OFFLINE_REFUND, null);
         } else { // Online Payment but Offline Refund
-            booking.setStatus(Enums.BookingStatus.REFUNDED);
-            bookingsRepository.save(booking);
             Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
                     .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
-            payment.setPaymentStatus(Enums.PaymentStatus.REFUNDED);
-            paymentsRepository.save(payment);
-
-            refund.setType(Enums.RefundType.OFFLINE_REFUND);
-            refund.setStatus(Enums.RefundStatus.SUCCESS);
-            refundsRepository.save(refund);
+            finalizeOfflineRefund(booking, refund, Enums.RefundType.OFFLINE_REFUND, payment);
         }
 
         auditService.record("REFUND_BOOKING",
@@ -279,5 +268,21 @@ public class PaymentService {
         String separator = cleanUrl.contains("?") ? "&" : "?";
 
         return cleanUrl + separator + "session_id={CHECKOUT_SESSION_ID}";
+    }
+
+    private void finalizeOfflineRefund(Bookings booking, Refunds refund, Enums.RefundType refundType, Payments payment) {
+        eventSlotReservationService.releaseCapacityForBooking(booking);
+
+        booking.setStatus(Enums.BookingStatus.REFUNDED);
+        bookingsRepository.save(booking);
+
+        if (payment != null) {
+            payment.setPaymentStatus(Enums.PaymentStatus.REFUNDED);
+            paymentsRepository.save(payment);
+        }
+
+        refund.setType(refundType);
+        refund.setStatus(Enums.RefundStatus.SUCCESS);
+        refundsRepository.save(refund);
     }
 }
