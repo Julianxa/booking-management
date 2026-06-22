@@ -113,6 +113,23 @@ public class WebhookService {
         }
 
         Refunds r = ongoing.get();
+        String stripeStatus = refund.getStatus();
+
+        if ("failed".equals(stripeStatus)) {
+            updateRefundStatus(r, Enums.RefundStatus.FAILED);
+            auditService.record("REFUND_UPDATED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(),
+                    "refund failed:" + r.getId() + ", paymentIntent:" + paymentIntentId);
+            return;
+        }
+
+        if (!"succeeded".equals(stripeStatus)) {
+            if ("pending".equals(stripeStatus)) {
+                updateRefundStatus(r, Enums.RefundStatus.PROCESSING);
+            }
+            log.info("Ignoring refund.updated with status {} for booking {}", stripeStatus, booking.getRefNo());
+            return;
+        }
+
         updateRefundStatus(r, Enums.RefundStatus.SUCCESS);
         eventSlotReservationService.releaseCapacityForBooking(booking);
         updateBookingStatus(booking, Enums.BookingStatus.REFUNDED);

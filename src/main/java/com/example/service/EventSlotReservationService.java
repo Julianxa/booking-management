@@ -9,6 +9,7 @@ import com.example.model.entity.EventSlotReservations;
 import com.example.model.entity.Events;
 import com.example.repository.BookingEventsRepository;
 import com.example.repository.BookingItemsRepository;
+import com.example.repository.BookingsRepository;
 import com.example.repository.EventSlotReservationsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ public class EventSlotReservationService {
     private final EventSlotReservationsRepository eventSlotReservationsRepository;
     private final BookingEventsRepository bookingEventsRepository;
     private final BookingItemsRepository bookingItemsRepository;
+    private final BookingsRepository bookingsRepository;
 
     @Transactional
     public void reserveCapacity(
@@ -91,10 +93,14 @@ public class EventSlotReservationService {
 
     @Transactional
     public void releaseCapacityForBooking(Bookings booking) {
-        if (!countsTowardCapacity(booking.getStatus())) {
+        if (booking == null || booking.getId() == null) {
             return;
         }
-        List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
+        Bookings current = bookingsRepository.findByIdWithLock(booking.getId()).orElse(null);
+        if (current == null || !countsTowardCapacity(current.getStatus())) {
+            return;
+        }
+        List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(current.getId());
         for (BookingEvents bookingEvent : bookingEvents) {
             if (bookingEvent.getCancelledAt() == null) {
                 releaseCapacityForBookingEvent(bookingEvent);

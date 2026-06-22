@@ -57,10 +57,16 @@ public interface UsersRepository extends JpaRepository<Users, Long> {
 
     Page<Users> findByRole(Enums.UserRole role, Pageable pageable);
 
-    @Query(value = "SELECT u FROM users u WHERE " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "LOWER(u.first_name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "LOWER(u.last_name) LIKE LOWER(CONCAT('%', :search, '%'))", nativeQuery = true)
+    @Query(
+            value = "SELECT * FROM users WHERE " +
+                    "LOWER(email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                    "LOWER(first_name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                    "LOWER(last_name) LIKE LOWER(CONCAT('%', :search, '%'))",
+            countQuery = "SELECT COUNT(*) FROM users WHERE " +
+                    "LOWER(email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                    "LOWER(first_name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                    "LOWER(last_name) LIKE LOWER(CONCAT('%', :search, '%'))",
+            nativeQuery = true)
     Page<Users> findBySearchTerm(@Param("search") String search, Pageable pageable);
 
     @Query(

@@ -143,10 +143,10 @@ public class GiftCertificateService {
                     String.format("Gift certificate with ID %s referenced by booking not found", booking.getGiftCertificateId())));
 
         if (giftCertificate.getType() == VALUE || giftCertificate.getType() == PERSONAL_VALUE) {
-            GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(giftCertificate.getId())
-                    .orElseThrow(() -> new GCNotFoundException(String.format("Value gift certificate %s not found", giftCertificate.getId())));
-
-            return new GiftCertificateApplicationResult(giftCertificate, List.of(), item.getValue());
+            BigDecimal appliedDiscount = booking.getDiscount() != null
+                    ? booking.getDiscount()
+                    : BigDecimal.ZERO;
+            return new GiftCertificateApplicationResult(giftCertificate, List.of(), appliedDiscount);
         } else if (giftCertificate.getType() == EVENT || giftCertificate.getType() == PERSONAL_EVENT) {
             Long bookingEventId = bookingEventsRepository.findIdByBookingIdAndEventId(booking.getId(), giftCertificate.getEventId())
                     .orElseThrow(() -> new BookingEventNotFoundException("Booking event not found"));
@@ -418,6 +418,18 @@ public class GiftCertificateService {
             throw new InvalidGCException("The gift certificate already redeemed");
         }
 
+        BigDecimal discount = giftCertificateApplicationResult.discount();
+        if (gc.getType() == VALUE || gc.getType() == PERSONAL_VALUE) {
+            GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
+                    .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
+            BigDecimal newBalance = item.getValue().subtract(discount);
+            if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+                throw new InvalidGCException("Gift certificate balance is insufficient");
+            }
+            item.setValue(newBalance);
+            giftCertificateItemRepository.save(item);
+        }
+
         gc.setRemainingQuantity(gc.getRemainingQuantity() - 1);
         giftCertificatesRepository.save(gc);
 
@@ -473,6 +485,17 @@ public class GiftCertificateService {
         GiftCertificates gc = giftCertificatesRepository.findByIdWithLock(redemption.getGiftCertificateId())
                 .orElseThrow(() -> new GCNotFoundException("Gift certificate not found"));
         gc.setRemainingQuantity(gc.getRemainingQuantity() + redemption.getQuantityUsed());
+
+        if (gc.getType() == VALUE || gc.getType() == PERSONAL_VALUE) {
+            BigDecimal discount = booking.getDiscount() != null ? booking.getDiscount() : BigDecimal.ZERO;
+            if (discount.compareTo(BigDecimal.ZERO) > 0) {
+                GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
+                        .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
+                item.setValue(item.getValue().add(discount));
+                giftCertificateItemRepository.save(item);
+            }
+        }
+
         giftCertificatesRepository.save(gc);
     }
 }

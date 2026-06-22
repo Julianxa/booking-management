@@ -46,6 +46,10 @@ public interface BookingsRepository extends JpaRepository<Bookings, Long> {
     Page<Bookings> findBookingsByEventId(@Param("eventId") Long eventId, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Bookings b WHERE b.id = :id")
+    Optional<Bookings> findByIdWithLock(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT b
             FROM Bookings b

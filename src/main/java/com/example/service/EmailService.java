@@ -12,6 +12,7 @@ import com.example.model.entity.*;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.EmailLogsRepository;
 import com.example.repository.EmailTemplatesRepository;
+import com.example.repository.BookingEventsRepository;
 import com.example.repository.TicketTypesRepository;
 import com.example.repository.UsersRepository;
 import com.example.utils.QRCodeGenerator;
@@ -57,6 +58,7 @@ public class EmailService {
     private final BookingsConverter bookingsConverter;
     private final GiftCertificateService giftCertificateService;
     private final UsersRepository usersRepository;
+    private final BookingEventsRepository bookingEventsRepository;
 
     @Value("${app.mail.from}")
     String senderEmail;
@@ -530,10 +532,11 @@ public class EmailService {
     @Async
     public void sendBookingConfirmationEmailsAsync(Bookings booking, List<BookingEmailPayload> payloads) {
         for (BookingEmailPayload payload : payloads) {
+            BookingEvents bookingEvent = loadBookingEventForEmail(payload.bookingEvent());
             sendBookingConfirmationEmail(
                     payload.attendee(),
                     booking,
-                    payload.bookingEvent(),
+                    bookingEvent,
                     payload.tickets(),
                     payload.allAttendees()
             );
@@ -560,7 +563,9 @@ public class EmailService {
                     ? giftResult.redeemedTicketTypes()
                     : Collections.emptyList();
         }
-        Users user = usersRepository.findById(booking.getUserId()).orElse(null);
+        Users user = booking.getUserId() != null
+                ? usersRepository.findById(booking.getUserId()).orElse(null)
+                : null;
 
         if (user != null && user.getRole() == AGENT) {
             sendPaymentConfirmationEmail(user, booking, bookingEventDTOs, promoCode, redeemedTickets);
@@ -579,14 +584,23 @@ public class EmailService {
     @Async
     void sendBookingCancellationEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
         for (EmailService.BookingEmailPayload payload : payloads) {
+            BookingEvents bookingEvent = loadBookingEventForEmail(payload.bookingEvent());
             sendBookingCancellationEmail(
                     payload.attendee(),
                     booking,
-                    payload.bookingEvent(),
+                    bookingEvent,
                     payload.tickets(),
                     payload.allAttendees()
             );
         }
+    }
+
+    private BookingEvents loadBookingEventForEmail(BookingEvents bookingEvent) {
+        if (bookingEvent == null || bookingEvent.getId() == null) {
+            return bookingEvent;
+        }
+        return bookingEventsRepository.findByIdWithBookingAndEvent(bookingEvent.getId())
+                .orElse(bookingEvent);
     }
 
     private String convertContextToJson(Context context) {
