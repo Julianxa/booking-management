@@ -25,10 +25,6 @@ public class EventSlotReservations {
     @Column(name = "reserved_qty", nullable = false)
     private Integer reservedQty;
 
-    @Version
-    @Column(name = "version", nullable = false)
-    private Integer version;
-
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)

@@ -15,8 +15,8 @@ public interface EventSlotReservationsRepository extends JpaRepository<EventSlot
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
-            INSERT INTO event_slot_reservations (event_id, event_date, event_time, max_capacity, reserved_qty, version)
-            VALUES (:eventId, :eventDate, :eventTime, :maxCapacity, 0, 0)
+            INSERT INTO event_slot_reservations (event_id, event_date, event_time, max_capacity, reserved_qty)
+            VALUES (:eventId, :eventDate, :eventTime, :maxCapacity, 0)
             ON DUPLICATE KEY UPDATE event_id = event_id
             """, nativeQuery = true)
     void ensureSlotExists(
@@ -28,8 +28,7 @@ public interface EventSlotReservationsRepository extends JpaRepository<EventSlot
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
             UPDATE event_slot_reservations
-            SET reserved_qty = reserved_qty + :qty,
-                version = version + 1
+            SET reserved_qty = reserved_qty + :qty
             WHERE event_id = :eventId
               AND event_date = :eventDate
               AND event_time = :eventTime
@@ -44,8 +43,7 @@ public interface EventSlotReservationsRepository extends JpaRepository<EventSlot
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
             UPDATE event_slot_reservations
-            SET reserved_qty = GREATEST(0, reserved_qty - :qty),
-                version = version + 1
+            SET reserved_qty = GREATEST(0, reserved_qty - :qty)
             WHERE event_id = :eventId
               AND event_date = :eventDate
               AND event_time = :eventTime
