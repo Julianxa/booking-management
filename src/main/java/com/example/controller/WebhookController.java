@@ -19,8 +19,6 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Slf4j
 public class WebhookController {
-    private final BookingsRepository bookingsRepository;
-    private final PaymentsRepository paymentsRepository;
     private final WebhookService webhookService;
     @Value("${stripe.webhook-secret}")
     private String webhookSecret;
@@ -45,10 +43,14 @@ public class WebhookController {
             case "payment_intent.created" -> webhookService.processPaymentIntentCreated(event);
             case "payment_intent.requires_action" -> webhookService.processPaymentRequiresAction(event);
             case "payment_intent.canceled" -> webhookService.processPaymentIntentCanceled(event);
-            case "payment_intent.succeeded", "checkout.session.async_payment_succeeded" ->
+            case "payment_intent.succeeded" ->
                     webhookService.processSuccessfulPayment(event);
-            case "payment_intent.payment_failed", "checkout.session.async_payment_failed" ->
+            case "checkout.session.async_payment_succeeded" ->
+                    webhookService.processCheckoutSessionAsyncPaymentSucceeded(event);
+            case "payment_intent.payment_failed" ->
                     webhookService.processFailedPayment(event);
+            case "checkout.session.async_payment_failed" ->
+                    webhookService.processCheckoutSessionAsyncPaymentFailed(event);
             case "checkout.session.expired" -> webhookService.processExpiredPayment(event);
             case "refund.created" -> webhookService.processRefundCreated(event);
             case "refund.updated" -> webhookService.processRefundUpdated(event);

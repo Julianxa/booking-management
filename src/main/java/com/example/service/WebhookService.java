@@ -149,6 +149,34 @@ public class WebhookService {
     }
 
     @Transactional
+    public void processCheckoutSessionAsyncPaymentFailed(Event event) {
+        Session session = stripeUtils.getSessionFromEvent(event);
+        String bookingRefNo = session.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException("Booking " + bookingRefNo + " not found"));
+        if (isTerminalBookingState(booking.getStatus())) {
+            log.warn("Ignoring async payment failed for terminal booking {}", booking.getRefNo());
+            return;
+        }
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(
+                session.getId(), session.getPaymentIntent(), STRIPE, booking);
+        updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
+        giftCertificateService.cancelCertificateRedemption(booking);
+        eventSlotReservationService.releaseCapacityForBooking(booking);
+        updateBookingStatus(booking, Enums.BookingStatus.FAILED);
+    }
+
+    private boolean isTerminalBookingState(Enums.BookingStatus status) {
+        if (status == null) {
+            return false;
+        }
+        return switch (status) {
+            case SUCCESS, PAID, REFUNDED, CANCELLED, FAILED, EXPIRED -> true;
+            default -> false;
+        };
+    }
+
+    @Transactional
     public void processPaymentIntentCanceled(Event event) {
         PaymentIntent intent = stripeUtils.getPaymentIntentFromEvent(event);
         String sessionId = intent.getPaymentDetails().getOrderReference();
@@ -187,6 +215,30 @@ public class WebhookService {
                     .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", booking.getUserId())));
         confirmOnlinePayment(user, booking, payment, paymentIntent, paymentMethod, paidAt);
         auditService.record("PAYMENT_SUCCEEDED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + paymentIntent);
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void processCheckoutSessionAsyncPaymentSucceeded(Event event) {
+        Session session = stripeUtils.getSessionFromEvent(event);
+        String bookingRefNo = session.getMetadata().get("bookingRefNo");
+        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+                .orElseThrow(() -> new BookingNotFoundException("Booking " + bookingRefNo + " not found"));
+
+        if (booking.getStatus() == Enums.BookingStatus.SUCCESS
+                || booking.getStatus() == Enums.BookingStatus.PAID) {
+            return;
+        }
+        String paymentIntentId = session.getPaymentIntent();
+        Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(
+                session.getId(), paymentIntentId, STRIPE, booking);
+        Users user = null;
+        if (booking.getUserId() != null) {
+            user = usersRepository.findById(booking.getUserId())
+                    .orElseThrow(() -> new UserNotFoundException("User " + booking.getUserId() + " not found"));
+        }
+        String paymentMethod = resolvePaymentMethod(session);
+        ZonedDateTime paidAt = dateUtils.convertToZonedDateTime(session.getCreated());
+        confirmOnlinePayment(user, booking, payment, paymentIntentId, paymentMethod, paidAt);
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
@@ -340,5 +392,12 @@ public class WebhookService {
                 refundsRepository.save(refund);
             }
         }
+    }
+
+    private String resolvePaymentMethod(Session session) {
+        if (session.getPaymentMethodTypes() != null && !session.getPaymentMethodTypes().isEmpty()) {
+            return session.getPaymentMethodTypes().get(0);
+        }
+        return "card";
     }
 }
