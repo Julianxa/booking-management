@@ -190,6 +190,14 @@ public class WebhookService {
         }
 
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
+        if (isRetryableCheckoutFailure(booking)) {
+            log.info("Payment attempt failed for booking {} — checkout session still open, keeping reservation",
+                    booking.getRefNo());
+            auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(),
+                    "paymentIntent:" + intent.getId() + ", retryable");
+            return;
+        }
+
         giftCertificateService.cancelCertificateRedemption(booking);
         eventSlotReservationService.releaseCapacityForBooking(booking);
         updateBookingStatus(booking, Enums.BookingStatus.FAILED);
@@ -210,6 +218,11 @@ public class WebhookService {
             return;
         }
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
+        if (isRetryableCheckoutFailure(booking)) {
+            log.info("Async payment attempt failed for booking {} — checkout session still open, keeping reservation",
+                    booking.getRefNo());
+            return;
+        }
         giftCertificateService.cancelCertificateRedemption(booking);
         eventSlotReservationService.releaseCapacityForBooking(booking);
         updateBookingStatus(booking, Enums.BookingStatus.FAILED);
@@ -231,12 +244,13 @@ public class WebhookService {
             return;
         }
 
-        updatePaymentStatus(payment, Enums.PaymentStatus.CANCELLED);
-        giftCertificateService.cancelCertificateRedemption(booking);
-        eventSlotReservationService.releaseCapacityForBooking(booking);
-        updateBookingStatus(booking, Enums.BookingStatus.FAILED);
+        if (isRetryableCheckoutFailure(booking) && !hasFailedPaymentAttempt(payment)) {
+            log.info("Ignoring payment_intent.canceled for booking {} — awaiting session expiry without failed attempt",
+                    booking.getRefNo());
+            return;
+        }
 
-        auditService.record("PAYMENT_CANCELLED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
+        finalizeUnpaidBooking(booking, payment, "paymentIntent:" + intent.getId());
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
@@ -294,17 +308,7 @@ public class WebhookService {
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, null, STRIPE, booking);
 
-        if (shouldIgnorePaymentFailureWebhook(booking, payment)) {
-            log.info("Ignoring checkout.session.expired for booking {} (status={}, payment={})",
-                    booking.getRefNo(), booking.getStatus(), payment.getPaymentStatus());
-            return;
-        }
-
-        updatePaymentStatus(payment, Enums.PaymentStatus.EXPIRED);
-        giftCertificateService.cancelCertificateRedemption(booking);
-        eventSlotReservationService.releaseCapacityForBooking(booking);
-        updateBookingStatus(booking, Enums.BookingStatus.EXPIRED);
-        auditService.record("PAYMENT_EXPIRED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "sessionId:" + sessionId);
+        finalizeUnpaidBooking(booking, payment, "sessionId:" + sessionId);
     }
 
     // Utility functions
@@ -313,6 +317,11 @@ public class WebhookService {
         if (booking.getStatus() == Enums.BookingStatus.SUCCESS
                 || booking.getStatus() == Enums.BookingStatus.PAID) {
             return;
+        }
+
+        if (booking.getStatus() == Enums.BookingStatus.FAILED
+                || booking.getStatus() == Enums.BookingStatus.EXPIRED) {
+            recoverBookingForSuccessfulPayment(booking);
         }
 
         updateSuccessPaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
@@ -457,6 +466,60 @@ public class WebhookService {
 
     private boolean shouldIgnorePaymentFailureWebhook(Bookings booking, Payments payment) {
         return isTerminalBookingState(booking.getStatus()) || isPaymentAlreadySucceeded(payment);
+    }
+
+    private boolean isRetryableCheckoutFailure(Bookings booking) {
+        return booking.getStatus() == Enums.BookingStatus.AWAITING_PAYMENT
+                || booking.getStatus() == Enums.BookingStatus.PAYMENT_IN_PROGRESS;
+    }
+
+    public boolean hasFailedPaymentAttempt(Payments payment) {
+        return payment != null && payment.getPaymentStatus() == Enums.PaymentStatus.FAILED;
+    }
+
+    public Enums.BookingStatus resolveUnpaidTerminalBookingStatus(Payments payment) {
+        return hasFailedPaymentAttempt(payment)
+                ? Enums.BookingStatus.FAILED
+                : Enums.BookingStatus.EXPIRED;
+    }
+
+    public void finalizeUnpaidBooking(Bookings booking, Payments payment, String auditDetail) {
+        if (shouldIgnorePaymentFailureWebhook(booking, payment)) {
+            log.info("Ignoring unpaid finalization for booking {} (status={}, payment={})",
+                    booking.getRefNo(), booking.getStatus(), payment != null ? payment.getPaymentStatus() : null);
+            return;
+        }
+
+        giftCertificateService.cancelCertificateRedemption(booking);
+        eventSlotReservationService.releaseCapacityForBooking(booking);
+
+        if (hasFailedPaymentAttempt(payment)) {
+            updateBookingStatus(booking, Enums.BookingStatus.FAILED);
+            auditService.record("PAYMENT_FINALIZED_FAILED", Payments.class.getName(), booking.getId(), booking.getUserId(), auditDetail);
+            log.info("Finalized unpaid booking {} as FAILED after failed payment attempt", booking.getRefNo());
+            return;
+        }
+
+        updatePaymentStatus(payment, Enums.PaymentStatus.EXPIRED);
+        updateBookingStatus(booking, Enums.BookingStatus.EXPIRED);
+        auditService.record("PAYMENT_EXPIRED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), auditDetail);
+        log.info("Finalized unpaid booking {} as EXPIRED without failed payment attempt", booking.getRefNo());
+    }
+
+    private void recoverBookingForSuccessfulPayment(Bookings booking) {
+        log.info("Recovering booking {} after successful payment following prior failure/expiry", booking.getRefNo());
+
+        List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
+        for (BookingEvents bookingEvent : bookingEvents) {
+            if (bookingEvent.getCancelledAt() == null) {
+                Events event = bookingEvent.getEvent();
+                eventSlotReservationService.reserveCapacityForBookingEvent(
+                        bookingEvent, event.getMaxCapacity(), event.getName());
+            }
+        }
+
+        giftCertificateService.reopenCancelledRedemption(booking);
+        updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
     }
 
     private String resolvePaymentMethod(Session session) {

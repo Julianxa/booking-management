@@ -2,9 +2,10 @@ package com.example.scheduler;
 
 import com.example.constant.Enums;
 import com.example.model.entity.Bookings;
+import com.example.model.entity.Payments;
 import com.example.repository.BookingsRepository;
-import com.example.service.EventSlotReservationService;
-import com.example.service.GiftCertificateService;
+import com.example.repository.PaymentsRepository;
+import com.example.service.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,8 +22,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BookingReservationCleanupScheduler {
     private final BookingsRepository bookingsRepository;
-    private final GiftCertificateService giftCertificateService;
-    private final EventSlotReservationService eventSlotReservationService;
+    private final PaymentsRepository paymentsRepository;
+    private final WebhookService webhookService;
 
     @Value("${app.booking.cleanup.pending-timeout-minutes:5}")
     private long pendingTimeoutMinutes;
@@ -47,15 +48,12 @@ public class BookingReservationCleanupScheduler {
         int releasedCount = 0;
         releasedCount += releaseStaleBookings(
                 Enums.BookingStatus.PENDING,
-                Enums.BookingStatus.FAILED,
                 now.minusMinutes(pendingTimeoutMinutes));
         releasedCount += releaseStaleBookings(
                 Enums.BookingStatus.AWAITING_PAYMENT,
-                Enums.BookingStatus.EXPIRED,
                 now.minusMinutes(awaitingPaymentTimeoutMinutes));
         releasedCount += releaseStaleBookings(
                 Enums.BookingStatus.PAYMENT_IN_PROGRESS,
-                Enums.BookingStatus.EXPIRED,
                 now.minusMinutes(paymentInProgressTimeoutMinutes));
 
         if (releasedCount > 0) {
@@ -63,19 +61,15 @@ public class BookingReservationCleanupScheduler {
         }
     }
 
-    private int releaseStaleBookings(Enums.BookingStatus staleStatus,
-                                     Enums.BookingStatus terminalStatus,
-                                     ZonedDateTime cutoff) {
+    private int releaseStaleBookings(Enums.BookingStatus staleStatus, ZonedDateTime cutoff) {
         List<Bookings> staleBookings = bookingsRepository.findStaleBookingsForUpdate(
                 staleStatus,
                 cutoff,
                 PageRequest.of(0, batchSize));
 
         for (Bookings booking : staleBookings) {
-            eventSlotReservationService.releaseCapacityForBooking(booking);
-            giftCertificateService.cancelCertificateRedemption(booking);
-            booking.setStatus(terminalStatus);
-            bookingsRepository.save(booking);
+            Payments payment = paymentsRepository.findByBookingId(booking.getId()).orElse(null);
+            webhookService.finalizeUnpaidBooking(booking, payment, "scheduler:" + staleStatus);
             log.warn("Released stale {} booking reservation {}", staleStatus, booking.getRefNo());
         }
 

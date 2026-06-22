@@ -563,4 +563,44 @@ public class GiftCertificateService {
 
         giftCertificatesRepository.save(gc);
     }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void reopenCancelledRedemption(Bookings booking) {
+        if (booking.getGiftCertificateId() == null) {
+            return;
+        }
+
+        GiftCertificateRedemptions redemption = giftCertificateRedemptionRepository.findByBookingIdWithLock(booking.getId())
+                .orElse(null);
+        if (redemption == null || redemption.getStatus() != FAILED) {
+            return;
+        }
+
+        GiftCertificates gc = giftCertificatesRepository.findByIdWithLock(redemption.getGiftCertificateId())
+                .orElseThrow(() -> new GCNotFoundException("Gift certificate not found"));
+        if (gc.getRemainingQuantity() < 1) {
+            throw new InvalidGCException("The gift certificate is no longer available for this booking");
+        }
+
+        BigDecimal discount = booking.getDiscount() != null ? booking.getDiscount() : BigDecimal.ZERO;
+        if (gc.getType() == VALUE || gc.getType() == PERSONAL_VALUE) {
+            if (discount.compareTo(BigDecimal.ZERO) > 0) {
+                GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
+                        .orElseThrow(() -> new GCItemNotFoundException(
+                                String.format("Value gift certificate item not found with %s", gc.getId())));
+                BigDecimal newBalance = item.getValue().subtract(discount);
+                if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+                    throw new InvalidGCException("Gift certificate balance is insufficient");
+                }
+                item.setValue(newBalance);
+                giftCertificateItemRepository.save(item);
+            }
+        }
+
+        gc.setRemainingQuantity(gc.getRemainingQuantity() - 1);
+        giftCertificatesRepository.save(gc);
+
+        redemption.setStatus(PENDING);
+        giftCertificateRedemptionRepository.save(redemption);
+    }
 }

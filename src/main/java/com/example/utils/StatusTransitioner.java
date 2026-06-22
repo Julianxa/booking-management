@@ -17,7 +17,8 @@ public class StatusTransitioner {
         }
 
         return switch (current) {
-            case FAILED, CANCELLED, EXPIRED, REFUNDED -> false;
+            case CANCELLED, EXPIRED, REFUNDED -> false;
+            case FAILED -> newStatus == Enums.PaymentStatus.SUCCEEDED;
 
             case PENDING ->
                     newStatus == Enums.PaymentStatus.INITIATED ||
@@ -58,7 +59,11 @@ public class StatusTransitioner {
         }
 
         return switch (current) {
-            case FAILED, CANCELLED, EXPIRED, REFUNDED -> false;
+            case CANCELLED, REFUNDED -> false;
+            case EXPIRED, FAILED ->
+                    newStatus == Enums.BookingStatus.PAYMENT_IN_PROGRESS
+                            || newStatus == Enums.BookingStatus.PAID
+                            || newStatus == Enums.BookingStatus.SUCCESS;
 
             case PENDING ->
                     newStatus == Enums.BookingStatus.AWAITING_PAYMENT ||
