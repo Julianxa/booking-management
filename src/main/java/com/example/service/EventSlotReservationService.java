@@ -40,7 +40,8 @@ public class EventSlotReservationService {
             return;
         }
 
-        eventSlotReservationsRepository.ensureSlotExists(eventId, eventDate, eventTime);
+        eventSlotReservationsRepository.ensureSlotExists(
+                eventId, eventDate, eventTime, maxCapacity != null ? maxCapacity : 0);
 
         int updated = eventSlotReservationsRepository.tryReserveCapacity(eventId, eventDate, eventTime, qty);
         if (updated == 0) {

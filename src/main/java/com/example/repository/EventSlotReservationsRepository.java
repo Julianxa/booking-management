@@ -15,24 +15,25 @@ public interface EventSlotReservationsRepository extends JpaRepository<EventSlot
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
-            INSERT INTO event_slot_reservations (event_id, event_date, event_time, reserved_qty)
-            VALUES (:eventId, :eventDate, :eventTime, 0)
+            INSERT INTO event_slot_reservations (event_id, event_date, event_time, max_capacity, reserved_qty, version)
+            VALUES (:eventId, :eventDate, :eventTime, :maxCapacity, 0, 0)
             ON DUPLICATE KEY UPDATE event_id = event_id
             """, nativeQuery = true)
     void ensureSlotExists(
             @Param("eventId") Long eventId,
             @Param("eventDate") LocalDate eventDate,
-            @Param("eventTime") String eventTime);
+            @Param("eventTime") String eventTime,
+            @Param("maxCapacity") int maxCapacity);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
-            UPDATE event_slot_reservations r
-            INNER JOIN events e ON e.id = r.event_id
-            SET r.reserved_qty = r.reserved_qty + :qty
-            WHERE r.event_id = :eventId
-              AND r.event_date = :eventDate
-              AND r.event_time = :eventTime
-              AND r.reserved_qty + :qty <= COALESCE(e.max_capacity, 0)
+            UPDATE event_slot_reservations
+            SET reserved_qty = reserved_qty + :qty,
+                version = version + 1
+            WHERE event_id = :eventId
+              AND event_date = :eventDate
+              AND event_time = :eventTime
+              AND reserved_qty + :qty <= max_capacity
             """, nativeQuery = true)
     int tryReserveCapacity(
             @Param("eventId") Long eventId,
@@ -43,7 +44,8 @@ public interface EventSlotReservationsRepository extends JpaRepository<EventSlot
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
             UPDATE event_slot_reservations
-            SET reserved_qty = GREATEST(0, reserved_qty - :qty)
+            SET reserved_qty = GREATEST(0, reserved_qty - :qty),
+                version = version + 1
             WHERE event_id = :eventId
               AND event_date = :eventDate
               AND event_time = :eventTime
