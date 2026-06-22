@@ -6,6 +6,7 @@ import com.example.model.entity.BookingEvents;
 import com.example.model.entity.Bookings;
 import com.example.model.entity.EventSlotReservationId;
 import com.example.model.entity.EventSlotReservations;
+import com.example.model.entity.Events;
 import com.example.repository.BookingEventsRepository;
 import com.example.repository.BookingItemsRepository;
 import com.example.repository.EventSlotReservationsRepository;
@@ -127,6 +128,25 @@ public class EventSlotReservationService {
                 qty,
                 maxCapacity,
                 eventName);
+    }
+
+    @Transactional
+    public void releaseCapacityForBookingEvents(List<BookingEvents> bookingEvents) {
+        for (BookingEvents bookingEvent : bookingEvents) {
+            if (countsTowardCapacity(bookingEvent.getBooking().getStatus())) {
+                releaseCapacityForBookingEvent(bookingEvent);
+            }
+        }
+    }
+
+    @Transactional
+    public void reserveCapacityForBookingEvents(List<BookingEvents> bookingEvents) {
+        for (BookingEvents bookingEvent : bookingEvents) {
+            if (countsTowardCapacity(bookingEvent.getBooking().getStatus())) {
+                Events event = bookingEvent.getEvent();
+                reserveCapacityForBookingEvent(bookingEvent, event.getMaxCapacity(), event.getName());
+            }
+        }
     }
 
     private int sumParticipantQty(Long bookingEventId) {

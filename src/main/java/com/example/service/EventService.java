@@ -218,6 +218,13 @@ public class EventService {
             EventTimeSlotExceptions eventTimeSlotExceptions = eventTimeSlotExceptionsMapper.toEntity(updateEventStatusRequestDTO, event);
             eventTimeSlotExceptionsRepository.save(eventTimeSlotExceptions);
 
+            List<BookingEvents> toCancel = bookingEventsRepository.findForBulkStatusUpdateByTimeSlot(
+                    event.getId(),
+                    updateEventStatusRequestDTO.getEventDate(),
+                    updateEventStatusRequestDTO.getEventTime(),
+                    AVAILABLE);
+            eventSlotReservationService.releaseCapacityForBookingEvents(toCancel);
+
             bookingEventsRepository.updateCancelStatusBookingsByEventTimeSlot(event.getId(),
                     updateEventStatusRequestDTO.getEventDate(),
                     updateEventStatusRequestDTO.getEventTime(),
@@ -238,6 +245,13 @@ public class EventService {
             eventTimeSlotExceptionsRepository.deleteExceptionTimeByEventIdAndDateAndTime(event.getId(),
                     updateEventStatusRequestDTO.getEventDate(),
                     updateEventStatusRequestDTO.getEventTime());
+
+            List<BookingEvents> toRestore = bookingEventsRepository.findForBulkStatusUpdateByTimeSlot(
+                    event.getId(),
+                    updateEventStatusRequestDTO.getEventDate(),
+                    updateEventStatusRequestDTO.getEventTime(),
+                    CANCELLED);
+            eventSlotReservationService.reserveCapacityForBookingEvents(toRestore);
 
             bookingEventsRepository.updateCancelStatusBookingsByEventTimeSlot(event.getId(),
                     updateEventStatusRequestDTO.getEventDate(),
@@ -295,6 +309,10 @@ public class EventService {
             event.setUpdatedAt(actionAt);
             eventsRepository.save(event);
 
+            List<BookingEvents> toCancel = bookingEventsRepository.findForBulkStatusUpdateByEventId(
+                    event.getId(), AVAILABLE);
+            eventSlotReservationService.releaseCapacityForBookingEvents(toCancel);
+
             bookingEventsRepository.updateCancelStatusBookingsByEventId(event.getId(),
                     AVAILABLE.toString(),
                     CANCELLED.toString(),
@@ -316,6 +334,10 @@ public class EventService {
             event.setDeletedAt(null);
             event.setUpdatedAt(actionAt);
             eventsRepository.save(event);
+
+            List<BookingEvents> toRestore = bookingEventsRepository.findForBulkStatusUpdateByEventId(
+                    event.getId(), CANCELLED);
+            eventSlotReservationService.reserveCapacityForBookingEvents(toRestore);
 
             bookingEventsRepository.updateCancelStatusBookingsByEventId(event.getId(),
                     CANCELLED.toString(),

@@ -1,6 +1,7 @@
 package com.example.repository;
 
 
+import com.example.constant.Enums;
 import com.example.model.entity.BookingAttendees;
 import com.example.model.entity.BookingEvents;
 import org.springframework.data.domain.Page;
@@ -173,4 +174,32 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
             WHERE be.id = :id
             """)
     Optional<BookingEvents> findByIdWithBookingAndEvent(@Param("id") Long id);
+
+    @Query("""
+            SELECT be FROM BookingEvents be
+            JOIN FETCH be.booking b
+            JOIN FETCH be.event e
+            WHERE be.event.id = :eventId
+              AND be.eventDate = :eventDate
+              AND be.eventTime = :eventTime
+              AND be.status = :status
+              AND b.status IN ('PENDING', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
+            """)
+    List<BookingEvents> findForBulkStatusUpdateByTimeSlot(
+            @Param("eventId") Long eventId,
+            @Param("eventDate") LocalDate eventDate,
+            @Param("eventTime") String eventTime,
+            @Param("status") Enums.BookingEventStatus status);
+
+    @Query("""
+            SELECT be FROM BookingEvents be
+            JOIN FETCH be.booking b
+            JOIN FETCH be.event e
+            WHERE be.event.id = :eventId
+              AND be.status = :status
+              AND b.status IN ('PENDING', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
+            """)
+    List<BookingEvents> findForBulkStatusUpdateByEventId(
+            @Param("eventId") Long eventId,
+            @Param("status") Enums.BookingEventStatus status);
 }
