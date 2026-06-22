@@ -1,9 +1,9 @@
 package com.example.service;
 
 import com.example.constant.Enums;
-import com.example.model.entity.PaymentHistory;
+import com.example.model.entity.PaymentLogs;
 import com.example.model.entity.Payments;
-import com.example.repository.PaymentHistoryRepository;
+import com.example.repository.PaymentLogRepository;
 import com.example.utils.ReferenceNoGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentHistoryService {
-    private final PaymentHistoryRepository paymentHistoryRepository;
+public class PaymentLogService {
+    private final PaymentLogRepository paymentLogRepository;
     private final ReferenceNoGenerator referenceNoGenerator;
 
     @Transactional
@@ -27,21 +27,31 @@ public class PaymentHistoryService {
             return;
         }
 
-        PaymentHistory history = PaymentHistory.builder()
-                .refNo(referenceNoGenerator.generatePaymentHistoryReference())
+        PaymentLogs logEntry = PaymentLogs.builder()
+                .refNo(referenceNoGenerator.generatePaymentLogReference())
                 .paymentId(payment.getId())
                 .bookingId(payment.getBookingId())
                 .amount(payment.getAmount())
                 .currency(payment.getCurrency())
                 .sessionId(payment.getSessionId())
                 .paymentIntentId(payment.getPaymentIntentId())
-                .paymentMethod(paymentMethod)
+                .paymentMethod(resolvePaymentMethod(payment, paymentMethod))
                 .paymentStatus(paymentStatus)
                 .failureReason(failureReason)
                 .build();
 
-        paymentHistoryRepository.save(history);
-        log.debug("Recorded payment history {} for payment {} status {}",
-                history.getRefNo(), payment.getRefNo(), paymentStatus);
+        paymentLogRepository.save(logEntry);
+        log.debug("Recorded payment log {} for payment {} status {}",
+                logEntry.getRefNo(), payment.getRefNo(), paymentStatus);
+    }
+
+    private String resolvePaymentMethod(Payments payment, String paymentMethod) {
+        if (paymentMethod != null && !paymentMethod.isBlank()) {
+            return paymentMethod;
+        }
+        if (payment.getPaymentChannel() != null) {
+            return payment.getPaymentChannel().name().toLowerCase();
+        }
+        return null;
     }
 }

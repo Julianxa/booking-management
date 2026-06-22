@@ -55,7 +55,7 @@ public class WebhookService {
     private final StatusTransitioner statusTransitioner;
     private final StripeUtils stripeUtils;
     private final EventSlotReservationService eventSlotReservationService;
-    private final PaymentHistoryService paymentHistoryService;
+    private final PaymentLogService paymentLogService;
 
     // Webhook services
     @Transactional
@@ -430,7 +430,7 @@ public class WebhookService {
         payment.setPaymentChannel(paymentMethod == null ? null : Enums.PaymentChannel.valueOf(paymentMethod.toUpperCase()));
         payment.setPaidAt(paidAt);
         paymentsRepository.save(payment);
-        paymentHistoryService.recordStatusChange(payment, status, null, paymentMethod);
+        paymentLogService.recordStatusChange(payment, status, null, paymentMethod);
     }
 
     void updatePaymentStatus(Payments payment, Enums.PaymentStatus status) {
@@ -453,7 +453,7 @@ public class WebhookService {
         }
 
         if (statusChanged || status == Enums.PaymentStatus.FAILED) {
-            paymentHistoryService.recordStatusChange(payment, status, failureReason, paymentMethod);
+            paymentLogService.recordStatusChange(payment, status, failureReason, paymentMethod);
         }
     }
 

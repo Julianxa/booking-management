@@ -17,8 +17,8 @@ import java.time.ZonedDateTime;
 @DynamicUpdate
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "payment_history")
-public class PaymentHistory {
+@Table(name = "payment_logs")
+public class PaymentLogs {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true, nullable = false)
