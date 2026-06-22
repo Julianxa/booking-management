@@ -20,7 +20,6 @@ import java.util.List;
 @Builder
 public class CreateGiftCertificateRequestDTO {
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Type of gift certificate")
-    @NotBlank(message = "Gift Certificate PromoCode is required")
     @Valid
     @JsonProperty("promo_code")
     private String promoCode;
