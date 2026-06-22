@@ -190,18 +190,10 @@ public class WebhookService {
         }
 
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
-        if (isRetryableCheckoutFailure(booking)) {
-            log.info("Payment attempt failed for booking {} — checkout session still open, keeping reservation",
-                    booking.getRefNo());
-            auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(),
-                    "paymentIntent:" + intent.getId() + ", retryable");
-            return;
-        }
-
-        giftCertificateService.cancelCertificateRedemption(booking);
-        eventSlotReservationService.releaseCapacityForBooking(booking);
-        updateBookingStatus(booking, Enums.BookingStatus.FAILED);
-        auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), "paymentIntent:" + intent.getId());
+        log.info("Payment attempt failed for booking {} — keeping slot reservation until checkout session ends",
+                booking.getRefNo());
+        auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(),
+                "paymentIntent:" + intent.getId());
     }
 
     @Transactional
@@ -218,14 +210,8 @@ public class WebhookService {
             return;
         }
         updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
-        if (isRetryableCheckoutFailure(booking)) {
-            log.info("Async payment attempt failed for booking {} — checkout session still open, keeping reservation",
-                    booking.getRefNo());
-            return;
-        }
-        giftCertificateService.cancelCertificateRedemption(booking);
-        eventSlotReservationService.releaseCapacityForBooking(booking);
-        updateBookingStatus(booking, Enums.BookingStatus.FAILED);
+        log.info("Async payment attempt failed for booking {} — keeping slot reservation until checkout session ends",
+                booking.getRefNo());
     }
 
     @Transactional
@@ -244,8 +230,8 @@ public class WebhookService {
             return;
         }
 
-        if (isRetryableCheckoutFailure(booking) && !hasFailedPaymentAttempt(payment)) {
-            log.info("Ignoring payment_intent.canceled for booking {} — awaiting session expiry without failed attempt",
+        if (isRetryableCheckoutFailure(booking)) {
+            log.info("Ignoring payment_intent.canceled for booking {} — checkout session still open",
                     booking.getRefNo());
             return;
         }
@@ -319,14 +305,12 @@ public class WebhookService {
             return;
         }
 
-        if (booking.getStatus() == Enums.BookingStatus.FAILED
-                || booking.getStatus() == Enums.BookingStatus.EXPIRED) {
-            recoverBookingForSuccessfulPayment(booking);
-        }
+        ensureBookingCapacityForSuccessfulPayment(booking);
 
         updateSuccessPaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
 
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
+        markSlotCapacityHeld(booking);
 
         GiftCertificates giftCertificate = Optional.ofNullable(booking.getGiftCertificateId())
                 .map(giftCertificatesRepository::findById)
@@ -346,6 +330,7 @@ public class WebhookService {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void confirmOfflinePayment(Users user, Bookings booking) {
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
+        markSlotCapacityHeld(booking);
 
         GiftCertificates giftCertificate = Optional.ofNullable(booking.getGiftCertificateId())
                 .map(giftCertificatesRepository::findById)
@@ -469,7 +454,8 @@ public class WebhookService {
     }
 
     private boolean isRetryableCheckoutFailure(Bookings booking) {
-        return booking.getStatus() == Enums.BookingStatus.AWAITING_PAYMENT
+        return booking.getStatus() == Enums.BookingStatus.PENDING
+                || booking.getStatus() == Enums.BookingStatus.AWAITING_PAYMENT
                 || booking.getStatus() == Enums.BookingStatus.PAYMENT_IN_PROGRESS;
     }
 
@@ -506,20 +492,24 @@ public class WebhookService {
         log.info("Finalized unpaid booking {} as EXPIRED without failed payment attempt", booking.getRefNo());
     }
 
+    private void ensureBookingCapacityForSuccessfulPayment(Bookings booking) {
+        if (booking.getStatus() == Enums.BookingStatus.FAILED
+                || booking.getStatus() == Enums.BookingStatus.EXPIRED) {
+            recoverBookingForSuccessfulPayment(booking);
+        }
+    }
+
     private void recoverBookingForSuccessfulPayment(Bookings booking) {
         log.info("Recovering booking {} after successful payment following prior failure/expiry", booking.getRefNo());
 
-        List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
-        for (BookingEvents bookingEvent : bookingEvents) {
-            if (bookingEvent.getCancelledAt() == null) {
-                Events event = bookingEvent.getEvent();
-                eventSlotReservationService.reserveCapacityForBookingEvent(
-                        bookingEvent, event.getMaxCapacity(), event.getName());
-            }
-        }
-
+        eventSlotReservationService.reserveCapacityForBooking(booking);
         giftCertificateService.reopenCancelledRedemption(booking);
         updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
+    }
+
+    private void markSlotCapacityHeld(Bookings booking) {
+        booking.setSlotCapacityHeld(true);
+        bookingsRepository.save(booking);
     }
 
     private String resolvePaymentMethod(Session session) {

@@ -51,6 +51,10 @@ public class Bookings {
     @Column(name = "status", nullable = false, length = 20)
     private Enums.BookingStatus status; // e.g., PENDING, CONFIRMED, CANCELLED, COMPLETED
 
+    @Builder.Default
+    @Column(name = "slot_capacity_held", nullable = false)
+    private boolean slotCapacityHeld = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "language")
     private Enums.Language language;

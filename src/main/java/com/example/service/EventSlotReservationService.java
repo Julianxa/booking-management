@@ -102,9 +102,29 @@ public class EventSlotReservationService {
             return;
         }
         List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(current.getId());
+        boolean released = false;
         for (BookingEvents bookingEvent : bookingEvents) {
             if (bookingEvent.getCancelledAt() == null) {
                 releaseCapacityForBookingEvent(bookingEvent);
+                released = true;
+            }
+        }
+        if (released) {
+            current.setSlotCapacityHeld(false);
+            bookingsRepository.save(current);
+        }
+    }
+
+    @Transactional
+    public void reserveCapacityForBooking(Bookings booking) {
+        if (booking == null || booking.getId() == null) {
+            return;
+        }
+        List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
+        for (BookingEvents bookingEvent : bookingEvents) {
+            if (bookingEvent.getCancelledAt() == null) {
+                Events event = bookingEvent.getEvent();
+                reserveCapacityForBookingEvent(bookingEvent, event.getMaxCapacity(), event.getName());
             }
         }
     }
