@@ -44,6 +44,7 @@ public class PaymentService {
     private final ReferenceNoGenerator referenceNoGenerator;
     private final RefundMapper refundMapper;
     private final EventSlotReservationService eventSlotReservationService;
+    private final PaymentHistoryService paymentHistoryService;
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Session createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
@@ -251,7 +252,9 @@ public class PaymentService {
                 .sessionId(sessionId)
                 .paymentStatus(Enums.PaymentStatus.PENDING)
                 .build();
-        return paymentsRepository.save(payments);
+        Payments saved = paymentsRepository.save(payments);
+        paymentHistoryService.recordStatusChange(saved, Enums.PaymentStatus.PENDING, null, null);
+        return saved;
     }
 
     private String appendSessionIdToUrl(String baseUrl) {
@@ -279,6 +282,11 @@ public class PaymentService {
         if (payment != null) {
             payment.setPaymentStatus(Enums.PaymentStatus.REFUNDED);
             paymentsRepository.save(payment);
+            paymentHistoryService.recordStatusChange(
+                    payment,
+                    Enums.PaymentStatus.REFUNDED,
+                    null,
+                    payment.getPaymentChannel() != null ? payment.getPaymentChannel().name().toLowerCase() : null);
         }
 
         refund.setType(refundType);

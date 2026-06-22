@@ -21,6 +21,7 @@ public class ReferenceNoGenerator {
     private final GiftCertificatesRepository giftCertificatesRepository;
     private final OrganizationsRepository organizationsRepository;
     private final RefundsRepository refundsRepository;
+    private final PaymentHistoryRepository paymentHistoryRepository;
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String SAFE_CHARS = "2346789ACDEFGHJKLMPQRTUVXY";
     private final TicketTypesRepository ticketTypesRepository;
@@ -67,6 +68,10 @@ public class ReferenceNoGenerator {
 
     public String generatePaymentReference() {
         return generateUniqueReference("P-", 10, paymentsRepository);
+    }
+
+    public String generatePaymentHistoryReference() {
+        return generateUniqueReference("PH-", 10, paymentHistoryRepository);
     }
 
     public String generateGiftCertificateReference() {
@@ -116,6 +121,10 @@ public class ReferenceNoGenerator {
                 exists = ticketTypesRepository.existsByRefNo(referenceNo);
             } else if (repository instanceof GiftCertificatesRepository) {
                 exists = giftCertificatesRepository.existsByRefNo(referenceNo);
+            } else if (repository instanceof PaymentsRepository) {
+                exists = paymentsRepository.existsByRefNo(referenceNo);
+            } else if (repository instanceof PaymentHistoryRepository) {
+                exists = paymentHistoryRepository.existsByRefNo(referenceNo);
             }
             if (!exists) {
                 return referenceNo;

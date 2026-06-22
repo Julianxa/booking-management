@@ -55,6 +55,7 @@ public class WebhookService {
     private final StatusTransitioner statusTransitioner;
     private final StripeUtils stripeUtils;
     private final EventSlotReservationService eventSlotReservationService;
+    private final PaymentHistoryService paymentHistoryService;
 
     // Webhook services
     @Transactional
@@ -64,6 +65,7 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(null, intent.getId(), STRIPE, booking);
+        syncPaymentStripeIds(payment, null, intent.getId());
         updatePaymentStatus(payment, INITIATED);
 
         updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
@@ -164,6 +166,7 @@ public class WebhookService {
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         String sessionId = intent.getPaymentDetails().getOrderReference();
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
+        syncPaymentStripeIds(payment, sessionId, intent.getId());
 
         updatePaymentStatus(payment, Enums.PaymentStatus.REQUIRES_ACTION);
         updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
@@ -189,7 +192,12 @@ public class WebhookService {
             return;
         }
 
-        updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
+        syncPaymentStripeIds(payment, sessionId, intent.getId());
+        updatePaymentStatus(
+                payment,
+                Enums.PaymentStatus.FAILED,
+                resolveFailureReason(intent),
+                resolvePaymentMethodFromIntent(intent));
         log.info("Payment attempt failed for booking {} — keeping slot reservation until checkout session ends",
                 booking.getRefNo());
         auditService.record("PAYMENT_FAILED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(),
@@ -209,7 +217,11 @@ public class WebhookService {
                     booking.getRefNo(), booking.getStatus(), payment.getPaymentStatus());
             return;
         }
-        updatePaymentStatus(payment, Enums.PaymentStatus.FAILED);
+        updatePaymentStatus(
+                payment,
+                Enums.PaymentStatus.FAILED,
+                "Async checkout payment failed",
+                resolvePaymentMethod(session));
         log.info("Async payment attempt failed for booking {} — keeping slot reservation until checkout session ends",
                 booking.getRefNo());
     }
@@ -409,20 +421,73 @@ public class WebhookService {
 
     public void updateSuccessPaymentRecord(Payments payment, String paymentIntent,
                                     String paymentMethod, Enums.PaymentStatus status, ZonedDateTime paidAt) {
-        updatePaymentStatus(payment, status);
+        if (status == null || !statusTransitioner.shouldUpdatePaymentStatus(payment.getPaymentStatus(), status)) {
+            return;
+        }
+
+        payment.setPaymentStatus(status);
         payment.setPaymentIntentId(paymentIntent);
         payment.setPaymentChannel(paymentMethod == null ? null : Enums.PaymentChannel.valueOf(paymentMethod.toUpperCase()));
         payment.setPaidAt(paidAt);
         paymentsRepository.save(payment);
+        paymentHistoryService.recordStatusChange(payment, status, null, paymentMethod);
     }
 
     void updatePaymentStatus(Payments payment, Enums.PaymentStatus status) {
-        if (status != null) {
-            if(statusTransitioner.shouldUpdatePaymentStatus(payment.getPaymentStatus(), status)) {
-                payment.setPaymentStatus(status);
-                paymentsRepository.save(payment);
-            }
+        updatePaymentStatus(payment, status, null, null);
+    }
+
+    void updatePaymentStatus(
+            Payments payment,
+            Enums.PaymentStatus status,
+            String failureReason,
+            String paymentMethod) {
+        if (status == null) {
+            return;
         }
+
+        boolean statusChanged = statusTransitioner.shouldUpdatePaymentStatus(payment.getPaymentStatus(), status);
+        if (statusChanged) {
+            payment.setPaymentStatus(status);
+            paymentsRepository.save(payment);
+        }
+
+        if (statusChanged || status == Enums.PaymentStatus.FAILED) {
+            paymentHistoryService.recordStatusChange(payment, status, failureReason, paymentMethod);
+        }
+    }
+
+    private void syncPaymentStripeIds(Payments payment, String sessionId, String paymentIntentId) {
+        boolean changed = false;
+        if (sessionId != null && !sessionId.equals(payment.getSessionId())) {
+            payment.setSessionId(sessionId);
+            changed = true;
+        }
+        if (paymentIntentId != null && !paymentIntentId.equals(payment.getPaymentIntentId())) {
+            payment.setPaymentIntentId(paymentIntentId);
+            changed = true;
+        }
+        if (changed) {
+            paymentsRepository.save(payment);
+        }
+    }
+
+    private String resolveFailureReason(PaymentIntent intent) {
+        if (intent.getLastPaymentError() == null) {
+            return null;
+        }
+        var error = intent.getLastPaymentError();
+        if (error.getDeclineCode() != null) {
+            return error.getMessage() + " (" + error.getDeclineCode() + ")";
+        }
+        return error.getMessage();
+    }
+
+    private String resolvePaymentMethodFromIntent(PaymentIntent intent) {
+        if (intent.getPaymentMethodTypes() != null && !intent.getPaymentMethodTypes().isEmpty()) {
+            return intent.getPaymentMethodTypes().get(0);
+        }
+        return null;
     }
 
     void updateRefundStatus(Refunds refund, Enums.RefundStatus status) {

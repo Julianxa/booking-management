@@ -45,7 +45,7 @@ public class PaymentHistory {
     @Column(name = "payment_intent_id")
     private String paymentIntentId;
 
-    @Column(name = "payment_method", nullable = false)
+    @Column(name = "payment_method")
     private String paymentMethod;
 
     @Enumerated(EnumType.STRING)
@@ -58,4 +58,11 @@ public class PaymentHistory {
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", nullable = false)
     private ZonedDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = ZonedDateTime.now();
+        }
+    }
 }
