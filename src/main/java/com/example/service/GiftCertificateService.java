@@ -276,15 +276,19 @@ public class GiftCertificateService {
     }
 
     @Transactional
-    private GiftCertificateApplicationResult applyValueType(GiftCertificates gc) {
+    private GiftCertificateApplicationResult applyValueType(GiftCertificates gc, BigDecimal grandTotal) {
         GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
                 .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
 
-        return new GiftCertificateApplicationResult(gc, List.of(), item.getValue());
+        BigDecimal cappedDiscount = item.getValue().min(grandTotal);
+        return new GiftCertificateApplicationResult(gc, List.of(), cappedDiscount);
     }
 
     @Transactional
-    private GiftCertificateApplicationResult applyEventType(GiftCertificates gc, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
+    private GiftCertificateApplicationResult applyEventType(
+            GiftCertificates gc,
+            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs,
+            BigDecimal grandTotal) {
         List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = new ArrayList<>();
 
         for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
@@ -316,7 +320,7 @@ public class GiftCertificateService {
             }
         }
 
-        BigDecimal discount = getGiftCertificateDiscount(redeemedTickets);
+        BigDecimal discount = getGiftCertificateDiscount(redeemedTickets).min(grandTotal);
 
         return new GiftCertificateApplicationResult(gc, redeemedTickets, discount);
     }
@@ -373,7 +377,11 @@ public class GiftCertificateService {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    public GiftCertificateApplicationResult validateAndCalculateGiftCertificate(Users loggedInUser, List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs, String promoCode) {
+    public GiftCertificateApplicationResult validateAndCalculateGiftCertificate(
+            Users loggedInUser,
+            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs,
+            String promoCode,
+            BigDecimal grandTotal) {
         if (promoCode == null) {
             return new GiftCertificateApplicationResult(null, List.of(), BigDecimal.ZERO);
         }
@@ -382,14 +390,20 @@ public class GiftCertificateService {
 
         GiftCertificates gc = validateGiftCertificateForBooking(promoCode, userId);
 
-        GiftCertificateApplicationResult giftCertificateApplicationResult;
+        BigDecimal bookingTotal = grandTotal != null ? grandTotal : BigDecimal.ZERO;
+
+        GiftCertificateApplicationResult result;
         if (gc.getType() == VALUE || gc.getType() == PERSONAL_VALUE) {
-            giftCertificateApplicationResult = applyValueType(gc);
+            result = applyValueType(gc, bookingTotal);
         } else {
-            giftCertificateApplicationResult = applyEventType(gc, bookingEventDTOs);
+            result = applyEventType(gc, bookingEventDTOs, bookingTotal);
         }
 
-        return giftCertificateApplicationResult;
+        if (result.discount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidGCException("Gift certificate does not apply to this booking");
+        }
+
+        return result;
     }
 
     @Transactional

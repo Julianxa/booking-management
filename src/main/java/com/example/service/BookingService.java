@@ -125,14 +125,16 @@ public class BookingService {
 
             BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
 
-            GiftCertificateApplicationResult gcResult = giftCertificateService.validateAndCalculateGiftCertificate(loggedInUser, request.getBookingEvents(), request.getPromoCode());
+            GiftCertificateApplicationResult gcResult = giftCertificateService.validateAndCalculateGiftCertificate(
+                    loggedInUser, request.getBookingEvents(), request.getPromoCode(), grandTotal);
 
             calculateAndUpdateFinalPaymentAmount(booking, grandTotal, gcResult);
 
             List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs = bookingsConverter.toBookingEventDTOs(booking, null);
 
-            if(gcResult.certificate() != null)
+            if (gcResult.certificate() != null && gcResult.discount().compareTo(BigDecimal.ZERO) > 0) {
                 giftCertificateService.preserveGiftCertificate(loggedInUser, booking, gcResult);
+            }
 
             auditService.record("CREATE_BOOKING",
                     Bookings.class.getName(),
@@ -545,16 +547,17 @@ public class BookingService {
                                                  BigDecimal grandTotal,
                                                  GiftCertificateApplicationResult gcResult) {
 
-        BigDecimal finalAmount = grandTotal.subtract(gcResult.discount());
+        BigDecimal discount = gcResult.discount() != null
+                ? gcResult.discount().min(grandTotal)
+                : BigDecimal.ZERO;
+        BigDecimal finalAmount = grandTotal.subtract(discount).max(BigDecimal.ZERO);
 
         booking.setTotalPaidPrice(grandTotal);
         booking.setFinalPaidAmount(finalAmount);
 
-        if (gcResult.certificate() != null) {
+        if (gcResult.certificate() != null && discount.compareTo(BigDecimal.ZERO) > 0) {
             booking.setGiftCertificateId(gcResult.certificate().getId());
-        }
-        if (!gcResult.discount().equals(BigDecimal.ZERO)) {
-            booking.setDiscount(gcResult.discount());
+            booking.setDiscount(discount);
         }
 
         bookingsRepository.save(booking);
