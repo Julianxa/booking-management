@@ -1,121 +1,71 @@
 package com.example.scheduler;
 
-
-import com.example.converter.BookingItemsConverter;
-import com.example.exception.booking.BookingNotFoundException;
-import com.example.exception.email.MissingIntervalException;
-import com.example.model.dto.CreateBookingRequestDTO;
-import com.example.model.entity.*;
-import com.example.repository.*;
-import com.example.service.EmailService;
+import com.example.service.ReminderDispatchService;
+import com.example.service.ReminderService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.List;
 
 @Slf4j
 @Component
 @EnableScheduling
+@RequiredArgsConstructor
 public class ReminderScheduler {
-    @Autowired
-    EmailTemplatesRepository templatesRepository;
+    private final ReminderService reminderService;
+    private final ReminderDispatchService reminderDispatchService;
 
-    @Autowired
-    BookingEventsRepository bookingEventsRepository;
+    @Value("${app.reminder.batch-size:100}")
+    private int batchSize;
 
-    @Autowired
-    BookingAttendeesRepository attendeesRepository;
+    @Value("${app.reminder.run-on-startup:false}")
+    private boolean runOnStartup;
 
-    @Autowired
-    BookingsRepository bookingsRepository;
-
-    @Autowired
-    BookingItemsRepository bookingItemsRepository;
-
-    @Autowired
-    BookingItemsConverter bookingItemsConverter;
-
-    @Autowired
-    EmailService emailService;
-
-    // Run every day at 9:00 AM Hong Kong Time
-    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Hong_Kong")
-    @Transactional
+    @Scheduled(cron = "${app.reminder.cron:0 0 9 * * *}", zone = "${app.reminder.zone:Asia/Hong_Kong}")
     public void sendOneDayBeforeReminders() {
-        sendRemindersForTomorrow();
+        LocalDate targetDate = reminderService.resolveReminderTargetDate();
+        log.info("Starting scheduled reminder dispatch for target date {}", targetDate);
+        dispatchRemindersForTargetDate(targetDate);
     }
 
     @EventListener(ApplicationReadyEvent.class)
-    @Transactional
     public void sendRemindersOnStartup() {
-        log.info("Application started - checking for pending reminders...");
-        sendRemindersForTomorrow();
-    }
-
-    private void sendRemindersForTomorrow() {
-        Integer reminderInterval = templatesRepository
-                .findReminderDayInterval()
-                .orElseThrow(() -> new MissingIntervalException("Missing reminder_day_interval in template"));
-
-        LocalDate targetDate = LocalDate.now(ZoneId.of("Asia/Hong_Kong"))
-                .plusDays(reminderInterval);
-
-        List<BookingEvents> bookingEvents = bookingEventsRepository
-                .findUpcomingEventsForReminder(targetDate);
-
-        for (BookingEvents bookingEvent : bookingEvents) {
-            if (bookingEvent.getReminderSentAt() != null) {
-                continue;
-            }
-
-            try {
-                processReminderForEvent(bookingEvent);
-            } catch (Exception e) {
-                log.error("Failed to process reminder for booking event ID: {}", bookingEvent.getId(), e);
-            }
-        }
-    }
-
-    private void processReminderForEvent(BookingEvents bookingEvent) {
-        List<CreateBookingRequestDTO.AttendeeDTO> attendees =
-                attendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
-
-        if (attendees.isEmpty()) {
-            log.warn("No attendees found for booking event ID: {}", bookingEvent.getId());
+        if (!runOnStartup) {
             return;
         }
+        LocalDate targetDate = reminderService.resolveReminderTargetDate();
+        log.info("Application started — dispatching pending reminders for target date {}", targetDate);
+        dispatchRemindersForTargetDate(targetDate);
+    }
 
-        Bookings booking = bookingsRepository.findById(bookingEvent.getBooking().getId())
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+    private void dispatchRemindersForTargetDate(LocalDate targetDate) {
+        int totalDispatched = 0;
 
-        List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
-        List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs =
-                bookingItemsConverter.toTicketTypeDTOs(bookingItems);
+        while (true) {
+            List<Long> claimedIds = reminderService.claimNextReminderBatch(targetDate, batchSize);
+            if (claimedIds.isEmpty()) {
+                break;
+            }
 
-        boolean allSentSuccessfully = true;
+            for (Long bookingEventId : claimedIds) {
+                reminderDispatchService.dispatchReminderForEvent(bookingEventId);
+            }
 
-        for (CreateBookingRequestDTO.AttendeeDTO attendee : attendees) {
-            try {
-                emailService.sendBookingReminderEmail(attendee, booking, bookingEvent, ticketDTOs, attendees);
-            } catch (Exception e) {
-                allSentSuccessfully = false;
-                log.error("Failed to send reminder to {}", attendee.getEmail(), e);
+            totalDispatched += claimedIds.size();
+
+            if (claimedIds.size() < batchSize) {
+                break;
             }
         }
 
-        if (allSentSuccessfully) {
-            bookingEvent.setReminderSentAt(ZonedDateTime.now(ZoneId.systemDefault()));
-            bookingEventsRepository.save(bookingEvent);
-            log.info("Successfully sent reminder for booking event ID: {}", bookingEvent.getId());
-        }
+        log.info("Queued {} reminder job(s) for target date {} (async workers will send emails)",
+                totalDispatched, targetDate);
     }
 }

@@ -130,4 +130,54 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
             "AND be.status = 'AVAILABLE' " +
             "AND be.reminderSentAt IS NULL")
     List<BookingEvents> findUpcomingEventsForReminder(@Param("tomorrow") LocalDate tomorrow);
+
+    @Query(value = """
+            SELECT be.id
+            FROM booking_events be
+            WHERE be.event_date = :targetDate
+              AND be.status = 'AVAILABLE'
+              AND be.reminder_sent_at IS NULL
+              AND be.cancelled_at IS NULL
+            ORDER BY be.id
+            LIMIT :limit
+            FOR UPDATE SKIP LOCKED
+            """, nativeQuery = true)
+    List<Long> findReminderCandidateIdsForUpdateSkipLocked(
+            @Param("targetDate") LocalDate targetDate,
+            @Param("limit") int limit);
+
+    @Modifying
+    @Query("""
+            UPDATE BookingEvents be
+            SET be.reminderSentAt = :claimedAt
+            WHERE be.id IN :ids AND be.reminderSentAt IS NULL
+            """)
+    int markReminderClaimed(@Param("ids") List<Long> ids, @Param("claimedAt") ZonedDateTime claimedAt);
+
+    @Modifying
+    @Query("""
+            UPDATE BookingEvents be
+            SET be.reminderSentAt = NULL
+            WHERE be.id = :id AND be.reminderSentAt = :claimedAt
+            """)
+    int releaseReminderClaim(@Param("id") Long id, @Param("claimedAt") ZonedDateTime claimedAt);
+
+    @Modifying
+    @Query("""
+            UPDATE BookingEvents be
+            SET be.reminderSentAt = :sentAt
+            WHERE be.id = :id AND be.reminderSentAt = :claimedAt
+            """)
+    int markReminderSentFromClaim(
+            @Param("id") Long id,
+            @Param("claimedAt") ZonedDateTime claimedAt,
+            @Param("sentAt") ZonedDateTime sentAt);
+
+    @Query("""
+            SELECT be FROM BookingEvents be
+            JOIN FETCH be.booking
+            JOIN FETCH be.event
+            WHERE be.id = :id
+            """)
+    Optional<BookingEvents> findByIdWithBookingAndEvent(@Param("id") Long id);
 }
