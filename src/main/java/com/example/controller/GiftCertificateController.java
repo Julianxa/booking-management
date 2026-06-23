@@ -86,6 +86,32 @@ public class GiftCertificateController {
     }
 
     @Operation(
+            summary = "Get a PERSONAL gift certificate bundle by id",
+            description = "Retrieves all gift certificates in a PERSONAL_VALUE or PERSONAL_EVENT bundle using the bundle id returned at creation.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Gift certificate bundle retrieved successfully",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = CreateGiftCertificatesResponseDTO.class))),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request or not a PERSONAL certificate bundle",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ErrorResponseDTO.class))),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Gift certificate bundle not found",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+            }
+    )
+    @GetMapping("/gift-certificates/bundles/{id}")
+    public ResponseEntity<?> getPersonalCertificateBundle(@PathVariable String id) {
+        return ResponseEntity.ok(giftCertificateService.getPersonalCertificateBundle(id));
+    }
+
+    @Operation(
             summary = "Get gift certificate by promoCode",
             description = "Get a gift certificate. ",
             responses = {

@@ -282,6 +282,31 @@ public class GiftCertificateService {
         return buildResponse(gc, userRefNo, eventRefNo);
     }
 
+    public CreateGiftCertificatesResponseDTO getPersonalCertificateBundle(String bundleId) {
+        List<GiftCertificates> certificates = giftCertificatesRepository.findByRefNoOrderByIdAsc(bundleId);
+        if (certificates.isEmpty()) {
+            throw new GCNotFoundException(String.format("Gift certificate bundle with id %s not found", bundleId));
+        }
+        if (certificates.stream().anyMatch(gc -> !isPersonalCertificate(gc.getType()))) {
+            throw new InvalidGCException("Gift certificate bundle is only available for PERSONAL certificates");
+        }
+
+        List<CreateGiftCertificateResponseDTO> certificateDTOs = certificates.stream()
+                .map(gc -> {
+                    String userRefNo = usersRepository.findRefNoById(gc.getUserId()).orElse(null);
+                    String eventRefNo = eventsRepository.findRefNoById(gc.getEventId()).orElse(null);
+                    return buildResponse(gc, userRefNo, eventRefNo);
+                })
+                .toList();
+
+        return CreateGiftCertificatesResponseDTO.builder()
+                .id(bundleId)
+                .certificates(certificateDTOs)
+                .message("Personal gift certificate bundle retrieved successfully")
+                .timestamp(ZonedDateTime.now())
+                .build();
+    }
+
     public GetListGiftCertificateResponseDTO getGiftCertificates(
             Pageable pageable, String eventRefNo) {
         Page<GiftCertificates> giftCertificatesPage;
