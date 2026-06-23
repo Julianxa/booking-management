@@ -86,8 +86,8 @@ public class GiftCertificateController {
     }
 
     @Operation(
-            summary = "Get gift certificate(s) by ID",
-            description = "Retrieves all gift certificates using the ID.",
+            summary = "Get gift certificate(s) by bundle ID",
+            description = "Retrieves all gift certificates using the bundle ID.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -106,7 +106,7 @@ public class GiftCertificateController {
                                     schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @GetMapping("/gift-certificates/{id}")
+    @GetMapping("/gift-certificates/bundle/{id}")
     public ResponseEntity<?> getCertificateById(@PathVariable String id) {
         return ResponseEntity.ok(giftCertificateService.getCertificateById(id));
     }
