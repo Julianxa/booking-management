@@ -35,7 +35,7 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
 
     Optional<BookingEvents> findByVerificationToken(String verificationToken);
 
-    BookingEvents findByBooking_RefNoAndEvent_RefNoAndEventDateAndEventTime(String bookingRefNo, String eventRefNo, LocalDate eventDate, String eventTime);
+    BookingEvents findByRefNoAndEventDateAndEventTime(String refNo, LocalDate eventDate, String eventTime);
 
     @Query("""
     SELECT be FROM BookingEvents be

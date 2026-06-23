@@ -20,6 +20,9 @@ public class ConfirmCheckinResponseDTO {
     @JsonProperty("booking_id")
     private String bookingId;
 
+    @JsonProperty("booking_event_id")
+    private String bookingEventId;
+
     @JsonProperty("event_id")
     private String eventId;
 

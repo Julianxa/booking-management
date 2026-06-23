@@ -647,9 +647,8 @@ public class EventService {
     @Transactional
     public ConfirmCheckinResponseDTO confirmCheckIn(ConfirmCheckinRequestDTO request) {
         BookingEvents bookingEvent = bookingEventsRepository
-                .findByBooking_RefNoAndEvent_RefNoAndEventDateAndEventTime(
-                        request.getBookingId(),
-                        request.getEventId(),
+                .findByRefNoAndEventDateAndEventTime(
+                        request.getBookingEventId(),
                         request.getEventDate(),
                         request.getEventTime()
                 );
@@ -676,6 +675,7 @@ public class EventService {
 
         return ConfirmCheckinResponseDTO.builder()
                 .bookingId(bookingEvent.getBooking().getRefNo())
+                .bookingEventId(bookingEvent.getRefNo())
                 .eventId(bookingEvent.getEvent().getRefNo())
                 .eventDate(bookingEvent.getEventDate())
                 .eventTime(bookingEvent.getEventTime())

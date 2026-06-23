@@ -17,14 +17,9 @@ import java.time.LocalDate;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConfirmCheckinRequestDTO {
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Booking ID is required")
-    @JsonProperty("booking_id")
-    private String bookingId;
-
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Event ID is required")
-    @JsonProperty("event_id")
-    private String eventId;
+    @NotBlank(message = "Booking event ID is required")
+    @JsonProperty("booking_event_id")
+    private String bookingEventId;
 
     @Schema(
             requiredMode = Schema.RequiredMode.REQUIRED,
