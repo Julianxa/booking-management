@@ -22,6 +22,7 @@ public class EventSlotReservations {
     @Column(name = "max_capacity", nullable = false)
     private Integer maxCapacity;
 
+    // determine the booking availability when creating booking
     @Column(name = "reserved_qty", nullable = false)
     private Integer reservedQty;
 

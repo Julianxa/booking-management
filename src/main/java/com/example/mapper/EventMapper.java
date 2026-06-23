@@ -35,6 +35,7 @@ public interface EventMapper {
         CreateEventResponseDTO dto = new CreateEventResponseDTO();
 
         dto.setId(entity.getRefNo());
+        dto.setSequenceNo(entity.getSequenceNo());
         dto.setName(entity.getName());
         dto.setNameZhCn(entity.getNameZhCn());
         dto.setNameZhHk(entity.getNameZhHk());

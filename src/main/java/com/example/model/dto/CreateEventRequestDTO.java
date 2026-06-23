@@ -2,8 +2,8 @@ package com.example.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -165,6 +165,11 @@ public class CreateEventRequestDTO {
 
     @JsonProperty("custom_question_zh_hk")
     private String customQuestionZhHk;
+
+    @Schema(description = "Display/order sequence number (positive integer)")
+    @Positive(message = "sequence_no must be a positive integer")
+    @JsonProperty("sequence_no")
+    private Integer sequenceNo;
 
     @JsonProperty("match_ticket_quantity_with_attendees")
     private Boolean matchTicketQuantityWithAttendees = true;

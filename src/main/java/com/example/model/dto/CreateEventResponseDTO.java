@@ -25,6 +25,10 @@ public class CreateEventResponseDTO {
     @JsonProperty("id")
     private String id;
 
+    @Schema(description = "Display/order sequence number (positive integer)")
+    @JsonProperty("sequence_no")
+    private Integer sequenceNo;
+
     @Schema(description = "Name of the event/activity")
     @JsonProperty("name")
     private String name;

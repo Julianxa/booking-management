@@ -6,6 +6,7 @@ import com.example.exception.ticket.InvalidVerificationTokenException;
 import com.example.exception.booking.BookingEventNotFoundException;
 import com.example.exception.event.EventNotFoundException;
 import com.example.exception.general.InvalidJsonFormatException;
+import com.example.exception.general.MissingRequiredFieldException;
 import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.BookingEventsMapper;
 import com.example.mapper.EventMapper;
@@ -77,6 +78,7 @@ public class EventService {
             mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             CreateEventRequestDTO request = mapper.readValue(createEventRequestDTOJson, CreateEventRequestDTO.class);
 
+            validateSequenceNo(request.getSequenceNo());
 
             Events event = eventMapper.toEntity(request);
             event.setStatus(Enums.EventStatus.OPEN);
@@ -119,10 +121,13 @@ public class EventService {
         try {
             UpdateEventRequestDTO dto = mapper.readValue(updateEventRequestDTOJson, UpdateEventRequestDTO.class);
 
+            validateSequenceNo(dto.getSequenceNo());
+
             Events event = eventsRepository.findByRefNo(eventRefNo)
                     .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
             if (dto.getName() != null) event.setName(dto.getName());
+            if (dto.getSequenceNo() != null) event.setSequenceNo(dto.getSequenceNo());
             if (dto.getNameZhCn() != null) event.setNameZhCn(dto.getNameZhCn());
             if (dto.getNameZhHk() != null) event.setNameZhHk(dto.getNameZhHk());
             if (dto.getType() != null) event.setType(dto.getType());
@@ -755,6 +760,12 @@ public class EventService {
                     checkInPct
             );
         }).collect(Collectors.toList());
+    }
+
+    private void validateSequenceNo(Integer sequenceNo) {
+        if (sequenceNo != null && sequenceNo <= 0) {
+            throw new MissingRequiredFieldException("sequence_no must be a positive integer");
+        }
     }
 
     private void validateCheckIn(BookingEvents bookingEvent) {

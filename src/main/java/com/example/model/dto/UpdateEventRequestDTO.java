@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,11 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateEventRequestDTO {
+    @Schema(description = "Display/order sequence number (positive integer)")
+    @Positive(message = "sequence_no must be a positive integer")
+    @JsonProperty("sequence_no")
+    private Integer sequenceNo;
+
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Name of the event/activity")
     @NotBlank(message = "Name is required")
     @JsonProperty("name")

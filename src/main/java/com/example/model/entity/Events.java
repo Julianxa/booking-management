@@ -31,6 +31,8 @@ public class Events {
     private Long id;
     @Column(name = "ref_no", unique = true, nullable = false)
     private String refNo;
+    @Column(name = "sequence_no")
+    private Integer sequenceNo;
     @Column(name = "name")
     private String name;
     @Column(name = "name_zh_cn")
