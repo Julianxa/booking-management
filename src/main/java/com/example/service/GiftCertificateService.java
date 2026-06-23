@@ -103,7 +103,7 @@ public class GiftCertificateService {
                 : String.format("%d gift certificates created successfully", certificateCount);
 
         return CreateGiftCertificatesResponseDTO.builder()
-                .giftCertificateId(giftCertificateId)
+                .id(giftCertificateId)
                 .certificates(certificates)
                 .message(message)
                 .timestamp(ZonedDateTime.now())
@@ -387,9 +387,7 @@ public class GiftCertificateService {
         CreateGiftCertificateResponseDTO response = giftCertificateMapper.toCreateResponseDTO(
                 userRefNo, eventRefNo, gc, giftCertificateItemsConverter.toGiftCertificateItemDTOs(gc));
         response.setStatus(findStatusByCertificate(gc));
-        if (isPersonalCertificate(gc.getType())) {
-            response.setId(gc.getRefNo());
-        }
+
         return response;
     }
 

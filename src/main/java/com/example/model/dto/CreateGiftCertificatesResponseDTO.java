@@ -18,8 +18,8 @@ import java.util.List;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CreateGiftCertificatesResponseDTO {
-    @JsonProperty("gift_certificate_id")
-    private String giftCertificateId;
+    @JsonProperty("id")
+    private String id;
 
     @JsonProperty("certificates")
     private List<CreateGiftCertificateResponseDTO> certificates;
