@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -103,7 +104,7 @@ public class EventSlotReservationService {
         }
         List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(current.getId());
         boolean released = false;
-        for (BookingEvents bookingEvent : bookingEvents) {
+        for (BookingEvents bookingEvent : orderBookingEventsForSlotUpdate(bookingEvents)) {
             if (bookingEvent.getCancelledAt() == null) {
                 releaseCapacityForBookingEvent(bookingEvent);
                 released = true;
@@ -121,7 +122,7 @@ public class EventSlotReservationService {
             return;
         }
         List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
-        for (BookingEvents bookingEvent : bookingEvents) {
+        for (BookingEvents bookingEvent : orderBookingEventsForSlotUpdate(bookingEvents)) {
             if (bookingEvent.getCancelledAt() == null) {
                 Events event = bookingEvent.getEvent();
                 reserveCapacityForBookingEvent(bookingEvent, event.getMaxCapacity(), event.getName());
@@ -159,7 +160,7 @@ public class EventSlotReservationService {
 
     @Transactional
     public void releaseCapacityForBookingEvents(List<BookingEvents> bookingEvents) {
-        for (BookingEvents bookingEvent : bookingEvents) {
+        for (BookingEvents bookingEvent : orderBookingEventsForSlotUpdate(bookingEvents)) {
             if (countsTowardCapacity(bookingEvent.getBooking().getStatus())) {
                 releaseCapacityForBookingEvent(bookingEvent);
             }
@@ -168,12 +169,26 @@ public class EventSlotReservationService {
 
     @Transactional
     public void reserveCapacityForBookingEvents(List<BookingEvents> bookingEvents) {
-        for (BookingEvents bookingEvent : bookingEvents) {
+        for (BookingEvents bookingEvent : orderBookingEventsForSlotUpdate(bookingEvents)) {
             if (countsTowardCapacity(bookingEvent.getBooking().getStatus())) {
                 Events event = bookingEvent.getEvent();
                 reserveCapacityForBookingEvent(bookingEvent, event.getMaxCapacity(), event.getName());
             }
         }
+    }
+
+    private List<BookingEvents> orderBookingEventsForSlotUpdate(List<BookingEvents> bookingEvents) {
+        if (bookingEvents == null || bookingEvents.isEmpty()) {
+            return List.of();
+        }
+
+        return bookingEvents.stream()
+                .sorted(Comparator
+                        .comparing((BookingEvents bookingEvent) -> bookingEvent.getEvent().getId())
+                        .thenComparing(BookingEvents::getEventDate)
+                        .thenComparing(BookingEvents::getEventTime)
+                        .thenComparing(BookingEvents::getId))
+                .toList();
     }
 
     private int sumParticipantQty(Long bookingEventId) {
