@@ -133,7 +133,7 @@ public class GiftCertificateController {
     }
 
     @Operation(
-            summary = "Get gift certificates by event ID with pagination",
+            summary = "Get gift certificate(s) by event ID with pagination",
             description = "Get a list of gift certificates. ",
             responses = {
                     @ApiResponse(
@@ -166,7 +166,7 @@ public class GiftCertificateController {
     }
 
     @Operation(
-            summary = "Get gift certificates with pagination",
+            summary = "Get gift certificate(s) with pagination",
             description = "Get a list of gift certificates. ",
             responses = {
                     @ApiResponse(

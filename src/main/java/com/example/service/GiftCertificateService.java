@@ -458,7 +458,7 @@ public class GiftCertificateService {
             throw new IllegalArgumentException("Invalid EventStatus: " + dto.getStatus() +
                     ". Allowed values are: OPEN, CLOSE");
         }
-
+        updateGiftCertificateStatusResponseDTO.setId(giftCertificates.getRefNo());
         updateGiftCertificateStatusResponseDTO.setPromoCode(promoCode);
         updateGiftCertificateStatusResponseDTO.setTimestamp(actionAt);
         return updateGiftCertificateStatusResponseDTO;

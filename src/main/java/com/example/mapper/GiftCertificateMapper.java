@@ -13,6 +13,7 @@ import java.util.List;
 public interface GiftCertificateMapper {
     default CreateGiftCertificateResponseDTO toCreateResponseDTO(String userRefNo, String eventId, GiftCertificates giftCertificates, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> giftCertificateItemDTOs) {
         return CreateGiftCertificateResponseDTO.builder()
+                .id(giftCertificates.getRefNo())
                 .promoCode(giftCertificates.getPromoCode())
                 .type(giftCertificates.getType())
                 .expiryDate(giftCertificates.getExpiryDate())

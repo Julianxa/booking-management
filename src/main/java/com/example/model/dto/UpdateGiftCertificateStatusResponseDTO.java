@@ -14,6 +14,8 @@ import java.time.ZonedDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UpdateGiftCertificateStatusResponseDTO {
+    @JsonProperty("id")
+    private String id;
     @JsonProperty("promo_code")
     private String promoCode;
     @JsonProperty("status")
