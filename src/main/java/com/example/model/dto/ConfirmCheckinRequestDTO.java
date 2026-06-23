@@ -16,6 +16,14 @@ import java.time.LocalDate;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConfirmCheckinRequestDTO {
+    @Schema(
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            description = "Verification token from the QR code check-in link"
+    )
+    @NotBlank(message = "Verification token is required")
+    @JsonProperty("token")
+    private String token;
+
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Booking event ID is required")
     @JsonProperty("booking_event_id")

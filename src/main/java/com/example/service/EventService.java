@@ -646,19 +646,25 @@ public class EventService {
 
     @Transactional
     public ConfirmCheckinResponseDTO confirmCheckIn(ConfirmCheckinRequestDTO request) {
-        BookingEvents bookingEvent = bookingEventsRepository
-                .findByRefNoAndEventDateAndEventTime(
-                        request.getBookingEventId(),
-                        request.getEventDate(),
-                        request.getEventTime()
-                );
-
-        if (bookingEvent.getVerifiedAt() != null) {
-            throw new InvalidVerificationTokenException("Ticket has already been checked in");
+        String token = request.getToken();
+        if (StringUtils.isBlank(token)) {
+            throw new InvalidVerificationTokenException("Verification token is required");
         }
+
+        BookingEvents bookingEvent = bookingEventsRepository.findByVerificationToken(token.trim())
+                .orElseThrow(() -> new InvalidVerificationTokenException("Invalid verification token"));
+
+        if (!bookingEvent.getRefNo().equals(request.getBookingEventId())
+                || !bookingEvent.getEventDate().equals(request.getEventDate())
+                || !bookingEvent.getEventTime().equals(request.getEventTime())) {
+            throw new InvalidVerificationTokenException("Check-in details do not match verification token");
+        }
+
         if (bookingEvent.getCancelledAt() != null) {
             throw new InvalidVerificationTokenException("Ticket has already been cancelled");
         }
+
+        validateCheckIn(bookingEvent);
 
         bookingEvent.setVerifiedAt(ZonedDateTime.now());
         bookingEvent.setUpdatedAt(ZonedDateTime.now());

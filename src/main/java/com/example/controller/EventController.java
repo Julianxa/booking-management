@@ -481,8 +481,8 @@ public class EventController {
 
     @Operation(
             summary = "Confirm Check-in",
-            description = "Confirms and completes the check-in after the frontend has scanned the QR code " +
-                    "and retrieved ticket information in the first step.",
+            description = "Confirms check-in after scanning the QR code. Requires the verification token from the " +
+                    "check-in link (same token used to initiate check-in) along with the booking event details.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -498,7 +498,7 @@ public class EventController {
     )
 //    @PreAuthorize("hasRole('EMPLOYEE')")
     @PostMapping("/events/confirm")
-    public ResponseEntity<?> confirmCheckIn(@RequestBody ConfirmCheckinRequestDTO request) {
+    public ResponseEntity<?> confirmCheckIn(@Valid @RequestBody ConfirmCheckinRequestDTO request) {
         ConfirmCheckinResponseDTO response = eventService.confirmCheckIn(request);
         return ResponseEntity.ok(response);
     }
