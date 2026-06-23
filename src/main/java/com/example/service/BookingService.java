@@ -97,6 +97,14 @@ public class BookingService {
     ) {
     }
 
+    private record BookingEventLockOrder(
+            CreateBookingRequestDTO.BookingEventDTO bookingEventDTO,
+            Long eventId,
+            LocalDate eventDate,
+            String eventTime
+    ) {
+    }
+
     // ====================== Public API ======================
     public CreateBookingResponseDTO createBooking(String userSub, CreateBookingRequestDTO request) {
         validateTicketQuantityMatchesAttendees(request);
@@ -729,12 +737,37 @@ public class BookingService {
 
         BigDecimal grandTotal = BigDecimal.ZERO;
 
-        // book event one by one
-        for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
+        // Reserve slot counters in deterministic order to avoid deadlocks for multi-event bookings.
+        for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : orderBookingEventsForSlotReservation(bookingEventDTOs)) {
             BookingEventProcessingResult result = processSingleBookingEvent(booking, bookingEventDTO);
             grandTotal = grandTotal.add(result.total());
         }
         return grandTotal;
+    }
+
+    private List<CreateBookingRequestDTO.BookingEventDTO> orderBookingEventsForSlotReservation(
+            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
+        if (bookingEventDTOs == null || bookingEventDTOs.isEmpty()) {
+            return List.of();
+        }
+
+        return bookingEventDTOs.stream()
+                .map(bookingEventDTO -> {
+                    String eventRefNo = bookingEventDTO.getEvent().getId();
+                    Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
+                            .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
+                    return new BookingEventLockOrder(
+                            bookingEventDTO,
+                            eventId,
+                            bookingEventDTO.getEvent().getEventDate(),
+                            bookingEventDTO.getEvent().getEventTime());
+                })
+                .sorted(Comparator
+                        .comparing(BookingEventLockOrder::eventId)
+                        .thenComparing(BookingEventLockOrder::eventDate)
+                        .thenComparing(BookingEventLockOrder::eventTime))
+                .map(BookingEventLockOrder::bookingEventDTO)
+                .toList();
     }
 
     private List<EmailService.BookingEmailPayload> prepareEmailPayloads(BookingEvents bookingEvent) {
