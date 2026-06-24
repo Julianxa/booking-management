@@ -33,4 +33,18 @@ public interface GiftCertificatesRepository extends JpaRepository<GiftCertificat
 
     Page<GiftCertificates> findByEventId(Long eventId, Pageable pageable);
 
+    @Query(value = """
+            SELECT gc.ref_no FROM gift_certificates gc
+            WHERE (:eventId IS NULL OR gc.event_id = :eventId)
+            GROUP BY gc.ref_no
+            """,
+            countQuery = """
+            SELECT COUNT(DISTINCT gc.ref_no) FROM gift_certificates gc
+            WHERE (:eventId IS NULL OR gc.event_id = :eventId)
+            """,
+            nativeQuery = true)
+    Page<String> findDistinctRefNos(@Param("eventId") Long eventId, Pageable pageable);
+
+    List<GiftCertificates> findByRefNoInOrderByRefNoAscIdAsc(List<String> refNos);
+
 }

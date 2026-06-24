@@ -18,8 +18,8 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GetListGiftCertificateResponseDTO {
-    @Schema(description = "Gift Certificate on current page")
-    List<CreateGiftCertificateResponseDTO> content;
+    @Schema(description = "Gift certificate bundles on current page")
+    List<CreateGiftCertificatesResponseDTO> content;
 
     @Schema(description = "Pageable request details")
     PageableDetail pageable;

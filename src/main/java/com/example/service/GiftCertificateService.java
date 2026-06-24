@@ -28,6 +28,8 @@ import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.example.constant.Enums.GiftCertificateRedemptionStatus.*;
 import static com.example.constant.Enums.GiftCertificateStatus.ACTIVE;
@@ -69,6 +71,7 @@ public class GiftCertificateService {
         }
 
         List<CreateGiftCertificateResponseDTO> certificates = new ArrayList<>();
+        String bundleId = null;
         int perCertificateQuantity = personalCertificate ? 1 : dto.getQuantity();
         for (int index = 0; index < certificateCount; index++) {
             String promoCode = personalCertificate
@@ -77,6 +80,9 @@ public class GiftCertificateService {
             String refNo = personalCertificate
                     ? giftCertificateId
                     : referenceNoGenerator.generateGiftCertificateReference();
+            if (bundleId == null) {
+                bundleId = refNo;
+            }
 
             GiftCertificates gc = buildGiftCertificate(
                     user.getId(),
@@ -102,11 +108,7 @@ public class GiftCertificateService {
                 ? "Gift certificate created successfully"
                 : String.format("%d gift certificates created successfully", certificateCount);
 
-        return CreateGiftCertificatesResponseDTO.builder()
-                .certificates(certificates)
-                .message(message)
-                .timestamp(ZonedDateTime.now())
-                .build();
+        return toCertificatesResponse(bundleId, certificates, message);
     }
 
     private Long resolveEventId(CreateGiftCertificateRequestDTO dto) {
@@ -153,7 +155,7 @@ public class GiftCertificateService {
     }
 
     @Transactional
-    public UpdateGiftCertificateResponseDTO updateCertificate(String promoCode, UpdateGiftCertificateRequestDTO dto) {
+    public UpdateGiftCertificatesResponseDTO updateCertificate(String promoCode, UpdateGiftCertificatesRequestDTO dto) {
         GiftCertificates giftCertificates = giftCertificatesRepository.findByPromoCode(promoCode)
                 .orElseThrow(() -> new GCNotFoundException(String.format("Gift Certificate with promotion code %s not found", promoCode)));
 
@@ -166,16 +168,7 @@ public class GiftCertificateService {
         if (dto.getEffectiveDate() != null) {
             giftCertificates.setEffectiveDate(dto.getEffectiveDate());
         }
-        giftCertificatesRepository.save(giftCertificates);
-
-        UpdateGiftCertificateResponseDTO updateGiftCertificateResponseDTO = new UpdateGiftCertificateResponseDTO();
-        updateGiftCertificateResponseDTO.setId(giftCertificates.getRefNo());
-        updateGiftCertificateResponseDTO.setPromoCode(giftCertificates.getPromoCode());
-        updateGiftCertificateResponseDTO.setEffectiveDate(giftCertificates.getEffectiveDate());
-        updateGiftCertificateResponseDTO.setExpiryDate(giftCertificates.getExpiryDate());
-        updateGiftCertificateResponseDTO.setUpdatedAt(giftCertificates.getUpdatedAt());
-        updateGiftCertificateResponseDTO.setMessage("Gift Certificate is updated");
-        updateGiftCertificateResponseDTO.setTimestamp(ZonedDateTime.now());
+        giftCertificates = giftCertificatesRepository.save(giftCertificates);
 
         auditService.record("UPDATE_CERTIFICATE",
                 GiftCertificates.class.getName(),
@@ -183,7 +176,13 @@ public class GiftCertificateService {
                 null,
                 "Update gift certificate successfully"
         );
-        return updateGiftCertificateResponseDTO;
+
+        String userRefNo = usersRepository.findRefNoById(giftCertificates.getUserId()).orElse(null);
+        String eventRefNo = eventsRepository.findRefNoById(giftCertificates.getEventId()).orElse(null);
+
+        return toUpdateCertificatesResponse(giftCertificates.getRefNo(),
+                buildResponse(giftCertificates, userRefNo, eventRefNo),
+                "Gift Certificate is updated");
     }
 
     public GiftCertificateApplicationResult getCertificateRedemptionResult(Bookings booking) {
@@ -271,14 +270,16 @@ public class GiftCertificateService {
         }
     }
 
-    public CreateGiftCertificateResponseDTO getCertificate(String promoCode) {
+    public CreateGiftCertificatesResponseDTO getCertificate(String promoCode) {
         GiftCertificates gc = giftCertificatesRepository.findByPromoCode(promoCode)
                 .orElseThrow(() -> new GCNotFoundException(String.format("Gift certificate with promotion code %s not found", promoCode)));
 
         String userRefNo = usersRepository.findRefNoById(gc.getUserId()).orElse(null);
         String eventRefNo = eventsRepository.findRefNoById(gc.getEventId()).orElse(null);
 
-        return buildResponse(gc, userRefNo, eventRefNo);
+        return toCertificatesResponse(gc.getRefNo(),
+                buildResponse(gc, userRefNo, eventRefNo),
+                "Gift certificate retrieved successfully");
     }
 
     public CreateGiftCertificatesResponseDTO getCertificateById(String gcRefNo) {
@@ -295,38 +296,36 @@ public class GiftCertificateService {
                 })
                 .toList();
 
-        return CreateGiftCertificatesResponseDTO.builder()
-                .certificates(certificateDTOs)
-                .message("Gift certificate retrieved successfully")
-                .timestamp(ZonedDateTime.now())
-                .build();
+        return toCertificatesResponse(gcRefNo, certificateDTOs, "Gift certificate retrieved successfully");
     }
 
     public GetListGiftCertificateResponseDTO getGiftCertificates(
             Pageable pageable, String eventRefNo) {
-        Page<GiftCertificates> giftCertificatesPage;
         Long eventId = eventRefNo != null ? eventsRepository.findIdByRefNo(eventRefNo)
                 .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)))
                 : null;
-        if (eventId != null) {
-            giftCertificatesPage = giftCertificatesRepository.findByEventId(eventId, pageable);
-        } else {
-            giftCertificatesPage = giftCertificatesRepository.findAll(pageable);
+
+        Page<String> bundleIdsPage = giftCertificatesRepository.findDistinctRefNos(eventId, pageable);
+        if (bundleIdsPage.isEmpty()) {
+            GetListGiftCertificateResponseDTO emptyResponse =
+                    giftCertificateMapper.toGetListResponse(bundleIdsPage, List.of());
+            emptyResponse.setMessage("Retrieve list of Gift Certificates successfully.");
+            emptyResponse.setTimestamp(ZonedDateTime.now());
+            return emptyResponse;
         }
 
-        List<CreateGiftCertificateResponseDTO> content = giftCertificatesPage.getContent().stream()
-                .map(giftCertificate -> {
-                    String userRefNo = usersRepository.findRefNoById(giftCertificate.getUserId())
-                            .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", giftCertificate.getUserId())));
+        List<GiftCertificates> certificates =
+                giftCertificatesRepository.findByRefNoInOrderByRefNoAscIdAsc(bundleIdsPage.getContent());
 
-                    String evtRefNo = eventsRepository.findRefNoById(giftCertificate.getEventId())
-                            .orElse(null);
+        Map<String, List<GiftCertificates>> certificatesByBundleId = certificates.stream()
+                .collect(Collectors.groupingBy(GiftCertificates::getRefNo));
 
-                    return buildResponse(giftCertificate, userRefNo,evtRefNo);
-                })
+        List<CreateGiftCertificatesResponseDTO> content = bundleIdsPage.getContent().stream()
+                .map(bundleId -> toBundleResponse(bundleId, certificatesByBundleId.getOrDefault(bundleId, List.of())))
                 .toList();
 
-        GetListGiftCertificateResponseDTO getListGiftCertificateResponseDTO = giftCertificateMapper.toGetListResponse(giftCertificatesPage, content);
+        GetListGiftCertificateResponseDTO getListGiftCertificateResponseDTO =
+                giftCertificateMapper.toGetListResponse(bundleIdsPage, content);
         getListGiftCertificateResponseDTO.setMessage("Retrieve list of Gift Certificates successfully.");
         getListGiftCertificateResponseDTO.setTimestamp(ZonedDateTime.now());
         return getListGiftCertificateResponseDTO;
@@ -411,6 +410,60 @@ public class GiftCertificateService {
         return response;
     }
 
+    private CreateGiftCertificatesResponseDTO toCertificatesResponse(
+            String bundleId,
+            CreateGiftCertificateResponseDTO certificate,
+            String message) {
+        return toCertificatesResponse(bundleId, List.of(certificate), message);
+    }
+
+    private CreateGiftCertificatesResponseDTO toCertificatesResponse(
+            String bundleId,
+            List<CreateGiftCertificateResponseDTO> certificates,
+            String message) {
+        return CreateGiftCertificatesResponseDTO.builder()
+                .id(bundleId)
+                .certificates(certificates)
+                .message(message)
+                .timestamp(ZonedDateTime.now())
+                .build();
+    }
+
+    private UpdateGiftCertificatesResponseDTO toUpdateCertificatesResponse(
+            String bundleId,
+            CreateGiftCertificateResponseDTO certificate,
+            String message) {
+        return toUpdateCertificatesResponse(bundleId, List.of(certificate), message);
+    }
+
+    private UpdateGiftCertificatesResponseDTO toUpdateCertificatesResponse(
+            String bundleId,
+            List<CreateGiftCertificateResponseDTO> certificates,
+            String message) {
+        return UpdateGiftCertificatesResponseDTO.builder()
+                .id(bundleId)
+                .certificates(certificates)
+                .message(message)
+                .timestamp(ZonedDateTime.now())
+                .build();
+    }
+
+    private CreateGiftCertificatesResponseDTO toBundleResponse(String bundleId, List<GiftCertificates> certificates) {
+        List<CreateGiftCertificateResponseDTO> certificateDTOs = certificates.stream()
+                .map(gc -> {
+                    String userRefNo = usersRepository.findRefNoById(gc.getUserId())
+                            .orElseThrow(() -> new UserNotFoundException(String.format("User %s not found", gc.getUserId())));
+                    String eventRefNo = eventsRepository.findRefNoById(gc.getEventId()).orElse(null);
+                    return buildResponse(gc, userRefNo, eventRefNo);
+                })
+                .toList();
+
+        return CreateGiftCertificatesResponseDTO.builder()
+                .id(bundleId)
+                .certificates(certificateDTOs)
+                .build();
+    }
+
     private boolean isPersonalCertificate(Enums.GiftCertificateType type) {
         return type == PERSONAL_EVENT || type == PERSONAL_VALUE;
     }
@@ -432,31 +485,31 @@ public class GiftCertificateService {
         return price.multiply(BigDecimal.valueOf(ticket.getQuantity()));
     }
 
-    public UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatus(String promoCode, UpdateGiftCertificateStatusRequestDTO dto) {
+    public UpdateGiftCertificatesResponseDTO updateGiftCertificateStatus(String promoCode, UpdateGiftCertificatesStatusRequestDTO dto) {
         GiftCertificates giftCertificates = giftCertificatesRepository.findByPromoCode(promoCode)
                 .orElseThrow(() -> new GCNotFoundException(String.format("Gift Certificate not found with promotion code %s", promoCode)));
 
         ZonedDateTime actionAt = ZonedDateTime.now();
-        UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatusResponseDTO = new UpdateGiftCertificateStatusResponseDTO();
+        String message;
         if (dto.getStatus() == Enums.GiftCertificateStatus.CANCELLED) {
             giftCertificates.setCancelledAt(actionAt);
             giftCertificatesRepository.save(giftCertificates);
-            updateGiftCertificateStatusResponseDTO.setStatus(Enums.GiftCertificateStatus.CANCELLED);
-            updateGiftCertificateStatusResponseDTO.setCancelledAt(actionAt);
-            updateGiftCertificateStatusResponseDTO.setMessage("Gift Certificate closed successfully");
+            message = "Gift Certificate closed successfully";
         } else if (dto.getStatus() == ACTIVE) {
             giftCertificates.setCancelledAt(null);
             giftCertificatesRepository.save(giftCertificates);
-            updateGiftCertificateStatusResponseDTO.setStatus(ACTIVE);
-            updateGiftCertificateStatusResponseDTO.setMessage("Gift Certificate opened successfully");
+            message = "Gift Certificate opened successfully";
         } else {
             throw new IllegalArgumentException("Invalid EventStatus: " + dto.getStatus() +
                     ". Allowed values are: OPEN, CLOSE");
         }
-        updateGiftCertificateStatusResponseDTO.setId(giftCertificates.getRefNo());
-        updateGiftCertificateStatusResponseDTO.setPromoCode(promoCode);
-        updateGiftCertificateStatusResponseDTO.setTimestamp(actionAt);
-        return updateGiftCertificateStatusResponseDTO;
+
+        String userRefNo = usersRepository.findRefNoById(giftCertificates.getUserId()).orElse(null);
+        String eventRefNo = eventsRepository.findRefNoById(giftCertificates.getEventId()).orElse(null);
+
+        return toUpdateCertificatesResponse(giftCertificates.getRefNo(),
+                buildResponse(giftCertificates, userRefNo, eventRefNo),
+                message);
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)

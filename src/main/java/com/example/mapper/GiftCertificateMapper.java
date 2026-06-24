@@ -2,6 +2,7 @@ package com.example.mapper;
 
 import com.example.model.dto.CreateGiftCertificateRequestDTO;
 import com.example.model.dto.CreateGiftCertificateResponseDTO;
+import com.example.model.dto.CreateGiftCertificatesResponseDTO;
 import com.example.model.dto.GetListGiftCertificateResponseDTO;
 import com.example.model.entity.GiftCertificates;
 import org.mapstruct.Mapper;
@@ -13,7 +14,6 @@ import java.util.List;
 public interface GiftCertificateMapper {
     default CreateGiftCertificateResponseDTO toCreateResponseDTO(String userRefNo, String eventId, GiftCertificates giftCertificates, List<CreateGiftCertificateRequestDTO.GiftCertificateItemDTO> giftCertificateItemDTOs) {
         return CreateGiftCertificateResponseDTO.builder()
-                .id(giftCertificates.getRefNo())
                 .promoCode(giftCertificates.getPromoCode())
                 .type(giftCertificates.getType())
                 .expiryDate(giftCertificates.getExpiryDate())
@@ -30,8 +30,8 @@ public interface GiftCertificateMapper {
     }
 
     default GetListGiftCertificateResponseDTO toGetListResponse(
-            Page<GiftCertificates> page,
-            List<CreateGiftCertificateResponseDTO> content) {
+            Page<?> page,
+            List<CreateGiftCertificatesResponseDTO> content) {
 
         GetListGiftCertificateResponseDTO.PageableDetail pageableDetail = new GetListGiftCertificateResponseDTO.PageableDetail();
         pageableDetail.setOffset(page.getPageable().getOffset());

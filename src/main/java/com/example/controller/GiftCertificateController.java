@@ -65,7 +65,7 @@ public class GiftCertificateController {
                             responseCode = "200",
                             description = "Gift Certificate updated successfully",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(implementation = UpdateGiftCertificateResponseDTO.class))),
+                                    schema = @Schema(implementation = UpdateGiftCertificatesResponseDTO.class))),
                     @ApiResponse(
                             responseCode = "400",
                             description = "Invalid request data",
@@ -78,10 +78,10 @@ public class GiftCertificateController {
             @PathVariable String promoCode,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @RequestHeader(value = "X-Access-Token", required = false) String accessToken,
-            @Valid @RequestBody UpdateGiftCertificateRequestDTO request) {
+            @Valid @RequestBody UpdateGiftCertificatesRequestDTO request) {
 
         String userSub = userUtils.extractUserSub(authorizationHeader);
-        UpdateGiftCertificateResponseDTO response = giftCertificateService.updateCertificate(promoCode, request);
+        UpdateGiftCertificatesResponseDTO response = giftCertificateService.updateCertificate(promoCode, request);
         return ResponseEntity.ok(response);
     }
 
@@ -112,14 +112,14 @@ public class GiftCertificateController {
     }
 
     @Operation(
-            summary = "Get gift certificate by promoCode",
-            description = "Get a gift certificate. ",
+            summary = "Get gift certificate by promo code",
+            description = "Get a gift certificate by promo code.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Gift Certificate retrieved successfully",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(implementation = CreateGiftCertificateResponseDTO.class))),
+                                    schema = @Schema(implementation = CreateGiftCertificatesResponseDTO.class))),
                     @ApiResponse(
                             responseCode = "400",
                             description = "Invalid request data",
@@ -134,7 +134,7 @@ public class GiftCertificateController {
 
     @Operation(
             summary = "Get gift certificate(s) by event ID with pagination",
-            description = "Get a list of gift certificates. ",
+            description = "Returns paginated gift certificate bundles. Each item has an id and certificates array.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -154,10 +154,10 @@ public class GiftCertificateController {
             @PathVariable String eventId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
+            @RequestParam(value = "sort_by", defaultValue = "ref_no") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, mapGiftCertificateSortField(sortBy)));
 
         GetListGiftCertificateResponseDTO certificates =
                 giftCertificateService.getGiftCertificates(pageable, eventId);
@@ -167,7 +167,7 @@ public class GiftCertificateController {
 
     @Operation(
             summary = "Get gift certificate(s) with pagination",
-            description = "Get a list of gift certificates. ",
+            description = "Returns paginated gift certificate bundles. Each item has an id and certificates array.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -185,10 +185,10 @@ public class GiftCertificateController {
     public ResponseEntity<?> getGiftCertificates(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
+            @RequestParam(value = "sort_by", defaultValue = "ref_no") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, mapGiftCertificateSortField(sortBy)));
 
         GetListGiftCertificateResponseDTO certificates =
                 giftCertificateService.getGiftCertificates(pageable, null);
@@ -202,7 +202,7 @@ public class GiftCertificateController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "Gift Certificate status updated successfully",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                                    schema = @Schema(implementation = UpdateGiftCertificateStatusResponseDTO.class))),
+                                    schema = @Schema(implementation = UpdateGiftCertificatesResponseDTO.class))),
                     @ApiResponse(
                             responseCode = "404",
                             description = "Gift Certificate not found",
@@ -216,8 +216,16 @@ public class GiftCertificateController {
     @PutMapping("/gift-certificates/{promoCode}/status")
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<?> updateGiftCertificateStatus(@PathVariable String promoCode,
-                                                         @RequestBody UpdateGiftCertificateStatusRequestDTO request) {
-        UpdateGiftCertificateStatusResponseDTO updateGiftCertificateStatusResponseDTO = giftCertificateService.updateGiftCertificateStatus(promoCode, request);
-        return ResponseEntity.ok(updateGiftCertificateStatusResponseDTO);
+                                                         @RequestBody UpdateGiftCertificatesStatusRequestDTO request) {
+        UpdateGiftCertificatesResponseDTO response =
+                giftCertificateService.updateGiftCertificateStatus(promoCode, request);
+        return ResponseEntity.ok(response);
+    }
+
+    private static String mapGiftCertificateSortField(String sortBy) {
+        if ("id".equals(sortBy)) {
+            return "ref_no";
+        }
+        return sortBy;
     }
 }

@@ -13,10 +13,9 @@ import lombok.Setter;
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class UpdateGiftCertificateStatusRequestDTO {
+public class UpdateGiftCertificatesStatusRequestDTO {
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Status is required")
     @JsonProperty("status")
     private Enums.GiftCertificateStatus status;
 }
-
