@@ -1,32 +1,35 @@
 package com.example.model.dto;
 
 
+import com.example.jackson.AbstractPartialUpdateDto;
+import com.example.jackson.PartialUpdate;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.Set;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class UpdateEventRequestDTO {
+@PartialUpdate
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class UpdateEventRequestDTO extends AbstractPartialUpdateDto {
     @Schema(description = "Display/order sequence number (positive integer)")
-    @Positive(message = "sequence_no must be a positive integer")
     @JsonProperty("sequence_no")
     private Integer sequenceNo;
 
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Name of the event/activity")
-    @NotBlank(message = "Name is required")
+    @Schema(description = "Name of the event/activity")
     @JsonProperty("name")
     private String name;
 
@@ -38,8 +41,7 @@ public class UpdateEventRequestDTO {
     @JsonProperty("name_zh_hk")
     private String nameZhHk;
 
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Type of event")
-    @NotBlank(message = "Type is required")
+    @Schema(description = "Type of event")
     @JsonProperty("type")
     private String type;
 
@@ -103,17 +105,11 @@ public class UpdateEventRequestDTO {
     @JsonProperty("badge_zh_hk")
     private String badgeZhHk;
 
-    @Schema(
-            description = "Start date and time of the event (with timezone)",
-            example = "2026-07-01"
-    )
+    @Schema(description = "Start date and time of the event (with timezone)", example = "2026-07-01")
     @JsonProperty("start_date")
     private LocalDate startDate;
 
-    @Schema(
-            description = "End date and time of the event (with timezone)",
-            example = "2026-08-31"
-    )
+    @Schema(description = "End date and time of the event (with timezone)", example = "2026-08-31")
     @JsonProperty("end_date")
     private LocalDate endDate;
 

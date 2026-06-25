@@ -1,18 +1,19 @@
 package com.example.model.dto;
 
+import com.example.jackson.AbstractPartialUpdateDto;
+import com.example.jackson.PartialUpdate;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.Email;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class UpdateUserRequestDTO {
-    @Email(message = "Invalid email format")
+@PartialUpdate
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class UpdateUserRequestDTO extends AbstractPartialUpdateDto {
     @JsonProperty("email")
     private String email;
     @JsonProperty("gender")

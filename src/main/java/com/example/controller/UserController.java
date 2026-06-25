@@ -417,10 +417,10 @@ public class UserController {
                             content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PutMapping("/users/{id}")
+    @PatchMapping("/users/{id}")
     public ResponseEntity<?> updateUserByAdmin(
             @PathVariable String id,
-            @Valid @RequestBody UpdateUserRequestDTO dto) {
+            @RequestBody UpdateUserRequestDTO dto) {
         GetUserResponseDTO updatedUser = userService.updateUserByAdmin(id, dto);
         return ResponseEntity.ok(updatedUser);
     }

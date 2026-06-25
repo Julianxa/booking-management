@@ -41,10 +41,10 @@ public class EmailController {
     }
 
     @Operation(summary = "Update an email template by template ID")
-    @PutMapping("/emails/template/{id}")
+    @PatchMapping("/emails/template/{id}")
     public ResponseEntity<?> updateTemplate(
             @PathVariable String id,
-            @Valid @RequestBody CreateEmailTemplatesRequestDTO dto) {
+            @RequestBody UpdateEmailTemplatesRequestDTO dto) {
         CreateEmailTemplatesResponseDTO response = emailService.updateEmailTemplate(id, dto);
         return ResponseEntity.ok(response);
     }

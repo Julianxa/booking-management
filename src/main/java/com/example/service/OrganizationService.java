@@ -6,6 +6,7 @@ import com.example.mapper.OrganizationMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.Organizations;
 import com.example.repository.OrganizationsRepository;
+import com.example.utils.PartialUpdateUtil;
 import com.example.utils.ReferenceNoGenerator;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -44,14 +45,14 @@ public class OrganizationService {
     }
 
     @Transactional
-    public UpdateOrganizationResponseDTO updateOrganization(String orgRefNo, CreateOrganizationRequestDTO dto) {
+    public UpdateOrganizationResponseDTO updateOrganization(String orgRefNo, UpdateOrganizationRequestDTO dto) {
         Organizations organization = organizationsRepository.findByRefNo(orgRefNo)
                 .orElseThrow(() -> new OrganizationNotFoundException(String.format("Organization %s not found)", orgRefNo)));
 
-        if (dto.getName() != null) organization.setName(dto.getName());
-        if (dto.getIndustry() != null) organization.setIndustry(dto.getIndustry());
-        if (dto.getCompanyType() != null) organization.setCompanyType(dto.getCompanyType());
-        if (dto.getCompanyGroup() != null) organization.setCompanyGroup(dto.getCompanyGroup());
+        PartialUpdateUtil.apply(dto, "name", dto::getName, organization::setName);
+        PartialUpdateUtil.apply(dto, "industry", dto::getIndustry, organization::setIndustry);
+        PartialUpdateUtil.apply(dto, "company_type", dto::getCompanyType, organization::setCompanyType);
+        PartialUpdateUtil.apply(dto, "company_group", dto::getCompanyGroup, organization::setCompanyGroup);
 
         Organizations updated = organizationsRepository.save(organization);
         UpdateOrganizationResponseDTO updateOrganizationResponseDTO = mapper.toUpdateResponseDTO(updated);

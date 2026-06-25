@@ -1,50 +1,42 @@
 package com.example.model.dto;
 
+import com.example.jackson.AbstractPartialUpdateDto;
+import com.example.jackson.PartialUpdate;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class UpdateTicketTypeRequestDTO {
-    @Size(min = 1, max = 100, message = "Name must be 1–100 characters")
+@PartialUpdate
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class UpdateTicketTypeRequestDTO extends AbstractPartialUpdateDto {
     @JsonProperty("name")
     private String name;
 
-    @Size(min = 1, max = 100, message = "Name must be 1–100 characters")
     @JsonProperty("name_zh_cn")
     private String nameZhCn;
 
-    @Size(min = 1, max = 100, message = "Name must be 1–100 characters")
     @JsonProperty("name_zh_hk")
     private String nameZhHk;
 
     @JsonProperty("periods")
-    private List<TicketPricePeriodDTO> periods = List.of();
+    private List<TicketPricePeriodDTO> periods;
 
-    public boolean hasPeriods() {
-        return periods != null && !periods.isEmpty();
-    }
-
-    @Min(value = 0, message = "Capacity must be non-negative")
+    @JsonProperty("capacity")
     private Integer capacity;
 
-    @Size(max = 255, message = "Description ≤ 255 characters")
+    @JsonProperty("description")
     private String description;
 
-    @Size(max = 255, message = "Description ≤ 255 characters")
     @JsonProperty("description_zh_cn")
     private String descriptionZhCn;
 
-    @Size(max = 255, message = "Description ≤ 255 characters")
     @JsonProperty("description_zh_hk")
     private String descriptionZhHk;
 }

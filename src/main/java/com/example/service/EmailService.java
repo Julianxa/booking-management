@@ -11,6 +11,7 @@ import com.example.model.entity.*;
 import com.example.repository.EmailLogsRepository;
 import com.example.repository.EmailTemplatesRepository;
 import com.example.repository.TicketTypesRepository;
+import com.example.utils.PartialUpdateUtil;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -119,52 +120,36 @@ public class EmailService {
     }
 
     @Transactional
-    public CreateEmailTemplatesResponseDTO updateEmailTemplate(String templateRefNo, CreateEmailTemplatesRequestDTO updateEmailTemplatesRequestDTO) {
+    public CreateEmailTemplatesResponseDTO updateEmailTemplate(String templateRefNo, UpdateEmailTemplatesRequestDTO dto) {
 
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
                 .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", templateRefNo)));
 
-        if (updateEmailTemplatesRequestDTO.getTemplateName() != null && !template.getIsPerm())
-            template.setTemplateName(updateEmailTemplatesRequestDTO.getTemplateName());
-        if (updateEmailTemplatesRequestDTO.getTitle() != null)
-            template.setTitle(updateEmailTemplatesRequestDTO.getTitle());
-        if (updateEmailTemplatesRequestDTO.getTitleZhCn() != null)
-            template.setTitleZhCn(updateEmailTemplatesRequestDTO.getTitleZhCn());
-        if (updateEmailTemplatesRequestDTO.getTitleZhHk() != null)
-            template.setTitleZhHk(updateEmailTemplatesRequestDTO.getTitleZhHk());
-        if (updateEmailTemplatesRequestDTO.getSubject() != null)
-            template.setSubject(updateEmailTemplatesRequestDTO.getSubject());
-        if (updateEmailTemplatesRequestDTO.getSubjectZhCn() != null)
-            template.setSubjectZhCn(updateEmailTemplatesRequestDTO.getSubjectZhCn());
-        if (updateEmailTemplatesRequestDTO.getSubjectZhHk() != null)
-            template.setSubjectZhHk(updateEmailTemplatesRequestDTO.getSubjectZhHk());
-        if (updateEmailTemplatesRequestDTO.getMainBody() != null)
-            template.setMainBody(updateEmailTemplatesRequestDTO.getMainBody());
-        if (updateEmailTemplatesRequestDTO.getMainBodyZhCn() != null)
-            template.setMainBodyZhCn(updateEmailTemplatesRequestDTO.getMainBodyZhCn());
-        if (updateEmailTemplatesRequestDTO.getMainBodyZhHk() != null)
-            template.setMainBodyZhHk(updateEmailTemplatesRequestDTO.getMainBodyZhHk());
-        if (updateEmailTemplatesRequestDTO.getImportantInfoIntro() != null)
-            template.setImportantInfoIntro(updateEmailTemplatesRequestDTO.getImportantInfoIntro());
-        if (updateEmailTemplatesRequestDTO.getImportantInfoIntroZhCn() != null)
-            template.setImportantInfoIntroZhCn(updateEmailTemplatesRequestDTO.getImportantInfoIntroZhCn());
-        if (updateEmailTemplatesRequestDTO.getImportantInfoIntroZhHk() != null)
-            template.setImportantInfoIntroZhHk(updateEmailTemplatesRequestDTO.getImportantInfoIntroZhHk());
-        if (updateEmailTemplatesRequestDTO.getImportantInfoBody() != null)
-            template.setImportantInfoBody(updateEmailTemplatesRequestDTO.getImportantInfoBody());
-        if (updateEmailTemplatesRequestDTO.getImportantInfoBodyZhCn() != null)
-            template.setImportantInfoBodyZhCn(updateEmailTemplatesRequestDTO.getImportantInfoBodyZhCn());
-        if (updateEmailTemplatesRequestDTO.getImportantInfoBodyZhHk() != null)
-            template.setImportantInfoBodyZhHk(updateEmailTemplatesRequestDTO.getImportantInfoBodyZhHk());
-        if (updateEmailTemplatesRequestDTO.getContactBody() != null)
-            template.setContactBody(updateEmailTemplatesRequestDTO.getContactBody());
-        if (updateEmailTemplatesRequestDTO.getContactBodyZhCn() != null)
-            template.setContactBodyZhCn(updateEmailTemplatesRequestDTO.getContactBodyZhCn());
-        if (updateEmailTemplatesRequestDTO.getContactBodyZhHk() != null)
-            template.setContactBodyZhHk(updateEmailTemplatesRequestDTO.getContactBodyZhHk());
-        if (updateEmailTemplatesRequestDTO.getReminderDayInterval() != null)
-            template.setReminderDayInterval(updateEmailTemplatesRequestDTO.getReminderDayInterval());
-        template = emailTemplatesRepository.save(template);
+        PartialUpdateUtil.ifPresent(dto, "template_name", () -> {
+            if (!template.getIsPerm()) {
+                template.setTemplateName(dto.getTemplateName());
+            }
+        });
+        PartialUpdateUtil.apply(dto, "title", dto::getTitle, template::setTitle);
+        PartialUpdateUtil.apply(dto, "title_zh_cn", dto::getTitleZhCn, template::setTitleZhCn);
+        PartialUpdateUtil.apply(dto, "title_zh_hk", dto::getTitleZhHk, template::setTitleZhHk);
+        PartialUpdateUtil.apply(dto, "subject", dto::getSubject, template::setSubject);
+        PartialUpdateUtil.apply(dto, "subject_zh_cn", dto::getSubjectZhCn, template::setSubjectZhCn);
+        PartialUpdateUtil.apply(dto, "subject_zh_hk", dto::getSubjectZhHk, template::setSubjectZhHk);
+        PartialUpdateUtil.apply(dto, "main_body", dto::getMainBody, template::setMainBody);
+        PartialUpdateUtil.apply(dto, "main_body_zh_cn", dto::getMainBodyZhCn, template::setMainBodyZhCn);
+        PartialUpdateUtil.apply(dto, "main_body_zh_hk", dto::getMainBodyZhHk, template::setMainBodyZhHk);
+        PartialUpdateUtil.apply(dto, "important_info_intro", dto::getImportantInfoIntro, template::setImportantInfoIntro);
+        PartialUpdateUtil.apply(dto, "important_info_intro_zh_cn", dto::getImportantInfoIntroZhCn, template::setImportantInfoIntroZhCn);
+        PartialUpdateUtil.apply(dto, "important_info_intro_zh_hk", dto::getImportantInfoIntroZhHk, template::setImportantInfoIntroZhHk);
+        PartialUpdateUtil.apply(dto, "important_info_body", dto::getImportantInfoBody, template::setImportantInfoBody);
+        PartialUpdateUtil.apply(dto, "important_info_body_zh_cn", dto::getImportantInfoBodyZhCn, template::setImportantInfoBodyZhCn);
+        PartialUpdateUtil.apply(dto, "important_info_body_zh_hk", dto::getImportantInfoBodyZhHk, template::setImportantInfoBodyZhHk);
+        PartialUpdateUtil.apply(dto, "contact_body", dto::getContactBody, template::setContactBody);
+        PartialUpdateUtil.apply(dto, "contact_body_zh_cn", dto::getContactBodyZhCn, template::setContactBodyZhCn);
+        PartialUpdateUtil.apply(dto, "contact_body_zh_hk", dto::getContactBodyZhHk, template::setContactBodyZhHk);
+        PartialUpdateUtil.apply(dto, "reminder_day_interval", dto::getReminderDayInterval, template::setReminderDayInterval);
+        emailTemplatesRepository.save(template);
 
         auditService.record("UPDATE_EMAIL_TEMPLATE",
                 EmailTemplates.class.getName(),
@@ -528,7 +513,7 @@ public class EmailService {
             }
 
             ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.registerModule(new JavaTimeModule());           // 支援 LocalDateTime 等
+            objectMapper.registerModule(new JavaTimeModule());
             objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 

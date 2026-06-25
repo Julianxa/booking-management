@@ -21,6 +21,7 @@ import com.example.model.record.EventTimeSlotException;
 import com.example.repository.*;
 import com.example.utils.DataUtils;
 import com.example.utils.DateUtils;
+import com.example.utils.PartialUpdateUtil;
 import com.example.utils.ReferenceNoGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -68,6 +69,7 @@ public class EventService {
     private final DataUtils dataUtils;
     private final BookingItemsConverter bookingItemsConverter;
     private final EventSlotReservationService eventSlotReservationService;
+    private final ObjectMapper objectMapper;
 
     // ====================== Public API ======================
     @Transactional
@@ -115,68 +117,62 @@ public class EventService {
 
     @Transactional
     public UpdateEventResponseDTO updateEvent(String eventRefNo, String updateEventRequestDTOJson, MultipartFile eventPic) {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         try {
-            UpdateEventRequestDTO dto = mapper.readValue(updateEventRequestDTOJson, UpdateEventRequestDTO.class);
+            UpdateEventRequestDTO dto = objectMapper.readValue(updateEventRequestDTOJson, UpdateEventRequestDTO.class);
 
-            validateSequenceNo(dto.getSequenceNo());
+            PartialUpdateUtil.ifPresent(dto, "sequence_no", () -> validateSequenceNo(dto.getSequenceNo()));
 
             Events event = eventsRepository.findByRefNo(eventRefNo)
                     .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
-            if (dto.getName() != null) event.setName(dto.getName());
-            if (dto.getSequenceNo() != null) event.setSequenceNo(dto.getSequenceNo());
-            if (dto.getNameZhCn() != null) event.setNameZhCn(dto.getNameZhCn());
-            if (dto.getNameZhHk() != null) event.setNameZhHk(dto.getNameZhHk());
-            if (dto.getType() != null) event.setType(dto.getType());
-            if (dto.getTypeZhCn() != null) event.setTypeZhCn(dto.getTypeZhCn());
-            if (dto.getTypeZhHk() != null) event.setTypeZhHk(dto.getTypeZhHk());
-            if (dto.getCategory() != null) event.setCategory(dto.getCategory());
-            if (dto.getCategoryZhCn() != null) event.setCategoryZhCn(dto.getCategoryZhCn());
-            if (dto.getCategoryZhHk() != null) event.setCategoryZhHk(dto.getCategoryZhHk());
-            if (dto.getDescription() != null) event.setDescription(dto.getDescription());
-            if (dto.getDescriptionZhCn() != null) event.setDescriptionZhCn(dto.getDescriptionZhCn());
-            if (dto.getDescriptionZhHk() != null) event.setDescriptionZhHk(dto.getDescriptionZhHk());
-            if (dto.getLocation() != null) event.setLocation(dto.getLocation());
-            if (dto.getLocationZhCn() != null) event.setLocationZhCn(dto.getLocationZhCn());
-            if (dto.getLocationZhHk() != null) event.setLocationZhHk(dto.getLocationZhHk());
-            if (dto.getDuration() != null) event.setDuration(dto.getDuration());
-            if (dto.getBadge() != null) event.setBadge(dto.getBadge());
-            if (dto.getBadgeZhCn() != null) event.setBadgeZhCn(dto.getBadgeZhCn());
-            if (dto.getBadgeZhHk() != null) event.setBadgeZhHk(dto.getBadgeZhHk());
-            if (dto.getStartDate() != null) event.setStartDate(dto.getStartDate());
-            if (dto.getEndDate() != null) event.setEndDate(dto.getEndDate());
-            if (dto.getEquipment() != null) event.setEquipment(dto.getEquipment());
-            if (dto.getEquipmentZhCn() != null) event.setEquipmentZhCn(dto.getEquipmentZhCn());
-            if (dto.getEquipmentZhHk() != null) event.setEquipmentZhHk(dto.getEquipmentZhHk());
-            if (dto.getAvailabilityToEmployeeRatio() != null)
-                event.setAvailabilityToEmployeeRatio(dto.getAvailabilityToEmployeeRatio());
-            if (dto.getMaxCapacity() != null) event.setMaxCapacity(dto.getMaxCapacity());
-            if (dto.getPrivateBookings() != null) event.setPrivateBookings(dto.getPrivateBookings());
-            if (dto.getAdditionalInfo() != null) event.setAdditionalInfo(dto.getAdditionalInfo());
-            if (dto.getAdditionalInfoZhCn() != null) event.setAdditionalInfoZhCn(dto.getAdditionalInfoZhCn());
-            if (dto.getAdditionalInfoZhHk() != null) event.setAdditionalInfoZhHk(dto.getAdditionalInfoZhHk());
-            if (dto.getCancellationPolicy() != null) event.setCancellationPolicy(dto.getCancellationPolicy());
-            if (dto.getCancellationPolicyZhCn() != null) event.setCancellationPolicyZhCn(dto.getCancellationPolicyZhCn());
-            if (dto.getCancellationPolicyZhHk() != null) event.setCancellationPolicyZhHk(dto.getCancellationPolicyZhHk());
-            if (dto.getCustomQuestion() != null) event.setCustomQuestion(dto.getCustomQuestion());
-            if (dto.getCustomQuestionZhCn() != null) event.setCustomQuestionZhCn(dto.getCustomQuestionZhCn());
-            if (dto.getCustomQuestionZhHk() != null) event.setCustomQuestionZhHk(dto.getCustomQuestionZhHk());
-            if (dto.getMatchTicketQuantityWithAttendees() != null) event.setMatchTicketQuantityWithAttendees(dto.getMatchTicketQuantityWithAttendees());
-            if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
-            if (dto.getActivityDayThreshold() != null)
-                event.setActivityDayThreshold(dto.getActivityDayThreshold());
-            else if (dto.getActivityHourThreshold() != null)
-                event.setActivityHourThreshold(dto.getActivityHourThreshold());
-            if (dto.getIsPublish() != null) event.setIsPublish(dto.getIsPublish());
-    //        if (dto.getCreatedBy() != null) event.setCreatedBy(dto.getCreatedBy());
-    //        if (dto.getUpdatedBy() != null) event.setUpdatedBy(dto.getUpdatedBy());
-            if (dto.getAvailableDays() != null) {
+            PartialUpdateUtil.apply(dto, "name", dto::getName, event::setName);
+            PartialUpdateUtil.apply(dto, "sequence_no", dto::getSequenceNo, event::setSequenceNo);
+            PartialUpdateUtil.apply(dto, "name_zh_cn", dto::getNameZhCn, event::setNameZhCn);
+            PartialUpdateUtil.apply(dto, "name_zh_hk", dto::getNameZhHk, event::setNameZhHk);
+            PartialUpdateUtil.apply(dto, "type", dto::getType, event::setType);
+            PartialUpdateUtil.apply(dto, "type_zh_cn", dto::getTypeZhCn, event::setTypeZhCn);
+            PartialUpdateUtil.apply(dto, "type_zh_hk", dto::getTypeZhHk, event::setTypeZhHk);
+            PartialUpdateUtil.apply(dto, "category", dto::getCategory, event::setCategory);
+            PartialUpdateUtil.apply(dto, "category_zh_cn", dto::getCategoryZhCn, event::setCategoryZhCn);
+            PartialUpdateUtil.apply(dto, "category_zh_hk", dto::getCategoryZhHk, event::setCategoryZhHk);
+            PartialUpdateUtil.apply(dto, "description", dto::getDescription, event::setDescription);
+            PartialUpdateUtil.apply(dto, "description_zh_cn", dto::getDescriptionZhCn, event::setDescriptionZhCn);
+            PartialUpdateUtil.apply(dto, "description_zh_hk", dto::getDescriptionZhHk, event::setDescriptionZhHk);
+            PartialUpdateUtil.apply(dto, "location", dto::getLocation, event::setLocation);
+            PartialUpdateUtil.apply(dto, "location_zh_cn", dto::getLocationZhCn, event::setLocationZhCn);
+            PartialUpdateUtil.apply(dto, "location_zh_hk", dto::getLocationZhHk, event::setLocationZhHk);
+            PartialUpdateUtil.apply(dto, "duration", dto::getDuration, event::setDuration);
+            PartialUpdateUtil.apply(dto, "badge", dto::getBadge, event::setBadge);
+            PartialUpdateUtil.apply(dto, "badge_zh_cn", dto::getBadgeZhCn, event::setBadgeZhCn);
+            PartialUpdateUtil.apply(dto, "badge_zh_hk", dto::getBadgeZhHk, event::setBadgeZhHk);
+            PartialUpdateUtil.apply(dto, "start_date", dto::getStartDate, event::setStartDate);
+            PartialUpdateUtil.apply(dto, "end_date", dto::getEndDate, event::setEndDate);
+            PartialUpdateUtil.apply(dto, "equipment", dto::getEquipment, event::setEquipment);
+            PartialUpdateUtil.apply(dto, "equipment_zh_cn", dto::getEquipmentZhCn, event::setEquipmentZhCn);
+            PartialUpdateUtil.apply(dto, "equipment_zh_hk", dto::getEquipmentZhHk, event::setEquipmentZhHk);
+            PartialUpdateUtil.apply(dto, "availability_to_employee_ratio", dto::getAvailabilityToEmployeeRatio, event::setAvailabilityToEmployeeRatio);
+            PartialUpdateUtil.apply(dto, "max_capacity", dto::getMaxCapacity, event::setMaxCapacity);
+            PartialUpdateUtil.apply(dto, "private_bookings", dto::getPrivateBookings, event::setPrivateBookings);
+            PartialUpdateUtil.apply(dto, "additional_info", dto::getAdditionalInfo, event::setAdditionalInfo);
+            PartialUpdateUtil.apply(dto, "additional_info_zh_cn", dto::getAdditionalInfoZhCn, event::setAdditionalInfoZhCn);
+            PartialUpdateUtil.apply(dto, "additional_info_zh_hk", dto::getAdditionalInfoZhHk, event::setAdditionalInfoZhHk);
+            PartialUpdateUtil.apply(dto, "cancellation_policy", dto::getCancellationPolicy, event::setCancellationPolicy);
+            PartialUpdateUtil.apply(dto, "cancellation_policy_zh_cn", dto::getCancellationPolicyZhCn, event::setCancellationPolicyZhCn);
+            PartialUpdateUtil.apply(dto, "cancellation_policy_zh_hk", dto::getCancellationPolicyZhHk, event::setCancellationPolicyZhHk);
+            PartialUpdateUtil.apply(dto, "custom_question", dto::getCustomQuestion, event::setCustomQuestion);
+            PartialUpdateUtil.apply(dto, "custom_question_zh_cn", dto::getCustomQuestionZhCn, event::setCustomQuestionZhCn);
+            PartialUpdateUtil.apply(dto, "custom_question_zh_hk", dto::getCustomQuestionZhHk, event::setCustomQuestionZhHk);
+            PartialUpdateUtil.apply(dto, "match_ticket_quantity_with_attendees", dto::getMatchTicketQuantityWithAttendees, event::setMatchTicketQuantityWithAttendees);
+            PartialUpdateUtil.apply(dto, "is_publish", dto::getIsPublish, event::setIsPublish);
+            PartialUpdateUtil.apply(dto, "activity_day_threshold", dto::getActivityDayThreshold, event::setActivityDayThreshold);
+            PartialUpdateUtil.apply(dto, "activity_hour_threshold", dto::getActivityHourThreshold, event::setActivityHourThreshold);
+
+            PartialUpdateUtil.ifPresent(dto, "available_days", () -> {
                 event.getAvailableDays().clear();
-                dto.getAvailableDays().forEach(day -> event.updateDay(event.getId(), day.getDay(), day.getStartTimes()));
-            }
+                if (dto.getAvailableDays() != null) {
+                    dto.getAvailableDays().forEach(day -> event.updateDay(event.getId(), day.getDay(), day.getStartTimes()));
+                }
+            });
 
             handleEventPictureUpdate(event, eventPic);
 
@@ -529,27 +525,29 @@ public class EventService {
         TicketTypes ticketTypes = ticketTypesRepository.findByRefNo(ticketTypeRefNo)
                 .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticketTypeRefNo)));
 
-        if (request.hasPeriods()) {
-            List<TicketPricePeriods> newPeriods = request.getPeriods().stream()
-                    .map(dto -> TicketPricePeriods.builder()
-                            .event(event)
-                            .ticketTypes(ticketTypes)
-                            .price(dto.getPrice())
-                            .effectiveFrom(dto.getEffectiveFrom())
-                            .effectiveTo(dto.getEffectiveTo())
-                            .reason(dto.getReason())
-                            .build())
-                    .toList();
+        PartialUpdateUtil.ifPresent(request, "periods", () -> {
             ticketTypes.getPeriods().clear();
-            ticketTypes.getPeriods().addAll(newPeriods);
-        }
+            if (request.getPeriods() != null) {
+                List<TicketPricePeriods> newPeriods = request.getPeriods().stream()
+                        .map(dto -> TicketPricePeriods.builder()
+                                .event(event)
+                                .ticketTypes(ticketTypes)
+                                .price(dto.getPrice())
+                                .effectiveFrom(dto.getEffectiveFrom())
+                                .effectiveTo(dto.getEffectiveTo())
+                                .reason(dto.getReason())
+                                .build())
+                        .toList();
+                ticketTypes.getPeriods().addAll(newPeriods);
+            }
+        });
 
-        if (request.getName() != null) ticketTypes.setName(request.getName());
-        if (request.getNameZhCn() != null) ticketTypes.setNameZhCn(request.getNameZhCn());
-        if (request.getNameZhHk() != null) ticketTypes.setNameZhHk(request.getNameZhHk());
-        if (request.getDescription() != null) ticketTypes.setDescription(request.getDescription());
-        if (request.getDescriptionZhCn() != null) ticketTypes.setDescriptionZhCn(request.getDescriptionZhCn());
-        if (request.getDescriptionZhHk() != null) ticketTypes.setDescriptionZhHk(request.getDescriptionZhHk());
+        PartialUpdateUtil.apply(request, "name", request::getName, ticketTypes::setName);
+        PartialUpdateUtil.apply(request, "name_zh_cn", request::getNameZhCn, ticketTypes::setNameZhCn);
+        PartialUpdateUtil.apply(request, "name_zh_hk", request::getNameZhHk, ticketTypes::setNameZhHk);
+        PartialUpdateUtil.apply(request, "description", request::getDescription, ticketTypes::setDescription);
+        PartialUpdateUtil.apply(request, "description_zh_cn", request::getDescriptionZhCn, ticketTypes::setDescriptionZhCn);
+        PartialUpdateUtil.apply(request, "description_zh_hk", request::getDescriptionZhHk, ticketTypes::setDescriptionZhHk);
 
         ticketTypesRepository.save(ticketTypes);
 

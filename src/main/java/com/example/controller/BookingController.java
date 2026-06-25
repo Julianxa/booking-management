@@ -217,11 +217,11 @@ public class BookingController {
                                     schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PutMapping("/bookings/event/{bookingEventId}")
+    @PatchMapping("/bookings/event/{bookingEventId}")
     public ResponseEntity<?> updateBookingAttendeesByBookingEventId(
             @PathVariable("bookingEventId") String bookingEventId,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
-            @Valid @RequestBody UpdateBookingRequestDTO request) {
+            @RequestBody UpdateBookingRequestDTO request) {
 
         String userSub = userUtils.extractUserSub(authorizationHeader);
 

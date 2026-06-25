@@ -19,8 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.ZonedDateTime;
-
 @Tag(name = "Gift Certificates", description = "Gift certificate management APIs")
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -73,12 +71,12 @@ public class GiftCertificateController {
                                     schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PutMapping("/gift-certificates/{promoCode}")
+    @PatchMapping("/gift-certificates/{promoCode}")
     public ResponseEntity<?> updateGiftCertificate(
             @PathVariable String promoCode,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
             @RequestHeader(value = "X-Access-Token", required = false) String accessToken,
-            @Valid @RequestBody UpdateGiftCertificatesRequestDTO request) {
+            @RequestBody UpdateGiftCertificatesRequestDTO request) {
 
         String userSub = userUtils.extractUserSub(authorizationHeader);
         UpdateGiftCertificatesResponseDTO response = giftCertificateService.updateCertificate(promoCode, request);

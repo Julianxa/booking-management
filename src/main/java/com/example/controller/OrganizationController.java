@@ -16,8 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.ZonedDateTime;
-
 @Tag(name = "Organizations", description = "Organization management APIs")
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -126,9 +124,9 @@ public class OrganizationController {
                             content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PutMapping("/organizations/{id}")
+    @PatchMapping("/organizations/{id}")
     public ResponseEntity<?> update(@PathVariable String id,
-                                    @RequestBody CreateOrganizationRequestDTO dto) {
+                                    @RequestBody UpdateOrganizationRequestDTO dto) {
         UpdateOrganizationResponseDTO organizationResponseDTO = organizationService.updateOrganization(id, dto);
         return ResponseEntity.ok(organizationResponseDTO);
     }

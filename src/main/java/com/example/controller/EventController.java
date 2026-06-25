@@ -210,7 +210,7 @@ public class EventController {
                             content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
             }
     )
-    @PutMapping(value = "/events/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PatchMapping(value = "/events/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(@RequestPart(value = "eventPic", required = false) MultipartFile eventPic,
                                     @PathVariable String id,
                                     @Schema(
@@ -353,11 +353,11 @@ public class EventController {
                     )
             }
     )
-    @PutMapping("/events/{id}/ticket-types/{ticketTypeId}")
+    @PatchMapping("/events/{id}/ticket-types/{ticketTypeId}")
     public ResponseEntity<?> updateTicketType(
             @PathVariable String id,
             @PathVariable String ticketTypeId,
-            @Valid @RequestBody UpdateTicketTypeRequestDTO dto) {
+            @RequestBody UpdateTicketTypeRequestDTO dto) {
 
         UpdateTicketTypeResponseDTO response = eventService.updateTicketType(id, ticketTypeId, dto);
         return ResponseEntity.ok(response);

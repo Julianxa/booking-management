@@ -18,6 +18,7 @@ import com.example.model.record.EventTimeSlotException;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
 import com.example.utils.DateUtils;
+import com.example.utils.PartialUpdateUtil;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
 import com.example.utils.UserUtils;
@@ -187,17 +188,15 @@ public class BookingService {
                 .orElseThrow(() -> new BookingEventNotFoundException(
                         String.format("Booking event %s not found", bookingEventId)));
 
-        bookingAttendeesRepository.deleteByBookingEventId(bookingEvent.getId());
+        PartialUpdateUtil.ifPresent(request, "attendees", () -> {
+            bookingAttendeesRepository.deleteByBookingEventId(bookingEvent.getId());
+            if (request.getAttendees() != null) {
+                request.getAttendees().forEach(attendeeDTO -> saveAttendee(bookingEvent.getId(), attendeeDTO));
+            }
+        });
 
-        if (request.getAttendees() != null) {
-            request.getAttendees().forEach(attendeeDTO ->
-                    saveAttendee(bookingEvent.getId(), attendeeDTO)
-            );
-        }
-
-        if (request.getNotes() != null) {
-            bookingEventsRepository.updateNotes(bookingEventId, request.getNotes());
-        }
+        PartialUpdateUtil.ifPresent(request, "notes", () ->
+                bookingEventsRepository.updateNotes(bookingEventId, request.getNotes()));
 
         auditService.record("UPDATE_BOOKING",
                 BookingEvents.class.getName(),
@@ -209,7 +208,7 @@ public class BookingService {
         return UpdateBookingResponseDTO.builder()
                 .bookingEventId(bookingEventId)
                 .attendees(request.getAttendees())
-                .notes(request.getNotes())
+                .notes(request.hasField("notes") ? request.getNotes() : bookingEvent.getNotes())
                 .message("Booking is updated successfully")
                 .timestamp(ZonedDateTime.now())
                 .build();

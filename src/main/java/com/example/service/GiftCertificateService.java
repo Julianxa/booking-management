@@ -15,6 +15,7 @@ import com.example.model.dto.*;
 import com.example.model.entity.*;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
+import com.example.utils.PartialUpdateUtil;
 import com.example.utils.ReferenceNoGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -159,15 +160,9 @@ public class GiftCertificateService {
         GiftCertificates giftCertificates = giftCertificatesRepository.findByPromoCode(promoCode)
                 .orElseThrow(() -> new GCNotFoundException(String.format("Gift Certificate with promotion code %s not found", promoCode)));
 
-        if (dto.getExpiryDate() != null) {
-            giftCertificates.setExpiryDate(dto.getExpiryDate());
-        }
-        if (dto.getMessageToRecipient() != null) {
-            giftCertificates.setMessageToRecipient(dto.getMessageToRecipient());
-        }
-        if (dto.getEffectiveDate() != null) {
-            giftCertificates.setEffectiveDate(dto.getEffectiveDate());
-        }
+        PartialUpdateUtil.apply(dto, "expiry_date", dto::getExpiryDate, giftCertificates::setExpiryDate);
+        PartialUpdateUtil.apply(dto, "message_to_recipient", dto::getMessageToRecipient, giftCertificates::setMessageToRecipient);
+        PartialUpdateUtil.apply(dto, "effective_date", dto::getEffectiveDate, giftCertificates::setEffectiveDate);
         giftCertificates = giftCertificatesRepository.save(giftCertificates);
 
         auditService.record("UPDATE_CERTIFICATE",

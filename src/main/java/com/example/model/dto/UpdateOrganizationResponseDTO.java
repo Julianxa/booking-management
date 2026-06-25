@@ -16,7 +16,7 @@ import java.time.ZonedDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UpdateOrganizationResponseDTO {
     @JsonProperty("id")
-    private Long id;
+    private String id;
     @JsonProperty("name")
     private String name;
     @JsonProperty("industry")

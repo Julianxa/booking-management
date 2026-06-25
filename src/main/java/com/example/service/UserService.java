@@ -9,6 +9,7 @@ import com.example.model.dto.*;
 import com.example.model.entity.Users;
 import com.example.repository.OrganizationsRepository;
 import com.example.repository.UsersRepository;
+import com.example.utils.PartialUpdateUtil;
 import com.example.utils.ReferenceNoGenerator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -304,18 +305,22 @@ public class UserService {
         Users user = usersRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
-        if (dto.getFirstName() != null) user.setFirstName(dto.getFirstName());
-        if (dto.getLastName() != null) user.setLastName(dto.getLastName());
-        if (dto.getGender() != null) user.setGender(dto.getGender());
-        if (dto.getCountry() != null) user.setCountry(dto.getCountry());
-        if (dto.getEmail() != null) user.setEmail(dto.getEmail());
-        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
-        if (dto.getOrgId() != null) user.setOrgId(
-                organizationsRepository.findIdByRefNo(dto.getOrgId()).orElse(null)
-        );
+        PartialUpdateUtil.apply(dto, "first_name", dto::getFirstName, user::setFirstName);
+        PartialUpdateUtil.apply(dto, "last_name", dto::getLastName, user::setLastName);
+        PartialUpdateUtil.apply(dto, "gender", dto::getGender, user::setGender);
+        PartialUpdateUtil.apply(dto, "country", dto::getCountry, user::setCountry);
+        PartialUpdateUtil.apply(dto, "email", dto::getEmail, user::setEmail);
+        PartialUpdateUtil.apply(dto, "phone", dto::getPhone, user::setPhone);
+        PartialUpdateUtil.apply(dto, "org_id", dto::getOrgId, orgRef -> user.setOrgId(
+                orgRef == null ? null : organizationsRepository.findIdByRefNo(orgRef).orElse(null)
+        ));
 
-        user = usersRepository.save(user);
+        usersRepository.save(user);
 
-        return userMapper.toResponseDTO(user, dto.getOrgId());
+        String orgRefNo = dto.hasField("org_id")
+                ? dto.getOrgId()
+                : organizationsRepository.findRefNoById(user.getOrgId()).orElse(null);
+
+        return userMapper.toResponseDTO(user, orgRefNo);
     }
 }
