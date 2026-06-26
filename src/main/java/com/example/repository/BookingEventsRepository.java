@@ -168,11 +168,12 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
             @Param("sentAt") ZonedDateTime sentAt);
 
     @Query("""
-            SELECT be FROM BookingEvents be
-            JOIN FETCH be.booking
-            JOIN FETCH be.event
-            WHERE be.id = :id
-            """)
+        SELECT be FROM BookingEvents be
+        JOIN FETCH be.booking
+        JOIN FETCH be.event e
+        LEFT JOIN FETCH e.emailTemplate
+        WHERE be.id = :id
+        """)
     Optional<BookingEvents> findByIdWithBookingAndEvent(@Param("id") Long id);
 
     @Query("""
