@@ -1,6 +1,7 @@
 package com.example.model.dto;
 
 import com.example.constant.Enums;
+import com.example.model.entity.EmailTemplates;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -33,8 +34,12 @@ public class CreateBookingResponseDTO {
     private BigDecimal finalPaidAmount;
     @JsonProperty("currency")
     private String currency;
+    @JsonProperty("status")
     private Enums.BookingStatus status;
+    @JsonProperty("language")
     private Enums.Language language;
+    @JsonProperty("email_template")
+    private EmailTemplates emailTemplate;
     @JsonProperty("promo_code")
     private String promoCode;
     @JsonProperty("checkout_url")

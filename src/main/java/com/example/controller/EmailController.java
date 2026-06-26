@@ -21,8 +21,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
-
 @Tag(name = "Emails", description = "Email management APIs")
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -62,18 +60,15 @@ public class EmailController {
     @PostMapping("/emails/booking/{bookingId}/resend")
     public ResponseEntity<?> resendBookingEmail(@PathVariable String bookingId,
                                          @RequestBody ResendBookingEmailRequestDTO dto) {
-        ResendBookingEmailResponseDTO response = bookingService.resendBookingEmail(bookingId, dto.getEmailType());
+        ResendBookingEmailResponseDTO response = bookingService.resendBookingEmail(dto.getEmailTemplateId(), bookingId, dto.getEmailType());
         return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "Resend email(s) for booked event(s) in a specific date and time",
             description = "Emails for BOOKING_CONFIRMATION on booked event level.")
-    @PostMapping("/emails/event/{eventId}/resend")
-    public ResponseEntity<?> resendEventEmail(@PathVariable String eventId,
-                                                     @RequestParam LocalDate eventDate,
-                                                     @RequestParam String eventTime,
-                                            @RequestBody ResendEventEmailRequestDTO dto) {
-        ResendEventEmailResponseDTO response = bookingService.resendEventEmail(eventId, eventDate, eventTime, dto.getEmailType());
+    @PostMapping("/emails/event/resend")
+    public ResponseEntity<?> resendEventEmail(@Valid @RequestBody ResendEventEmailRequestDTO dto) {
+        ResendEventEmailResponseDTO response = bookingService.resendEventEmail(dto);
         return ResponseEntity.ok(response);
     }
 

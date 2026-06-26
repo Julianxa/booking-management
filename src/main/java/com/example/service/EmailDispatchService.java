@@ -8,7 +8,6 @@ import com.example.model.entity.Bookings;
 import com.example.model.entity.Users;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.BookingEventsRepository;
-import com.example.repository.BookingsRepository;
 import com.example.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +27,6 @@ import static com.example.constant.Enums.UserRole.AGENT;
 @RequiredArgsConstructor
 public class EmailDispatchService {
     private final EmailService emailService;
-    private final BookingsRepository bookingsRepository;
     private final BookingEventsRepository bookingEventsRepository;
     private final BookingsConverter bookingsConverter;
     private final GiftCertificateService giftCertificateService;
@@ -37,7 +35,7 @@ public class EmailDispatchService {
     @Async("emailExecutor")
     public void sendPaymentConfirmationEmailsAsync(EmailService.BookingCreatedEvent event) {
         try {
-            Bookings booking = reloadBooking(event.booking());
+            Bookings booking = requireBooking(event.booking());
             List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = event.bookingEvents();
             if (bookingEvents == null || bookingEvents.isEmpty()) {
                 bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
@@ -56,11 +54,11 @@ public class EmailDispatchService {
     @Async("emailExecutor")
     public void sendPaymentConfirmationEmailsAsync(Bookings booking) {
         try {
-            Bookings loaded = reloadBooking(booking);
+            Bookings resolved = requireBooking(booking);
             List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs =
-                    bookingsConverter.toBookingEventDTOs(loaded, null);
+                    bookingsConverter.toBookingEventDTOs(resolved, null);
             GiftCertificateApplicationResult giftResult =
-                    giftCertificateService.getCertificateRedemptionResult(loaded);
+                    giftCertificateService.getCertificateRedemptionResult(resolved);
             String promoCode = giftResult != null && giftResult.certificate() != null
                     ? giftResult.certificate().getPromoCode()
                     : null;
@@ -68,7 +66,7 @@ public class EmailDispatchService {
                     giftResult != null && giftResult.redeemedTicketTypes() != null
                             ? giftResult.redeemedTicketTypes()
                             : Collections.emptyList();
-            dispatchPaymentConfirmationEmails(loaded, bookingEventDTOs, promoCode, redeemedTickets);
+            dispatchPaymentConfirmationEmails(resolved, bookingEventDTOs, promoCode, redeemedTickets);
         } catch (Exception e) {
             log.error("Failed to dispatch payment confirmation emails for booking {}",
                     booking != null ? booking.getRefNo() : null, e);
@@ -76,27 +74,28 @@ public class EmailDispatchService {
     }
 
     @Async("emailExecutor")
-    public void sendBookingConfirmationEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
+    public void sendCustomOrBookingConfirmationEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads, String emailTemplateRefNo) {
         try {
-            Bookings loaded = reloadBooking(booking);
+            Bookings resolved = requireBooking(booking);
             if (payloads == null || payloads.isEmpty()) {
-                log.warn("No booking confirmation email payloads for booking {}", loaded.getRefNo());
+                log.warn("No booking confirmation email payloads for booking {}", resolved.getRefNo());
                 return;
             }
 
             for (EmailService.BookingEmailPayload payload : payloads) {
                 try {
                     BookingEvents bookingEvent = loadBookingEvent(payload.bookingEvent());
-                    emailService.sendBookingConfirmationEmail(
+                    emailService.sendCustomOrBookingConfirmationEmail(
                             payload.attendee(),
-                            loaded,
+                            resolved,
                             bookingEvent,
                             payload.tickets(),
-                            payload.allAttendees());
+                            payload.allAttendees(),
+                            emailTemplateRefNo);
                 } catch (Exception e) {
                     log.error("Failed to send booking confirmation email to {} for booking {}",
                             payload.attendee() != null ? payload.attendee().getEmail() : null,
-                            loaded.getRefNo(),
+                            resolved.getRefNo(),
                             e);
                 }
             }
@@ -109,7 +108,7 @@ public class EmailDispatchService {
     @Async("emailExecutor")
     public void sendBookingCancellationEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
         try {
-            Bookings loaded = reloadBooking(booking);
+            Bookings resolved = requireBooking(booking);
             if (payloads == null || payloads.isEmpty()) {
                 return;
             }
@@ -118,14 +117,14 @@ public class EmailDispatchService {
                     BookingEvents bookingEvent = loadBookingEvent(payload.bookingEvent());
                     emailService.sendBookingCancellationEmail(
                             payload.attendee(),
-                            loaded,
+                            resolved,
                             bookingEvent,
                             payload.tickets(),
                             payload.allAttendees());
                 } catch (Exception e) {
                     log.error("Failed to send booking cancellation email to {} for booking {}",
                             payload.attendee() != null ? payload.attendee().getEmail() : null,
-                            loaded.getRefNo(),
+                            resolved.getRefNo(),
                             e);
                 }
             }
@@ -170,13 +169,11 @@ public class EmailDispatchService {
                 .min(Comparator.comparingInt(CreateBookingRequestDTO.AttendeeDTO::getSequence));
     }
 
-    private Bookings reloadBooking(Bookings booking) {
+    private Bookings requireBooking(Bookings booking) {
         if (booking == null || booking.getId() == null) {
             throw new BookingNotFoundException("Booking not found");
         }
-        return bookingsRepository.findById(booking.getId())
-                .orElseThrow(() -> new BookingNotFoundException(
-                        String.format("Booking %s not found", booking.getRefNo())));
+        return booking;
     }
 
     private BookingEvents loadBookingEvent(BookingEvents bookingEvent) {

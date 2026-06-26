@@ -261,7 +261,7 @@ public class WebhookService {
         ZonedDateTime paidAt = dateUtils.convertToZonedDateTime(intent.getCreated());
 
         String bookingRefNo = intent.getMetadata().get("bookingRefNo");
-        Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
+        Bookings booking = bookingsRepository.findByRefNoWithEmailTemplate(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
 
@@ -399,12 +399,12 @@ public class WebhookService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingCreatedEvent(EmailService.BookingCreatedEvent event) {
         emailDispatchService.sendPaymentConfirmationEmailsAsync(event);
-        emailDispatchService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        emailDispatchService.sendCustomOrBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads(), null);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleBookingRestoreEvent(EmailService.BookingRestoreEvent event) {
-        emailDispatchService.sendBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads());
+        emailDispatchService.sendCustomOrBookingConfirmationEmailsAsync(event.booking(), event.emailPayloads(), null);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

@@ -90,6 +90,15 @@ public class EmailService {
         return getEmailTemplateResponseDTO;
     }
 
+    public EmailTemplates resolveEmailTemplate(String emailTemplateRefNo) {
+        if (emailTemplateRefNo == null || emailTemplateRefNo.isBlank()) {
+            return null;
+        }
+        return emailTemplatesRepository.findByRefNo(emailTemplateRefNo)
+                .orElseThrow(() -> new EmailTemplateNotFoundException(
+                        String.format("Email template not found with code %s", emailTemplateRefNo)));
+    }
+
     public GetListEmailTemplatesResponseDTO getAllEmailTemplates(Pageable pageable) {
         Page<EmailTemplates> emailTemplatesPage = emailTemplatesRepository.findAllActive(pageable);
 
@@ -238,18 +247,26 @@ public class EmailService {
         sendEmail(user.getId(), template.getId(), emailParametersJson, user.getEmail(), subject, htmlContent, inlineImages);
     }
 
-    public void sendBookingConfirmationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
-                                             Bookings booking,
-                                             BookingEvents bookingEvent,
-                                             List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDTOs,
-                                             List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs) {
+    public void sendCustomOrBookingConfirmationEmail(
+            CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
+            Bookings booking,
+            BookingEvents bookingEvent,
+            List<CreateBookingRequestDTO.TicketTypeDTO> ticketsDTOs,
+            List<CreateBookingRequestDTO.AttendeeDTO> attendeeDTOs,
+            String emailTemplateRefNo) {
         Context context = new Context();
         String checkInToken = bookingEvent.getVerificationToken();
 
         Map<String, String> inlineImages = embedInlineImages();
         inlineImages.put("qr", checkInToken);
 
+        // static email template in default
         EmailTemplates template = emailTemplatesRepository.findBookingConfirmationEmailTemplate();
+        if (emailTemplateRefNo != null && !emailTemplateRefNo.isBlank()) {
+            template = resolveEmailTemplate(emailTemplateRefNo);
+        } else if (booking.getEmailTemplate() != null) {
+            template = resolveEmailTemplate(booking.getEmailTemplate().getRefNo());
+        }
 
         String ticketSummary = buildTicketSummary(ticketsDTOs);
 
@@ -290,7 +307,7 @@ public class EmailService {
             context.setVariable("importantInfoBody", template.getImportantInfoBody());
             context.setVariable("contactBody", template.getContactBody());
         }
-        String htmlContent = templateEngine.process("booking-confirmation-email-template", context);
+        String htmlContent = templateEngine.process(template.getTemplateName(), context);
 
         String emailParametersJson = convertContextToJson(context);
 

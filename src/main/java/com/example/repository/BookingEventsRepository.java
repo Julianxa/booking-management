@@ -47,7 +47,7 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
       AND be.cancelledAt IS NULL
       AND be.status IN ('AVAILABLE')
     """)
-    List<BookingEvents> findActiveByEventRefNoAndEventDateAndEventTime(
+    Optional<List<BookingEvents>> findActiveByEventRefNoAndEventDateAndEventTime(
             @Param("eventRefNo") String eventRefNo,
             @Param("eventDate") LocalDate eventDate,
             @Param("eventTime") String eventTime);

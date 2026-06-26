@@ -63,6 +63,7 @@ public class BookingService {
     private final BookingEventsMapper bookingEventsMapper;
     private final PaymentService paymentService;
     private final EmailDispatchService emailDispatchService;
+    private final EmailService emailService;
     private final WebhookService webhookService;
     private final GiftCertificateService giftCertificateService;
     private final ReferenceNoGenerator referenceNoGenerator;
@@ -130,7 +131,7 @@ public class BookingService {
         return executeInBookingTransaction(() -> {
             Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
-            Bookings booking = createEmptyBooking(loggedInUser, request.getLanguage()); // PENDING
+            Bookings booking = createEmptyBooking(loggedInUser, request); // PENDING
 
             BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
 
@@ -456,7 +457,7 @@ public class BookingService {
                 .sum();
     }
 
-    private Bookings createEmptyBooking(Users loggedInUser, Enums.Language language) {
+    private Bookings createEmptyBooking(Users loggedInUser, CreateBookingRequestDTO request) {
         Bookings booking = Bookings.builder()
                 .refNo(referenceNoGenerator.generateBookingReference())
                 .type(loggedInUser != null ? Enums.BookingType.OFFLINE_PAYMENT : Enums.BookingType.ONLINE_PAYMENT)
@@ -464,7 +465,8 @@ public class BookingService {
                 .totalPaidPrice(BigDecimal.ZERO)
                 .currency("HKD")
                 .status(Enums.BookingStatus.PENDING)
-                .language(language)
+                .language(request.getLanguage())
+                .emailTemplate(emailService.resolveEmailTemplate(request.getEmailTemplateId()))
                 .build();
         booking = bookingsRepository.save(booking);
 
@@ -598,44 +600,35 @@ public class BookingService {
                 event.getName());
     }
 
-    public ResendEventEmailResponseDTO resendEventEmail(
-            String eventId,
-            LocalDate eventDate,
-            String eventTime,
-            Enums.BookingEmailType emailType) {
+    public ResendEventEmailResponseDTO resendEventEmail(ResendEventEmailRequestDTO request) {
+        String eventId = request.getEventId();
+        LocalDate eventDate = request.getEventDate();
+        String eventTime = request.getEventTime();
+        String customTemplateRefNo = request.getEmailTemplateId();
         List<BookingEvents> bookingEvents =
-                bookingEventsRepository.findActiveByEventRefNoAndEventDateAndEventTime(eventId, eventDate, eventTime);
+                bookingEventsRepository.findActiveByEventRefNoAndEventDateAndEventTime(eventId, eventDate, eventTime)
+                        .orElseThrow(() -> new BookingEventNotFoundException("No booked events found"));
         if (bookingEvents.isEmpty()) {
             throw new BookingEventNotFoundException(
                     String.format("No bookings found for event %s on %s at %s", eventId, eventDate, eventTime));
         }
-        if (emailType == PAYMENT_CONFIRMATION) {
-            bookingEvents.stream()
-                    .map(BookingEvents::getBooking)
-                    .distinct()
-                    .forEach(emailDispatchService::sendPaymentConfirmationEmailsAsync);
-        } else {
-            for (BookingEvents bookingEvent : bookingEvents) {
-                Bookings booking = bookingEvent.getBooking();
-                List<CreateBookingRequestDTO.AttendeeDTO> attendees =
-                        bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
-                List<BookingItems> bookingItems =
-                        bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
-                List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs =
-                        bookingItemsConverter.toTicketTypeDTOs(bookingItems);
-                List<EmailService.BookingEmailPayload> payloads =
-                        buildEmailPayloads(bookingEvent, attendees, ticketDTOs);
-                switch (emailType) {
-                    case BOOKING_CONFIRMATION ->
-                            emailDispatchService.sendBookingConfirmationEmailsAsync(booking, payloads);
-                    case BOOKING_CANCELLATION ->
-                            emailDispatchService.sendBookingCancellationEmailsAsync(booking, payloads);
-                }
-            }
+
+        for (BookingEvents bookingEvent : bookingEvents) {
+            Bookings booking = bookingEvent.getBooking();
+            List<CreateBookingRequestDTO.AttendeeDTO> attendees =
+                    bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
+            List<BookingItems> bookingItems =
+                    bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
+            List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs =
+                    bookingItemsConverter.toTicketTypeDTOs(bookingItems);
+            List<EmailService.BookingEmailPayload> payloads =
+                    buildEmailPayloads(bookingEvent, attendees, ticketDTOs);
+
+            emailDispatchService.sendCustomOrBookingConfirmationEmailsAsync(booking, payloads, customTemplateRefNo);
         }
         return ResendEventEmailResponseDTO.builder()
                 .success(true)
-                .message(String.format("%s email has been resent successfully", emailType))
+                .message("Email has been resent successfully")
                 .eventId(eventId)
                 .eventDate(eventDate)
                 .eventTime(eventTime)
@@ -643,7 +636,7 @@ public class BookingService {
                 .build();
     }
 
-    public ResendBookingEmailResponseDTO resendBookingEmail(String bookingId, Enums.BookingEmailType emailType) {
+    public ResendBookingEmailResponseDTO resendBookingEmail(String customTemplateRefNo, String bookingId, Enums.BookingEmailType emailType) {
         Bookings booking = bookingsRepository.findByRefNo(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
 
@@ -659,7 +652,7 @@ public class BookingService {
                 List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
 
                 switch (emailType) {
-                    case BOOKING_CONFIRMATION -> emailDispatchService.sendBookingConfirmationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs));
+                    case BOOKING_CONFIRMATION -> emailDispatchService.sendCustomOrBookingConfirmationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs), customTemplateRefNo);
                     case BOOKING_CANCELLATION -> emailDispatchService.sendBookingCancellationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs));
                 }
             }

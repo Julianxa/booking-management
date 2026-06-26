@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResendBookingEmailRequestDTO {
+    @JsonProperty("email_template_id")
+    private String emailTemplateId;
     @JsonProperty("email_type")
     private Enums.BookingEmailType emailType;
 }
