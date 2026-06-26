@@ -124,6 +124,9 @@ public class Events {
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Enums.EventStatus status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "email_template_id")
+    private EmailTemplates emailTemplate;
     @Column(name = "created_by")
     private Long createdBy;
     @Column(name = "updated_by")

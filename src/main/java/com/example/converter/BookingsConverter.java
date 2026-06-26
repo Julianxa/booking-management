@@ -38,7 +38,6 @@ public class BookingsConverter {
                 .promoCode(preFetchedPromoCode)
                 .status(booking.getStatus())
                 .language(booking.getLanguage())
-                .emailTemplate(booking.getEmailTemplate())
                 .createdAt(booking.getCreatedAt())
                 .bookingEvents(bookingEventDTOs)
                 .build();

@@ -264,8 +264,8 @@ public class EmailService {
         EmailTemplates template = emailTemplatesRepository.findBookingConfirmationEmailTemplate();
         if (emailTemplateRefNo != null && !emailTemplateRefNo.isBlank()) {
             template = resolveEmailTemplate(emailTemplateRefNo);
-        } else if (booking.getEmailTemplate() != null) {
-            template = resolveEmailTemplate(booking.getEmailTemplate().getRefNo());
+        } else if (bookingEvent.getEvent().getEmailTemplate() != null) {
+            template = resolveEmailTemplate(bookingEvent.getEvent().getEmailTemplate().getRefNo());
         }
 
         String ticketSummary = buildTicketSummary(ticketsDTOs);

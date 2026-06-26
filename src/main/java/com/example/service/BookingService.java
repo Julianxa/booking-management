@@ -466,7 +466,6 @@ public class BookingService {
                 .currency("HKD")
                 .status(Enums.BookingStatus.PENDING)
                 .language(request.getLanguage())
-                .emailTemplate(emailService.resolveEmailTemplate(request.getEmailTemplateId()))
                 .build();
         booking = bookingsRepository.save(booking);
 

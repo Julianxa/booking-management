@@ -29,10 +29,7 @@ public interface BookingsRepository extends JpaRepository<Bookings, Long> {
     Page<Bookings> findByUserId(Long userId, Pageable pageable);
 
     Optional<Bookings> findByRefNo(String refNo);
-
-    @Query("SELECT b FROM Bookings b LEFT JOIN FETCH b.emailTemplate WHERE b.refNo = :refNo")
-    Optional<Bookings> findByRefNoWithEmailTemplate(@Param("refNo") String refNo);
-
+    
     @Query(value = """
             SELECT b.*
             FROM bookings b

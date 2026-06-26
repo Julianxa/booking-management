@@ -186,4 +186,7 @@ public class CreateEventRequestDTO {
     @Schema(description = "Activity duration threshold in hours")
     @JsonProperty("activity_hour_threshold")
     private Integer activityHourThreshold;
+
+    @JsonProperty("email_template_id")
+    private String emailTemplateId;
 }

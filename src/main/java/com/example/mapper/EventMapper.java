@@ -78,6 +78,7 @@ public interface EventMapper {
         dto.setIsPublish(entity.getIsPublish());
         dto.setActivityDayThreshold(entity.getActivityDayThreshold());
         dto.setActivityHourThreshold(entity.getActivityHourThreshold());
+        dto.setEmailTemplate(entity.getEmailTemplate());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         dto.setCreatedBy(entity.getCreatedBy());

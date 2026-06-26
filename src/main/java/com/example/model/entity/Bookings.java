@@ -59,10 +59,6 @@ public class Bookings {
     @Column(name = "language")
     private Enums.Language language;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "email_template_id")
-    private EmailTemplates emailTemplate;
-
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;

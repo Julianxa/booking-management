@@ -64,6 +64,7 @@ public class EventService {
     private final BookingEventsMapper bookingEventsMapper;
     private final EventTimeSlotExceptionsMapper eventTimeSlotExceptionsMapper;
     private final AwsService awsService;
+    private final EmailService emailService;
     private final AuditService auditService;
     private final DateUtils dateUtils;
     private final DataUtils dataUtils;
@@ -87,6 +88,7 @@ public class EventService {
             event.setRefNo(referenceNoGenerator.generateEventReference());
             event.setAvailableDays(new HashSet<>());
             event.setMatchTicketQuantityWithAttendees(request.getMatchTicketQuantityWithAttendees());
+            event.setEmailTemplate(emailService.resolveEmailTemplate(request.getEmailTemplateId()));
 
             addAvailableDaysToEvent(event, request.getAvailableDays());
 

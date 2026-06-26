@@ -37,9 +37,6 @@ public class CreateBookingRequestDTO {
     @JsonProperty("language")
     private Enums.Language language;
 
-    @JsonProperty("email_template_id")
-    private String emailTemplateId;
-
     @Data
     @Builder
     @Getter

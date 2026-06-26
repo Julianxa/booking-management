@@ -38,8 +38,6 @@ public class CreateBookingResponseDTO {
     private Enums.BookingStatus status;
     @JsonProperty("language")
     private Enums.Language language;
-    @JsonProperty("email_template")
-    private EmailTemplates emailTemplate;
     @JsonProperty("promo_code")
     private String promoCode;
     @JsonProperty("checkout_url")
