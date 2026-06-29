@@ -217,20 +217,23 @@ public class EmailService {
         context.setVariable("giftCertificateDiscount", booking.getDiscount());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
-            context.setVariable("titleZhCn", template.getTitleZhCn());
-            context.setVariable("subjectZhCn", template.getSubjectZhCn());
-            context.setVariable("mainBodyZhCn", template.getMainBodyZhCn());
-            context.setVariable("importantInfoIntroZhCn", template.getImportantInfoIntroZhCn());
-            context.setVariable("importantInfoBodyZhCn", template.getImportantInfoBodyZhCn());
-            context.setVariable("contactBodyZhCn", template.getContactBodyZhCn());
+            context.setVariable("lang", Enums.Language.CN);
+            context.setVariable("title", template.getTitleZhCn());
+            context.setVariable("subject", template.getSubjectZhCn());
+            context.setVariable("mainBody", template.getMainBodyZhCn());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBody", template.getImportantInfoBodyZhCn());
+            context.setVariable("contactBody", template.getContactBodyZhCn());
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
-            context.setVariable("titleZhHk", template.getTitleZhHk());
-            context.setVariable("subjectZhHk", template.getSubjectZhHk());
-            context.setVariable("mainBodyZhHk", template.getMainBodyZhHk());
-            context.setVariable("importantInfoIntroZhHk", template.getImportantInfoIntroZhHk());
-            context.setVariable("importantInfoBodyZhHk", template.getImportantInfoBodyZhHk());
-            context.setVariable("contactBodyZhHk", template.getContactBodyZhHk());
+            context.setVariable("lang", Enums.Language.HK);
+            context.setVariable("title", template.getTitleZhHk());
+            context.setVariable("subject", template.getSubjectZhHk());
+            context.setVariable("mainBody", template.getMainBodyZhHk());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBody", template.getImportantInfoBodyZhHk());
+            context.setVariable("contactBody", template.getContactBodyZhHk());
         } else {
+            context.setVariable("lang", Enums.Language.EN);
             context.setVariable("title", template.getTitle());
             context.setVariable("subject", template.getSubject());
             context.setVariable("mainBody", template.getMainBody());
@@ -348,22 +351,25 @@ public class EmailService {
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
-            context.setVariable("titleZhCn", template.getTitleZhCn());
-            context.setVariable("subjectZhCn", template.getSubjectZhCn());
-            context.setVariable("mainBodyZhCn", template.getMainBodyZhCn());
-            context.setVariable("importantInfoIntroZhCn", template.getImportantInfoIntroZhCn());
-            context.setVariable("importantInfoBodyZhCn", template.getImportantInfoBodyZhCn());
-            context.setVariable("contactBodyZhCn", template.getContactBodyZhCn());
+            context.setVariable("lang", Enums.Language.CN);
+            context.setVariable("title", template.getTitleZhCn());
+            context.setVariable("subject", template.getSubjectZhCn());
+            context.setVariable("mainBody", template.getMainBodyZhCn());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBody", template.getImportantInfoBodyZhCn());
+            context.setVariable("contactBody", template.getContactBodyZhCn());
 
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
-            context.setVariable("titleZhHk", template.getTitleZhHk());
-            context.setVariable("subjectZhHk", template.getSubjectZhHk());
-            context.setVariable("mainBodyZhHk", template.getMainBodyZhHk());
-            context.setVariable("importantInfoIntroZhHk", template.getImportantInfoIntroZhHk());
-            context.setVariable("importantInfoBodyZhHk", template.getImportantInfoBodyZhHk());
-            context.setVariable("contactBodyZhHk", template.getContactBodyZhHk());
+            context.setVariable("lang", Enums.Language.HK);
+            context.setVariable("title", template.getTitleZhHk());
+            context.setVariable("subject", template.getSubjectZhHk());
+            context.setVariable("mainBody", template.getMainBodyZhHk());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBody", template.getImportantInfoBodyZhHk());
+            context.setVariable("contactBody", template.getContactBodyZhHk());
 
         } else {
+            context.setVariable("lang", Enums.Language.EN);
             context.setVariable("title", template.getTitle());
             context.setVariable("subject", template.getSubject());
             context.setVariable("mainBody", template.getMainBody());
@@ -407,22 +413,25 @@ public class EmailService {
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
-            context.setVariable("titleZhCn", template.getTitleZhCn());
-            context.setVariable("subjectZhCn", template.getSubjectZhCn());
-            context.setVariable("mainBodyZhCn", template.getMainBodyZhCn());
-            context.setVariable("importantInfoIntroZhCn", template.getImportantInfoIntroZhCn());
-            context.setVariable("importantInfoBodyZhCn", template.getImportantInfoBodyZhCn());
-            context.setVariable("contactBodyZhCn", template.getContactBodyZhCn());
+            context.setVariable("lang", Enums.Language.CN);
+            context.setVariable("title", template.getTitleZhCn());
+            context.setVariable("subject", template.getSubjectZhCn());
+            context.setVariable("mainBody", template.getMainBodyZhCn());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntroZhCn());
+            context.setVariable("importantInfoBody", template.getImportantInfoBodyZhCn());
+            context.setVariable("contactBody", template.getContactBodyZhCn());
 
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
-            context.setVariable("titleZhHk", template.getTitleZhHk());
-            context.setVariable("subjectZhHk", template.getSubjectZhHk());
-            context.setVariable("mainBodyZhHk", template.getMainBodyZhHk());
-            context.setVariable("importantInfoIntroZhHk", template.getImportantInfoIntroZhHk());
-            context.setVariable("importantInfoBodyZhHk", template.getImportantInfoBodyZhHk());
-            context.setVariable("contactBodyZhHk", template.getContactBodyZhHk());
+            context.setVariable("lang", Enums.Language.HK);
+            context.setVariable("title", template.getTitleZhHk());
+            context.setVariable("subject", template.getSubjectZhHk());
+            context.setVariable("mainBody", template.getMainBodyZhHk());
+            context.setVariable("importantInfoIntro", template.getImportantInfoIntroZhHk());
+            context.setVariable("importantInfoBody", template.getImportantInfoBodyZhHk());
+            context.setVariable("contactBody", template.getContactBodyZhHk());
 
         } else {
+            context.setVariable("lang", Enums.Language.EN);
             context.setVariable("title", template.getTitle());
             context.setVariable("subject", template.getSubject());
             context.setVariable("mainBody", template.getMainBody());
