@@ -56,7 +56,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Resend email(s) for a booking",
-            description = "Emails for BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION and BOOKING_CANCELLATION on booking level.")
+            description = "Emails for BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION, BOOKING_REMINDER and BOOKING_CANCELLATION(cancelled only) by booking ID.")
     @PostMapping("/emails/booking/{bookingId}/resend")
     public ResponseEntity<?> resendBookingEmail(@PathVariable String bookingId,
                                          @RequestBody ResendBookingEmailRequestDTO dto) {
@@ -64,8 +64,8 @@ public class EmailController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Resend email(s) for booked event(s) in a specific date and time",
-            description = "Emails for BOOKING_CONFIRMATION on booked event level.")
+    @Operation(summary = "Resend email(s) for booking(s) by event ID on a specific date and timeslot",
+            description = "Emails for BOOKING_CONFIRMATION, BOOKING_REMINDER and BOOKING_CANCELLATION(cancelled only) by event ID.")
     @PostMapping("/emails/event/resend")
     public ResponseEntity<?> resendEventEmail(@Valid @RequestBody ResendEventEmailRequestDTO dto) {
         ResendEventEmailResponseDTO response = bookingService.resendEventEmail(dto);
