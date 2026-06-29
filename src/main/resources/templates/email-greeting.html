@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="localizedGreeting">
+    <p
+            th:if="${titleZhHk != null}"
+            style="
+                    margin: 0 0 12px 0;
+                    font-size: 14px;
+                    color: #1a1a1a;
+                    line-height: 1.6;
+                  "
+    >
+        <span th:text="${firstName}"/>，您好，
+    </p>
+    <p
+            th:if="${titleZhCn != null}"
+            style="
+                    margin: 0 0 12px 0;
+                    font-size: 14px;
+                    color: #1a1a1a;
+                    line-height: 1.6;
+                  "
+    >
+        <span th:text="${firstName}"/>，您好，
+    </p>
+    <p
+            th:if="${title != null}"
+            style="
+                    margin: 0 0 12px 0;
+                    font-size: 14px;
+                    color: #1a1a1a;
+                    line-height: 1.6;
+                  "
+    >
+        Hi <span th:text="${firstName}"/>,
+    </p>
+</th:block>
+</body>
+</html>

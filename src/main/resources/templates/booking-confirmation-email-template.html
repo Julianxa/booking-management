@@ -119,17 +119,7 @@
                             </span>
                         </h1>
 
-                        <!-- Greeting -->
-                        <p
-                                style="
-                    margin: 0 0 12px 0;
-                    font-size: 14px;
-                    color: #1a1a1a;
-                    line-height: 1.6;
-                  "
-                        >
-                            Hi <span th:text="${firstName}"/>,
-                        </p>
+                        <th:block th:replace="~{email-greeting :: localizedGreeting}"></th:block>
 
                         <!-- Intro paragraph -->
                         <p
@@ -333,6 +323,31 @@
                 <tr>
                     <td style="padding: 0 32px 28px 32px">
                         <h3
+                                th:if="${titleZhHk != null}"
+                                style="
+                    margin: 0 0 10px 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #2d6a4f;
+                    line-height: 1.4;
+                  "
+                        >
+                            重要資訊
+                        </h3>
+                        <h3
+                                th:if="${titleZhCn != null}"
+                                style="
+                    margin: 0 0 10px 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #2d6a4f;
+                    line-height: 1.4;
+                  "
+                        >
+                            重要信息
+                        </h3>
+                        <h3
+                                th:if="${title != null}"
                                 style="
                     margin: 0 0 10px 0;
                     font-size: 14px;

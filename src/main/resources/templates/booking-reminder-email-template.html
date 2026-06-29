@@ -118,17 +118,7 @@
                             </span>
                         </h1>
 
-                        <!-- Greeting -->
-                        <p
-                                style="
-                    margin: 0 0 12px 0;
-                    font-size: 14px;
-                    color: #1a1a1a;
-                    line-height: 1.6;
-                  "
-                        >
-                            Hi <span th:text="${firstName}"/>,
-                        </p>
+                        <th:block th:replace="~{email-greeting :: localizedGreeting}"></th:block>
 
                         <!-- Intro paragraph -->
                         <p
