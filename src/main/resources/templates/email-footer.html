@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="localizedFooter">
+    <!-- Traditional Chinese -->
+    <tr th:if="${titleZhHk != null}">
+        <td
+                style="
+                  padding: 16px 32px 32px 32px;
+                  text-align: center;
+                  border-top: 1px solid #e5e5e5;
+                "
+        >
+            <p
+                    style="
+                    margin: 0 0 4px 0;
+                    font-size: 11px;
+                    color: #888888;
+                    line-height: 1.6;
+                  "
+            >
+                RATP Dev集團成員 &nbsp;|&nbsp; 「觀光電車遊」為Europastour成員
+            </p>
+            <p
+                    style="
+                    margin: 0 0 8px 0;
+                    font-size: 11px;
+                    color: #888888;
+                    line-height: 1.6;
+                  "
+            >
+                &copy; 香港電車有限公司。版權所有。
+            </p>
+            <p style="margin: 0; font-size: 11px; line-height: 1.6">
+                <a href="#" style="color: #888888; text-decoration: underline">免責聲明</a>
+                &nbsp;及&nbsp;
+                <a href="#" style="color: #888888; text-decoration: underline">私隱政策</a>
+            </p>
+        </td>
+    </tr>
+
+    <!-- Simplified Chinese -->
+    <tr th:if="${titleZhCn != null}">
+        <td
+                style="
+                  padding: 16px 32px 32px 32px;
+                  text-align: center;
+                  border-top: 1px solid #e5e5e5;
+                "
+        >
+            <p
+                    style="
+                    margin: 0 0 4px 0;
+                    font-size: 11px;
+                    color: #888888;
+                    line-height: 1.6;
+                  "
+            >
+                RATP Dev集团成员 &nbsp;|&nbsp; 「观光电车游」为Europastour成员
+            </p>
+            <p
+                    style="
+                    margin: 0 0 8px 0;
+                    font-size: 11px;
+                    color: #888888;
+                    line-height: 1.6;
+                  "
+            >
+                &copy; 香港电车有限公司。保留所有权利。
+            </p>
+            <p style="margin: 0; font-size: 11px; line-height: 1.6">
+                <a href="#" style="color: #888888; text-decoration: underline">免责声明</a>
+                &nbsp;及&nbsp;
+                <a href="#" style="color: #888888; text-decoration: underline">隐私政策</a>
+            </p>
+        </td>
+    </tr>
+
+    <!-- English -->
+    <tr th:if="${title != null}">
+        <td
+                style="
+                  padding: 16px 32px 32px 32px;
+                  text-align: center;
+                  border-top: 1px solid #e5e5e5;
+                "
+        >
+            <p
+                    style="
+                    margin: 0 0 4px 0;
+                    font-size: 11px;
+                    color: #888888;
+                    line-height: 1.6;
+                  "
+            >
+                A member of RATP Dev Group &nbsp;|&nbsp; "TramOramic Tour" is
+                a member of Europastour
+            </p>
+            <p
+                    style="
+                    margin: 0 0 8px 0;
+                    font-size: 11px;
+                    color: #888888;
+                    line-height: 1.6;
+                  "
+            >
+                &copy; Hong Kong Tramways Limited. All rights reserved.
+            </p>
+            <p style="margin: 0; font-size: 11px; line-height: 1.6">
+                <a href="#" style="color: #888888; text-decoration: underline">Disclaimer</a>
+                &nbsp;and&nbsp;
+                <a href="#" style="color: #888888; text-decoration: underline">Privacy Policy</a>
+            </p>
+        </td>
+    </tr>
+</th:block>
+</body>
+</html>

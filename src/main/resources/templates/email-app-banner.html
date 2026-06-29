@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="localizedAppBanner">
+    <!-- Traditional Chinese -->
+    <tr th:if="${titleZhHk != null}">
+        <td style="padding: 0 32px 32px 32px">
+            <table
+                    role="presentation"
+                    cellpadding="0"
+                    cellspacing="0"
+                    border="0"
+                    width="100%"
+                    style="
+                    background-color: #2d6a4f;
+                    border-radius: 12px;
+                    overflow: hidden;
+                  "
+            >
+                <tr>
+                    <td valign="middle" style="padding: 24px 0 24px 28px; width: 60%">
+                        <h3
+                                style="
+                          margin: 0 0 8px 0;
+                          font-size: 16px;
+                          font-weight: 700;
+                          color: #ffffff;
+                          line-height: 1.4;
+                        "
+                        >
+                            下載香港電車<br />流動應用程式
+                        </h3>
+                        <p
+                                style="
+                          margin: 0 0 18px 0;
+                          font-size: 12px;
+                          color: #d4ead9;
+                          line-height: 1.6;
+                        "
+                        >
+                            下載我們的最新流動應用程式，隨時掌握最新消息，並輕鬆追蹤您所在位置的下一班電車到來時間！
+                        </p>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td style="padding-right: 8px">
+                                    <a href="#" style="display: block; text-decoration: none">
+                                        <img
+                                                th:src="|cid:google|"
+                                                alt="在 Google Play 下載"
+                                                width="120"
+                                                height="40"
+                                                style="display: block; width: 120px; height: 40px"
+                                        />
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="#" style="display: block; text-decoration: none">
+                                        <img
+                                                th:src="|cid:apple|"
+                                                alt="在 App Store 下載"
+                                                width="120"
+                                                height="40"
+                                                style="display: block; width: 120px; height: 40px"
+                                        />
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td valign="bottom" align="right" style="padding: 0 0 0 8px; width: 40%">
+                        <img
+                                th:src="|cid:cat|"
+                                alt="香港電車吉祥物"
+                                width="160"
+                                height="160"
+                                style="display: block; max-width: 100%; height: auto"
+                        />
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+
+    <!-- Simplified Chinese -->
+    <tr th:if="${titleZhCn != null}">
+        <td style="padding: 0 32px 32px 32px">
+            <table
+                    role="presentation"
+                    cellpadding="0"
+                    cellspacing="0"
+                    border="0"
+                    width="100%"
+                    style="
+                    background-color: #2d6a4f;
+                    border-radius: 12px;
+                    overflow: hidden;
+                  "
+            >
+                <tr>
+                    <td valign="middle" style="padding: 24px 0 24px 28px; width: 60%">
+                        <h3
+                                style="
+                          margin: 0 0 8px 0;
+                          font-size: 16px;
+                          font-weight: 700;
+                          color: #ffffff;
+                          line-height: 1.4;
+                        "
+                        >
+                            下载香港电车<br />手机应用程序
+                        </h3>
+                        <p
+                                style="
+                          margin: 0 0 18px 0;
+                          font-size: 12px;
+                          color: #d4ead9;
+                          line-height: 1.6;
+                        "
+                        >
+                            下载我们的最新手机应用程序，随时掌握最新消息，并轻松追踪您所在位置的下一班电车到来时间！
+                        </p>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td style="padding-right: 8px">
+                                    <a href="#" style="display: block; text-decoration: none">
+                                        <img
+                                                th:src="|cid:google|"
+                                                alt="在 Google Play 下载"
+                                                width="120"
+                                                height="40"
+                                                style="display: block; width: 120px; height: 40px"
+                                        />
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="#" style="display: block; text-decoration: none">
+                                        <img
+                                                th:src="|cid:apple|"
+                                                alt="在 App Store 下载"
+                                                width="120"
+                                                height="40"
+                                                style="display: block; width: 120px; height: 40px"
+                                        />
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td valign="bottom" align="right" style="padding: 0 0 0 8px; width: 40%">
+                        <img
+                                th:src="|cid:cat|"
+                                alt="香港电车吉祥物"
+                                width="160"
+                                height="160"
+                                style="display: block; max-width: 100%; height: auto"
+                        />
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+
+    <!-- English -->
+    <tr th:if="${title != null}">
+        <td style="padding: 0 32px 32px 32px">
+            <table
+                    role="presentation"
+                    cellpadding="0"
+                    cellspacing="0"
+                    border="0"
+                    width="100%"
+                    style="
+                    background-color: #2d6a4f;
+                    border-radius: 12px;
+                    overflow: hidden;
+                  "
+            >
+                <tr>
+                    <td valign="middle" style="padding: 24px 0 24px 28px; width: 60%">
+                        <h3
+                                style="
+                          margin: 0 0 8px 0;
+                          font-size: 16px;
+                          font-weight: 700;
+                          color: #ffffff;
+                          line-height: 1.4;
+                        "
+                        >
+                            Download HK Tramways<br />Mobile App
+                        </h3>
+                        <p
+                                style="
+                          margin: 0 0 18px 0;
+                          font-size: 12px;
+                          color: #d4ead9;
+                          line-height: 1.6;
+                        "
+                        >
+                            Get our latest mobile app to keep updated with the
+                            latest news of us, and track the time of next tram
+                            coming in your location easily!
+                        </p>
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td style="padding-right: 8px">
+                                    <a href="#" style="display: block; text-decoration: none">
+                                        <img
+                                                th:src="|cid:google|"
+                                                alt="Get it on Google Play"
+                                                width="120"
+                                                height="40"
+                                                style="display: block; width: 120px; height: 40px"
+                                        />
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="#" style="display: block; text-decoration: none">
+                                        <img
+                                                th:src="|cid:apple|"
+                                                alt="Download on the App Store"
+                                                width="120"
+                                                height="40"
+                                                style="display: block; width: 120px; height: 40px"
+                                        />
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td valign="bottom" align="right" style="padding: 0 0 0 8px; width: 40%">
+                        <img
+                                th:src="|cid:cat|"
+                                alt="HK Tramways mascot"
+                                width="160"
+                                height="160"
+                                style="display: block; max-width: 100%; height: auto"
+                        />
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</th:block>
+</body>
+</html>
