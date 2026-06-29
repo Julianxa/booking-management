@@ -797,30 +797,30 @@ public class BookingService {
         }
     }
 
-    private void updateEventStatusAndPublishEvent(BookingEvents event, Enums.BookingEventStatus newStatus,
+    private void updateEventStatusAndPublishEvent(BookingEvents bookingEvent, Enums.BookingEventStatus newStatus,
                                                   Users user, Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
 
-        Enums.BookingEventStatus previousStatus = event.getStatus();
-        Events parentEvent = event.getEvent();
+        Enums.BookingEventStatus previousStatus = bookingEvent.getStatus();
+        Events parentEvent = bookingEvent.getEvent();
 
-        event.setStatus(newStatus);
-        event.setUpdatedAt(ZonedDateTime.now());
+        bookingEvent.setStatus(newStatus);
+        bookingEvent.setUpdatedAt(ZonedDateTime.now());
 
         if (newStatus == AVAILABLE) {
             if (previousStatus == CANCELLED) {
                 eventSlotReservationService.reserveCapacityForBookingEvent(
-                        event, parentEvent.getMaxCapacity(), parentEvent.getName());
+                        bookingEvent, parentEvent.getMaxCapacity(), parentEvent.getName());
             }
-            event.setCancelledAt(null);
-            bookingEventsRepository.save(event);
+            bookingEvent.setCancelledAt(null);
+            bookingEventsRepository.save(bookingEvent);
             applicationEventPublisher.publishEvent(new EmailService.BookingRestoreEvent(user, booking, payloads));
         }
         else if (newStatus == CANCELLED) {
             if (previousStatus != CANCELLED) {
-                eventSlotReservationService.releaseCapacityForBookingEvent(event);
+                eventSlotReservationService.releaseCapacityForBookingEvent(bookingEvent);
             }
-            event.setCancelledAt(ZonedDateTime.now());
-            bookingEventsRepository.save(event);
+            bookingEvent.setCancelledAt(ZonedDateTime.now());
+            bookingEventsRepository.save(bookingEvent);
             applicationEventPublisher.publishEvent(new BookingCancelledEvent(user, booking, payloads));
         }
         else {

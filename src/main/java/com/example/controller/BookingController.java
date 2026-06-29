@@ -164,7 +164,7 @@ public class BookingController {
 
     @Operation(
             summary = "Update the status of a booked event by booking event ID",
-            description = "Updates the status for a specific booking event. ",
+            description = "Updates the status for a specific booking event (CHECKED_IN, AVAILABLE, NO_SHOW, CANCELLED). ",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
