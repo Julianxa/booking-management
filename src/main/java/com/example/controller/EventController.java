@@ -224,8 +224,8 @@ public class EventController {
     }
 
     @Operation(
-            summary = "Update the status of an event",
-            description = "Update the status of an event by ID.",
+            summary = "Open/Close an event",
+            description = "Update the status of an event by ID. (OPEN,CLOSE,OPEN_WITH_BOOKINGS,CLOSE_WITH_BOOKINGS)",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Event status updated successfully",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -364,9 +364,8 @@ public class EventController {
     }
 
     @Operation(
-            summary = "Update the status of a ticket type",
-            description = "Update the status of a ticket type from an event. " +
-                    "The ticket type must belong to the specified event. ",
+            summary = "Open/Close a ticket type",
+            description = "Update the status of a ticket type from an event (OPEN,CLOSE). ",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
