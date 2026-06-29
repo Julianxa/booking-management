@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title th:text="${titleZhHk != null ? titleZhHk :
-                   (titleZhCn != null ? titleZhCn :
-                   (title != null ? title : ''))}">
+    <title id="email-title"
+           th:text="${titleZhHk != null ? '香港電車' :
+                 (titleZhCn != null ? '香港电车' :
+                 (title != null ? 'HK Tramways' : 'HK Tramways'))}">
+        HK Tramways
     </title>
     <!--[if mso]>
     <noscript>
@@ -209,14 +211,29 @@
                                         <span th:text="${eventTime}"/><br />
                                         <span th:text="${ticketSummary}"/>
                                     </p>
+
+                                    <p
+                                            style="
+                                              margin: 0;
+                                              font-size: 11px;
+                                              color: #444444;
+                                              line-height: 1.8;
+                                            "
+                                    >
+                                        <a
+                                                href="#"
+                                                style="color: #888888; text-decoration: underline"
+                                        >Activity Details</a>
+                                        <!-- https://[domain]/en/activity/details?id=[event id] -->
+                                    </p>
                                 </td>
                                 <td valign="top" align="right" style="width: 110px">
                                     <img
                                             th:src="|cid:qr|"
                                             alt="Scan this QR Code for your booking"
-                                            width="100"
-                                            height="100"
-                                            style="display: block; width: 100px; height: 100px"
+                                            width="90"
+                                            height="90"
+                                            style="display: block; width: 90px; height: 90px"
                                     />
                                 </td>
                             </tr>
