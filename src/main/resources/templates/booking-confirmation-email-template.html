@@ -235,6 +235,23 @@
 
                         <div th:each="attendee : ${attendees}">
                             <h3
+                                    th:if="${titleZhHk != null}"
+                                    style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
+                            >
+                                <span th:if="${attendee.sequence == 1}" th:text="'主要賓客（聯絡人）'"></span>
+                                <span th:if="${attendee.sequence != 1}"
+                                      th:text="'賓客 ' + ${attendee.sequence}"></span>
+                            </h3>
+                            <h3
+                                    th:if="${titleZhCn != null}"
+                                    style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
+                            >
+                                <span th:if="${attendee.sequence == 1}" th:text="'主要宾客（联系人）'"></span>
+                                <span th:if="${attendee.sequence != 1}"
+                                      th:text="'宾客 ' + ${attendee.sequence}"></span>
+                            </h3>
+                            <h3
+                                    th:if="${title != null}"
                                     style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
                             >
                                 <span th:if="${attendee.sequence == 1}" th:text="'Lead Guest (Contact Person)'"></span>
