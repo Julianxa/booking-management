@@ -17,10 +17,6 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResendEventEmailRequestDTO {
-    @NotBlank(message = "event_id is required")
-    @JsonProperty("event_id")
-    private String eventId;
-
     @NotNull(message = "event_date is required")
     @JsonProperty("event_date")
     private LocalDate eventDate;

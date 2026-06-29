@@ -4,6 +4,7 @@ import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
 import com.example.converter.BookingsConverter;
 import com.example.exception.booking.*;
+import com.example.exception.email.EmailProcessException;
 import com.example.exception.event.EventDayScheduleNotFoundException;
 import com.example.exception.event.EventNotFoundException;
 import com.example.exception.general.MissingRequiredFieldException;
@@ -39,13 +40,13 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
-import static com.example.constant.Enums.BookingEmailType.PAYMENT_CONFIRMATION;
+import static com.example.constant.Enums.BookingEmailType.*;
 import static com.example.constant.Enums.BookingEventStatus.*;
+import static com.example.constant.Enums.BookingStatus.PAID;
+import static com.example.constant.Enums.BookingStatus.SUCCESS;
 
 @Service
 @RequiredArgsConstructor
@@ -405,14 +406,10 @@ public class BookingService {
 
             LocalDate eventDate = bookingEvent.getEvent().getEventDate();
             LocalTime eventTime = LocalTime.parse(bookingEvent.getEvent().getEventTime());
-            ZonedDateTime eventStartTime = ZonedDateTime.of(eventDate, eventTime, ZoneId.systemDefault());
             ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
 
-            if (ActivityThresholdUtil.isConfigured(event.getActivityHourThreshold())) {
-                long minutesUntilEvent = ChronoUnit.MINUTES.between(now, eventStartTime);
-                long requiredMinutes = event.getActivityHourThreshold() * 60L;
-
-                if (minutesUntilEvent <= requiredMinutes) {
+            if (ActivityThresholdUtil.isWithinActivityThreshold(event, eventDate, eventTime, now)) {
+                if (ActivityThresholdUtil.isConfigured(event.getActivityHourThreshold())) {
                     throw new ThresholdExceededException(
                             String.format("Booking is not available. " +
                                             "Event: %s | Hour Threshold: %d hour(s). " +
@@ -422,20 +419,14 @@ public class BookingService {
                                     event.getActivityHourThreshold())
                     );
                 }
-            } else if (ActivityThresholdUtil.isConfigured(event.getActivityDayThreshold())) {
-                LocalDate today = now.toLocalDate();
-                long daysUntilEvent = ChronoUnit.DAYS.between(today, eventDate);
-
-                if (daysUntilEvent <= event.getActivityDayThreshold()) {
-                    throw new ThresholdExceededException(
-                            String.format("Booking is not allowed. " +
-                                            "Event: %s | Day Threshold: %d. " +
-                                            "You must book at least %d full day(s) before the event date.",
-                                    bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
-                                    event.getActivityDayThreshold(),
-                                    event.getActivityDayThreshold())
-                    );
-                }
+                throw new ThresholdExceededException(
+                        String.format("Booking is not allowed. " +
+                                        "Event: %s | Day Threshold: %d. " +
+                                        "You must book at least %d full day(s) before the event date.",
+                                bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
+                                event.getActivityDayThreshold(),
+                                event.getActivityDayThreshold())
+                );
             }
         }
     }
@@ -600,35 +591,29 @@ public class BookingService {
                 event.getName());
     }
 
-    public ResendEventEmailResponseDTO resendEventEmail(ResendEventEmailRequestDTO request) {
-        String eventId = request.getEventId();
+    @Transactional(readOnly = true)
+    public ResendEventEmailResponseDTO resendEventEmail(String eventId, ResendEventEmailRequestDTO request) {
         LocalDate eventDate = request.getEventDate();
         String eventTime = request.getEventTime();
         String customTemplateRefNo = request.getEmailTemplateId();
-        List<BookingEvents> bookingEvents =
-                bookingEventsRepository.findActiveByEventRefNoAndEventDateAndEventTime(eventId, eventDate, eventTime)
-                        .orElseThrow(() -> new BookingEventNotFoundException("No booked events found"));
+
+        List<BookingEvents> bookingEvents = findEligibleBookingEventsForEventConfirmationResend(eventId, eventDate, eventTime);
         if (bookingEvents.isEmpty()) {
             throw new BookingEventNotFoundException(
-                    String.format("No bookings found for event %s on %s at %s", eventId, eventDate, eventTime));
+                    String.format("No eligible booked events found for %s on %s at %s", eventId, eventDate, eventTime));
         }
 
-        for (BookingEvents bookingEvent : bookingEvents) {
-            Bookings booking = bookingEvent.getBooking();
-            List<CreateBookingRequestDTO.AttendeeDTO> attendees =
-                    bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
-            List<BookingItems> bookingItems =
-                    bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
-            List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs =
-                    bookingItemsConverter.toTicketTypeDTOs(bookingItems);
-            List<EmailService.BookingEmailPayload> payloads =
-                    buildEmailPayloads(bookingEvent, attendees, ticketDTOs);
-
-            emailDispatchService.sendCustomOrBookingConfirmationEmailsAsync(booking, payloads, customTemplateRefNo);
+        int dispatchedCount = dispatchResendEmailsForBookingEvents(
+                bookingEvents, BOOKING_CONFIRMATION, customTemplateRefNo);
+        if (dispatchedCount == 0) {
+            throw new EmailProcessException(
+                    String.format("No attendees found to resend BOOKING_CONFIRMATION email for event %s on %s at %s",
+                            eventId, eventDate, eventTime));
         }
+
         return ResendEventEmailResponseDTO.builder()
                 .success(true)
-                .message("Email has been resent successfully")
+                .message("BOOKING_CONFIRMATION email has been resent successfully")
                 .eventId(eventId)
                 .eventDate(eventDate)
                 .eventTime(eventTime)
@@ -636,25 +621,43 @@ public class BookingService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public ResendBookingEmailResponseDTO resendBookingEmail(String customTemplateRefNo, String bookingId, Enums.BookingEmailType emailType) {
+        if (emailType == null) {
+            throw new MissingRequiredFieldException("email_type is required");
+        }
+
         Bookings booking = bookingsRepository.findByRefNo(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
 
-        if(emailType == PAYMENT_CONFIRMATION) {
-            emailDispatchService.sendPaymentConfirmationEmailsAsync(booking);
+        if (emailType == PAYMENT_CONFIRMATION) {
+            if (!isPaidBooking(booking.getStatus())) {
+                throw new EmailProcessException(
+                        String.format("Booking %s is not in a paid state for %s email resend", bookingId, emailType));
+            }
+            List<CreateBookingRequestDTO.BookingEventDTO> eventDTOs = bookingsConverter.toBookingEventDTOs(booking, null).stream()
+                    .filter(dto -> isResendableBookingEventForConfirmation(dto.getStatus()))
+                    .toList();
+            if (eventDTOs.isEmpty()) {
+                throw new EmailProcessException(
+                        String.format("No eligible booking events found to resend %s email for booking %s", emailType, bookingId));
+            }
+            emailDispatchService.sendPaymentConfirmationEmailsAsync(booking, eventDTOs);
         } else {
-            List<BookingEvents> bookingEvents = bookingEventsRepository.findByBookingId(booking.getId());
-
-            for (BookingEvents bookingEvent : bookingEvents) {
-                List<CreateBookingRequestDTO.AttendeeDTO> attendees = bookingAttendeesRepository.findAttendeesByBookingEventId(bookingEvent.getId());
-                List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEvent.getId());
-
-                List<CreateBookingRequestDTO.TicketTypeDTO> ticketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
-
-                switch (emailType) {
-                    case BOOKING_CONFIRMATION -> emailDispatchService.sendCustomOrBookingConfirmationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs), customTemplateRefNo);
-                    case BOOKING_CANCELLATION -> emailDispatchService.sendBookingCancellationEmailsAsync(booking, buildEmailPayloads(bookingEvent, attendees, ticketDTOs));
+            List<BookingEvents> eligibleEvents = findEligibleBookingEventsForResend(booking, emailType);
+            if (eligibleEvents.isEmpty()) {
+                if (emailType == BOOKING_REMINDER && hasReminderCandidatesWithoutAttainedThreshold(booking)) {
+                    throw new ThresholdExceededException(
+                            "Activity booking threshold has not been attained yet; reminder email cannot be resent.");
                 }
+                throw new EmailProcessException(
+                        String.format("No eligible booking events found to resend %s email for booking %s", emailType, bookingId));
+            }
+
+            int dispatchedCount = dispatchResendEmailsForBookingEvents(eligibleEvents, emailType, customTemplateRefNo);
+            if (dispatchedCount == 0) {
+                throw new EmailProcessException(
+                        String.format("No attendees found to resend %s email for booking %s", emailType, bookingId));
             }
         }
 
@@ -666,19 +669,92 @@ public class BookingService {
                 .build();
     }
 
-    private List<EmailService.BookingEmailPayload> buildEmailPayloads(
-            BookingEvents bookingEvent,
-            List<CreateBookingRequestDTO.AttendeeDTO> attendees,
-            List<CreateBookingRequestDTO.TicketTypeDTO> tickets) {
+    private List<BookingEvents> findEligibleBookingEventsForEventConfirmationResend(
+            String eventRefNo, LocalDate eventDate, String eventTime) {
+        return bookingEventsRepository
+                .findActiveByEventRefNoAndEventDateAndEventTime(eventRefNo, eventDate, eventTime)
+                .orElse(List.of())
+                .stream()
+                .filter(be -> isEligibleForResend(be.getBooking(), be, BOOKING_CONFIRMATION))
+                .toList();
+    }
 
-        return attendees.stream()
-                .map(attendee -> new EmailService.BookingEmailPayload(
-                        attendee,
-                        bookingEvent,
-                        tickets,
-                        attendees
-                ))
-                .collect(Collectors.toList());
+    private List<BookingEvents> findEligibleBookingEventsForResend(Bookings booking, Enums.BookingEmailType emailType) {
+        return bookingEventsRepository.findByBookingId(booking.getId()).stream()
+                .filter(be -> isEligibleForResend(booking, be, emailType))
+                .toList();
+    }
+
+    private boolean isEligibleForResend(Bookings booking, BookingEvents bookingEvent, Enums.BookingEmailType emailType) {
+        return switch (emailType) {
+            case BOOKING_CANCELLATION -> bookingEvent.getStatus() == CANCELLED;
+            case BOOKING_REMINDER -> isPaidBooking(booking.getStatus())
+                    && bookingEvent.getStatus() == AVAILABLE
+                    && bookingEvent.getCancelledAt() == null
+                    && isActivityThresholdAttainedForReminder(bookingEvent);
+            case BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION -> isPaidBooking(booking.getStatus())
+                    && isResendableBookingEventForConfirmation(bookingEvent.getStatus(), bookingEvent.getCancelledAt());
+        };
+    }
+
+    private boolean isPaidBooking(Enums.BookingStatus bookingStatus) {
+        return bookingStatus == PAID || bookingStatus == SUCCESS;
+    }
+
+    private boolean isResendableBookingEventForConfirmation(
+            Enums.BookingEventStatus eventStatus,
+            ZonedDateTime cancelledAt) {
+        return cancelledAt == null
+                && (eventStatus == AVAILABLE || eventStatus == CHECKED_IN || eventStatus == NO_SHOW);
+    }
+
+    private boolean isResendableBookingEventForConfirmation(Enums.BookingEventStatus eventStatus) {
+        return isResendableBookingEventForConfirmation(eventStatus, null);
+    }
+
+    private boolean isActivityThresholdAttainedForReminder(BookingEvents bookingEvent) {
+        Events event = bookingEvent.getEvent();
+        return ActivityThresholdUtil.isActivityThresholdAttainedForReminder(
+                event,
+                bookingEvent.getEventDate(),
+                bookingEvent.getEventTime(),
+                ZonedDateTime.now(ZoneId.systemDefault()));
+    }
+
+    private boolean hasReminderCandidatesWithoutAttainedThreshold(Bookings booking) {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        return bookingEventsRepository.findByBookingId(booking.getId()).stream()
+                .anyMatch(be -> isPaidBooking(booking.getStatus())
+                        && be.getStatus() == AVAILABLE
+                        && be.getCancelledAt() == null
+                        && !ActivityThresholdUtil.isActivityThresholdAttainedForReminder(
+                                be.getEvent(), be.getEventDate(), be.getEventTime(), now));
+    }
+
+    private int dispatchResendEmailsForBookingEvents(
+            List<BookingEvents> bookingEvents,
+            Enums.BookingEmailType emailType,
+            String customTemplateRefNo) {
+        int dispatchedCount = 0;
+
+        for (BookingEvents bookingEvent : bookingEvents) {
+            List<EmailService.BookingEmailPayload> payloads = prepareEmailPayloads(bookingEvent);
+            if (payloads.isEmpty()) {
+                continue;
+            }
+
+            Bookings booking = bookingEvent.getBooking();
+            switch (emailType) {
+                case BOOKING_CONFIRMATION -> emailDispatchService.sendCustomOrBookingConfirmationEmailsAsync(
+                        booking, payloads, customTemplateRefNo);
+                case BOOKING_CANCELLATION -> emailDispatchService.sendBookingCancellationEmailsAsync(booking, payloads);
+                case BOOKING_REMINDER -> emailDispatchService.sendBookingReminderEmailsAsync(booking, payloads);
+                default -> throw new EmailProcessException("Unsupported email type for booking event resend: " + emailType);
+            }
+            dispatchedCount++;
+        }
+
+        return dispatchedCount;
     }
 
     private void registerAttendeesForEvent(CreateBookingRequestDTO.BookingEventDTO bookingEventDTO, BookingEvents bookingEvent) {

@@ -66,9 +66,10 @@ public class EmailController {
 
     @Operation(summary = "Resend booking confirmation email(s) for booking(s) by event ID on a specific date and timeslot",
             description = "Resends BOOKING_CONFIRMATION for eligible bookings on the given event date and timeslot. Cancellation, reminder and payment confirmation resend use the booking endpoint.")
-    @PostMapping("/emails/event/resend")
-    public ResponseEntity<?> resendEventEmail(@Valid @RequestBody ResendEventEmailRequestDTO dto) {
-        ResendEventEmailResponseDTO response = bookingService.resendEventEmail(dto);
+    @PostMapping("/emails/event/{eventId}/resend")
+    public ResponseEntity<?> resendEventEmail(@PathVariable String eventId,
+                                         @Valid @RequestBody ResendEventEmailRequestDTO dto) {
+        ResendEventEmailResponseDTO response = bookingService.resendEventEmail(eventId, dto);
         return ResponseEntity.ok(response);
     }
 

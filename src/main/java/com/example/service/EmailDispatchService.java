@@ -57,6 +57,23 @@ public class EmailDispatchService {
             Bookings resolved = requireBooking(booking);
             List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs =
                     bookingsConverter.toBookingEventDTOs(resolved, null);
+            sendPaymentConfirmationEmailsAsync(resolved, bookingEventDTOs);
+        } catch (Exception e) {
+            log.error("Failed to dispatch payment confirmation emails for booking {}",
+                    booking != null ? booking.getRefNo() : null, e);
+        }
+    }
+
+    @Async("emailExecutor")
+    public void sendPaymentConfirmationEmailsAsync(
+            Bookings booking,
+            List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
+        try {
+            Bookings resolved = requireBooking(booking);
+            if (bookingEventDTOs == null || bookingEventDTOs.isEmpty()) {
+                log.warn("No booking events for payment confirmation resend on booking {}", resolved.getRefNo());
+                return;
+            }
             GiftCertificateApplicationResult giftResult =
                     giftCertificateService.getCertificateRedemptionResult(resolved);
             String promoCode = giftResult != null && giftResult.certificate() != null
@@ -130,6 +147,37 @@ public class EmailDispatchService {
             }
         } catch (Exception e) {
             log.error("Failed to dispatch booking cancellation emails for booking {}",
+                    booking != null ? booking.getRefNo() : null, e);
+        }
+    }
+
+    @Async("emailExecutor")
+    public void sendBookingReminderEmailsAsync(Bookings booking, List<EmailService.BookingEmailPayload> payloads) {
+        try {
+            Bookings resolved = requireBooking(booking);
+            if (payloads == null || payloads.isEmpty()) {
+                log.warn("No booking reminder email payloads for booking {}", resolved.getRefNo());
+                return;
+            }
+
+            for (EmailService.BookingEmailPayload payload : payloads) {
+                try {
+                    BookingEvents bookingEvent = loadBookingEvent(payload.bookingEvent());
+                    emailService.sendBookingReminderEmail(
+                            payload.attendee(),
+                            resolved,
+                            bookingEvent,
+                            payload.tickets(),
+                            payload.allAttendees());
+                } catch (Exception e) {
+                    log.error("Failed to send booking reminder email to {} for booking {}",
+                            payload.attendee() != null ? payload.attendee().getEmail() : null,
+                            resolved.getRefNo(),
+                            e);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to dispatch booking reminder emails for booking {}",
                     booking != null ? booking.getRefNo() : null, e);
         }
     }
