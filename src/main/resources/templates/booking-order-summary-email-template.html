@@ -416,7 +416,7 @@
                 </div>
                 </p>
                 <p
-                        th:if="${titleZhHk != null}"
+                        th:if="${lang == 'HK'}"
                         style="
                     margin: 0;
                     font-size: 13px;
@@ -428,7 +428,7 @@
                   香港電車團隊
                 </p>
                 <p
-                        th:if="${titleZhCn != null}"
+                        th:if="${lang == 'CN'}"
                         style="
                     margin: 0;
                     font-size: 13px;
@@ -440,7 +440,7 @@
                   香港电车团队
                 </p>
                 <p
-                        th:if="${title != null}"
+                        th:if="${lang == 'EN'}"
                         style="
                     margin: 0;
                     font-size: 13px;

@@ -229,7 +229,7 @@
 
                         <div th:each="attendee : ${attendees}">
                             <h3
-                                    th:if="${titleZhHk != null}"
+                                    th:if="${lang == 'HK'}"
                                     style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
                             >
                                 <span th:if="${attendee.sequence == 1}" th:text="'主要賓客（聯絡人）'"></span>
@@ -237,7 +237,7 @@
                                       th:text="'賓客 ' + ${attendee.sequence}"></span>
                             </h3>
                             <h3
-                                    th:if="${titleZhCn != null}"
+                                    th:if="${lang == 'CN'}"
                                     style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
                             >
                                 <span th:if="${attendee.sequence == 1}" th:text="'主要宾客（联系人）'"></span>
@@ -245,7 +245,7 @@
                                       th:text="'宾客 ' + ${attendee.sequence}"></span>
                             </h3>
                             <h3
-                                    th:if="${title != null}"
+                                    th:if="${lang == 'EN'}"
                                     style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
                             >
                                 <span th:if="${attendee.sequence == 1}" th:text="'Lead Guest (Contact Person)'"></span>
@@ -260,7 +260,7 @@
                                     width="100%"
                                     style="margin-bottom: 8px"
                             >
-                                <th:block th:if="${titleZhHk != null}">
+                                <th:block th:if="${lang == 'HK'}">
                                     <tr>
                                         <td
                                                 style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
@@ -310,7 +310,7 @@
                                         </td>
                                     </tr>
                                 </th:block>
-                                <th:block th:if="${titleZhCn != null}">
+                                <th:block th:if="${lang == 'CN'}">
                                     <tr>
                                         <td
                                                 style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
@@ -360,7 +360,7 @@
                                         </td>
                                     </tr>
                                 </th:block>
-                                <th:block th:if="${title != null}">
+                                <th:block th:if="${lang == 'EN'}">
                                     <tr>
                                         <td
                                                 style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
@@ -434,7 +434,7 @@
                 <tr>
                     <td style="padding: 0 32px 28px 32px">
                         <h3
-                                th:if="${titleZhHk != null}"
+                                th:if="${lang == 'HK'}"
                                 style="
                     margin: 0 0 10px 0;
                     font-size: 14px;
@@ -446,7 +446,7 @@
                             重要資訊
                         </h3>
                         <h3
-                                th:if="${titleZhCn != null}"
+                                th:if="${lang == 'CN'}"
                                 style="
                     margin: 0 0 10px 0;
                     font-size: 14px;
@@ -458,7 +458,7 @@
                             重要信息
                         </h3>
                         <h3
-                                th:if="${title != null}"
+                                th:if="${lang == 'EN'}"
                                 style="
                     margin: 0 0 10px 0;
                     font-size: 14px;
@@ -503,7 +503,7 @@
                             </div>
                         </p>
                         <p
-                                th:if="${titleZhHk != null}"
+                                th:if="${lang == 'HK'}"
                                 style="
                     margin: 0;
                     font-size: 13px;
@@ -515,7 +515,7 @@
                             香港電車團隊
                         </p>
                         <p
-                                th:if="${titleZhCn != null}"
+                                th:if="${lang == 'CN'}"
                                 style="
                     margin: 0;
                     font-size: 13px;
@@ -527,7 +527,7 @@
                             香港电车团队
                         </p>
                         <p
-                                th:if="${title != null}"
+                                th:if="${lang == 'EN'}"
                                 style="
                     margin: 0;
                     font-size: 13px;
