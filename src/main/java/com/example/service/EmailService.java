@@ -345,13 +345,13 @@ public class EmailService {
 
         context.setVariable("firstName", attendeeDTO.getFirstName());
 
-        context.setVariable("eventName", bookingEvent.getEvent().getName());
         context.setVariable("eventDate", bookingEvent.getEventDate());
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
             context.setVariable("lang", Enums.Language.CN.name());
+            context.setVariable("eventName", bookingEvent.getEvent().getNameZhCn());
             context.setVariable("title", template.getTitleZhCn());
             context.setVariable("subject", template.getSubjectZhCn());
             context.setVariable("mainBody", template.getMainBodyZhCn());
@@ -361,6 +361,7 @@ public class EmailService {
 
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
             context.setVariable("lang", Enums.Language.HK.name());
+            context.setVariable("eventName", bookingEvent.getEvent().getNameZhHk());
             context.setVariable("title", template.getTitleZhHk());
             context.setVariable("subject", template.getSubjectZhHk());
             context.setVariable("mainBody", template.getMainBodyZhHk());
@@ -370,6 +371,7 @@ public class EmailService {
 
         } else {
             context.setVariable("lang", Enums.Language.EN.name());
+            context.setVariable("eventName", bookingEvent.getEvent().getName());
             context.setVariable("title", template.getTitle());
             context.setVariable("subject", template.getSubject());
             context.setVariable("mainBody", template.getMainBody());
@@ -407,13 +409,13 @@ public class EmailService {
 
         context.setVariable("firstName", attendeeDTO.getFirstName());
 
-        context.setVariable("eventName", bookingEvent.getEvent().getName());
         context.setVariable("eventDate", bookingEvent.getEventDate());
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
             context.setVariable("lang", Enums.Language.CN.name());
+            context.setVariable("eventName", bookingEvent.getEvent().getNameZhCn());
             context.setVariable("title", template.getTitleZhCn());
             context.setVariable("subject", template.getSubjectZhCn());
             context.setVariable("mainBody", template.getMainBodyZhCn());
@@ -423,6 +425,7 @@ public class EmailService {
 
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
             context.setVariable("lang", Enums.Language.HK.name());
+            context.setVariable("eventName", bookingEvent.getEvent().getNameZhHk());
             context.setVariable("title", template.getTitleZhHk());
             context.setVariable("subject", template.getSubjectZhHk());
             context.setVariable("mainBody", template.getMainBodyZhHk());
@@ -432,6 +435,7 @@ public class EmailService {
 
         } else {
             context.setVariable("lang", Enums.Language.EN.name());
+            context.setVariable("eventName", bookingEvent.getEvent().getName());
             context.setVariable("title", template.getTitle());
             context.setVariable("subject", template.getSubject());
             context.setVariable("mainBody", template.getMainBody());

@@ -286,6 +286,31 @@
                 <tr>
                     <td style="padding: 0 32px 28px 32px">
                         <h3
+                                th:if="${lang == 'HK'}"
+                                style="
+                    margin: 0 0 10px 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #2d6a4f;
+                    line-height: 1.4;
+                  "
+                        >
+                            重要資訊
+                        </h3>
+                        <h3
+                                th:if="${lang == 'CN'}"
+                                style="
+                    margin: 0 0 10px 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #2d6a4f;
+                    line-height: 1.4;
+                  "
+                        >
+                            重要信息
+                        </h3>
+                        <h3
+                                th:if="${lang == 'EN'}"
                                 style="
                     margin: 0 0 10px 0;
                     font-size: 14px;
