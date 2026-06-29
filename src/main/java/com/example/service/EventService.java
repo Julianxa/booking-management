@@ -19,6 +19,7 @@ import com.example.model.record.EventBookingSummary;
 import com.example.model.record.EventDailySlot;
 import com.example.model.record.EventTimeSlotException;
 import com.example.repository.*;
+import com.example.utils.ActivityThresholdUtil;
 import com.example.utils.DataUtils;
 import com.example.utils.DateUtils;
 import com.example.utils.PartialUpdateUtil;
@@ -84,6 +85,7 @@ public class EventService {
             validateSequenceNo(request.getSequenceNo());
 
             Events event = eventMapper.toEntity(request);
+            applyMutuallyExclusiveActivityThresholds(event);
             event.setStatus(Enums.EventStatus.OPEN);
             event.setRefNo(referenceNoGenerator.generateEventReference());
             event.setAvailableDays(new HashSet<>());
@@ -168,6 +170,7 @@ public class EventService {
             PartialUpdateUtil.apply(dto, "is_publish", dto::getIsPublish, event::setIsPublish);
             PartialUpdateUtil.apply(dto, "activity_day_threshold", dto::getActivityDayThreshold, event::setActivityDayThreshold);
             PartialUpdateUtil.apply(dto, "activity_hour_threshold", dto::getActivityHourThreshold, event::setActivityHourThreshold);
+            applyMutuallyExclusiveActivityThresholds(event);
 
             PartialUpdateUtil.ifPresent(dto, "available_days", () -> {
                 event.getAvailableDays().clear();
@@ -765,6 +768,17 @@ public class EventService {
     private void validateSequenceNo(Integer sequenceNo) {
         if (sequenceNo != null && sequenceNo <= 0) {
             throw new MissingRequiredFieldException("sequence_no must be a positive integer");
+        }
+    }
+
+    private void applyMutuallyExclusiveActivityThresholds(Events event) {
+        event.setActivityDayThreshold(ActivityThresholdUtil.normalize(event.getActivityDayThreshold()));
+        event.setActivityHourThreshold(ActivityThresholdUtil.normalize(event.getActivityHourThreshold()));
+
+        if (ActivityThresholdUtil.isConfigured(event.getActivityHourThreshold())) {
+            event.setActivityDayThreshold(null);
+        } else if (ActivityThresholdUtil.isConfigured(event.getActivityDayThreshold())) {
+            event.setActivityHourThreshold(null);
         }
     }
 

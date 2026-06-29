@@ -17,6 +17,7 @@ import com.example.model.entity.*;
 import com.example.model.record.EventTimeSlotException;
 import com.example.model.record.GiftCertificateApplicationResult;
 import com.example.repository.*;
+import com.example.utils.ActivityThresholdUtil;
 import com.example.utils.DateUtils;
 import com.example.utils.PartialUpdateUtil;
 import com.example.utils.QRCodeGenerator;
@@ -385,13 +386,13 @@ public class BookingService {
     }
 
     /**
-     Day threshold:
-     If threshold = 1 and event is on 7 May → Booking only allowed until 5 May
-
-     Hour threshold:
+     Hour threshold (preferred when set):
      2 hours and event starts at 15:00:
      12:59 → Allowed (121 mins left)
      13:00 → Blocked (120 mins left)
+
+     Day threshold (used only when hour threshold is not set):
+     If threshold = 1 and event is on 7 May → Booking only allowed until 5 May
      **/
     private void validateEventThreshold(CreateBookingRequestDTO request) {
         if (request.getBookingEvents() == null) {
@@ -407,21 +408,7 @@ public class BookingService {
             ZonedDateTime eventStartTime = ZonedDateTime.of(eventDate, eventTime, ZoneId.systemDefault());
             ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
 
-            if (event.getActivityDayThreshold() != null) {
-                LocalDate today = now.toLocalDate();
-                long daysUntilEvent = ChronoUnit.DAYS.between(today, eventDate);
-
-                if (daysUntilEvent <= event.getActivityDayThreshold()) {
-                    throw new ThresholdExceededException(
-                            String.format("Booking is not allowed. " +
-                                            "Event: %s | Day Threshold: %d. " +
-                                            "You must book at least %d full day(s) before the event date.",
-                                    bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
-                                    event.getActivityDayThreshold(),
-                                    event.getActivityDayThreshold())
-                    );
-                }
-            } else if(event.getActivityHourThreshold() != null) {
+            if (ActivityThresholdUtil.isConfigured(event.getActivityHourThreshold())) {
                 long minutesUntilEvent = ChronoUnit.MINUTES.between(now, eventStartTime);
                 long requiredMinutes = event.getActivityHourThreshold() * 60L;
 
@@ -433,6 +420,20 @@ public class BookingService {
                                     bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
                                     event.getActivityHourThreshold(),
                                     event.getActivityHourThreshold())
+                    );
+                }
+            } else if (ActivityThresholdUtil.isConfigured(event.getActivityDayThreshold())) {
+                LocalDate today = now.toLocalDate();
+                long daysUntilEvent = ChronoUnit.DAYS.between(today, eventDate);
+
+                if (daysUntilEvent <= event.getActivityDayThreshold()) {
+                    throw new ThresholdExceededException(
+                            String.format("Booking is not allowed. " +
+                                            "Event: %s | Day Threshold: %d. " +
+                                            "You must book at least %d full day(s) before the event date.",
+                                    bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
+                                    event.getActivityDayThreshold(),
+                                    event.getActivityDayThreshold())
                     );
                 }
             }
