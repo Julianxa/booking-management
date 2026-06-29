@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="localizedBookingId">
+    <p
+            th:if="${titleZhHk != null}"
+            style="
+                    margin: 0 0 28px 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #2d6a4f;
+                    line-height: 1.6;
+                  "
+    >
+        預訂編號：#<span th:text="${bookingId}"/>
+    </p>
+    <p
+            th:if="${titleZhCn != null}"
+            style="
+                    margin: 0 0 28px 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #2d6a4f;
+                    line-height: 1.6;
+                  "
+    >
+        预订编号：#<span th:text="${bookingId}"/>
+    </p>
+    <p
+            th:if="${title != null}"
+            style="
+                    margin: 0 0 28px 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #2d6a4f;
+                    line-height: 1.6;
+                  "
+    >
+        Booking ID: #<span th:text="${bookingId}"/>
+    </p>
+</th:block>
+</body>
+</html>

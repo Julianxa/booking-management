@@ -146,18 +146,7 @@
                             </div>
                         </p>
 
-                        <!-- Booking ID -->
-                        <p
-                                style="
-                    margin: 0 0 28px 0;
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: #2d6a4f;
-                    line-height: 1.6;
-                  "
-                        >
-                            Booking ID: #<span th:text="${bookingId}"/>
-                        </p>
+                        <th:block th:replace="~{email-booking-id :: localizedBookingId}"></th:block>
 
                         <!-- Divider -->
                         <table
