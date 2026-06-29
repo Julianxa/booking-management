@@ -56,16 +56,16 @@ public class EmailController {
     }
 
     @Operation(summary = "Resend email(s) for a booking",
-            description = "Emails for BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION, BOOKING_REMINDER and BOOKING_CANCELLATION(cancelled only) by booking ID.")
+            description = "Resend emails for BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION, BOOKING_REMINDER(after activity_day_threshold/activity_hour_threshold) and BOOKING_CANCELLATION(cancelled only) by booking ID.")
     @PostMapping("/emails/booking/{bookingId}/resend")
     public ResponseEntity<?> resendBookingEmail(@PathVariable String bookingId,
-                                         @RequestBody ResendBookingEmailRequestDTO dto) {
+                                         @Valid @RequestBody ResendBookingEmailRequestDTO dto) {
         ResendBookingEmailResponseDTO response = bookingService.resendBookingEmail(dto.getEmailTemplateId(), bookingId, dto.getEmailType());
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Resend email(s) for booking(s) by event ID on a specific date and timeslot",
-            description = "Emails for BOOKING_CONFIRMATION, BOOKING_REMINDER and BOOKING_CANCELLATION(cancelled only) by event ID.")
+    @Operation(summary = "Resend booking confirmation email(s) for booking(s) by event ID on a specific date and timeslot",
+            description = "Resends BOOKING_CONFIRMATION for eligible bookings on the given event date and timeslot. Cancellation, reminder and payment confirmation resend use the booking endpoint.")
     @PostMapping("/emails/event/resend")
     public ResponseEntity<?> resendEventEmail(@Valid @RequestBody ResendEventEmailRequestDTO dto) {
         ResendEventEmailResponseDTO response = bookingService.resendEventEmail(dto);
