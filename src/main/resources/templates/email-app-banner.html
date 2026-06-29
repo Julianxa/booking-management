@@ -3,7 +3,7 @@
 <body>
 <th:block th:fragment="localizedAppBanner">
     <!-- Traditional Chinese -->
-    <tr th:if="${titleZhHk != null}">
+    <tr th:if="${lang == 'HK'}">
         <td style="padding: 0 32px 32px 32px">
             <table
                     role="presentation"
@@ -82,7 +82,7 @@
     </tr>
 
     <!-- Simplified Chinese -->
-    <tr th:if="${titleZhCn != null}">
+    <tr th:if="${lang == 'CN'}">
         <td style="padding: 0 32px 32px 32px">
             <table
                     role="presentation"
@@ -161,7 +161,7 @@
     </tr>
 
     <!-- English -->
-    <tr th:if="${title != null}">
+    <tr th:if="${lang == 'EN'}">
         <td style="padding: 0 32px 32px 32px">
             <table
                     role="presentation"

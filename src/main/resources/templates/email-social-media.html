@@ -3,7 +3,7 @@
 <body>
 <th:block th:fragment="localizedSocialMedia">
     <!-- Traditional Chinese -->
-    <tr th:if="${titleZhHk != null}">
+    <tr th:if="${lang == 'HK'}">
         <td style="padding: 0 32px 24px 32px; text-align: center">
             <p
                     style="
@@ -84,7 +84,7 @@
     </tr>
 
     <!-- Simplified Chinese -->
-    <tr th:if="${titleZhCn != null}">
+    <tr th:if="${lang == 'CN'}">
         <td style="padding: 0 32px 24px 32px; text-align: center">
             <p
                     style="
@@ -165,7 +165,7 @@
     </tr>
 
     <!-- English -->
-    <tr th:if="${title != null}">
+    <tr th:if="${lang == 'EN'}">
         <td style="padding: 0 32px 24px 32px; text-align: center">
             <p
                     style="

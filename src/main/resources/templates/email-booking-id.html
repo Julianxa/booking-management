@@ -3,7 +3,7 @@
 <body>
 <th:block th:fragment="localizedBookingId">
     <p
-            th:if="${titleZhHk != null}"
+            th:if="${lang == 'HK'}"
             style="
                     margin: 0 0 28px 0;
                     font-size: 14px;
@@ -15,7 +15,7 @@
         預訂編號：#<span th:text="${bookingId}"/>
     </p>
     <p
-            th:if="${titleZhCn != null}"
+            th:if="${lang == 'CN'}"
             style="
                     margin: 0 0 28px 0;
                     font-size: 14px;
@@ -27,7 +27,7 @@
         预订编号：#<span th:text="${bookingId}"/>
     </p>
     <p
-            th:if="${title != null}"
+            th:if="${lang == 'EN'}"
             style="
                     margin: 0 0 28px 0;
                     font-size: 14px;

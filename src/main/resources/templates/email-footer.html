@@ -3,7 +3,7 @@
 <body>
 <th:block th:fragment="localizedFooter">
     <!-- Traditional Chinese -->
-    <tr th:if="${titleZhHk != null}">
+    <tr th:if="${lang == 'HK'}">
         <td
                 style="
                   padding: 16px 32px 32px 32px;
@@ -40,7 +40,7 @@
     </tr>
 
     <!-- Simplified Chinese -->
-    <tr th:if="${titleZhCn != null}">
+    <tr th:if="${lang == 'CN'}">
         <td
                 style="
                   padding: 16px 32px 32px 32px;
@@ -77,7 +77,7 @@
     </tr>
 
     <!-- English -->
-    <tr th:if="${title != null}">
+    <tr th:if="${lang == 'EN'}">
         <td
                 style="
                   padding: 16px 32px 32px 32px;

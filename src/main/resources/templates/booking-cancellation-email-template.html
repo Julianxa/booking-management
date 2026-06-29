@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title id="email-title"
-           th:text="${titleZhHk != null ? '香港電車' :
-                 (titleZhCn != null ? '香港电车' :
-                 (title != null ? 'HK Tramways' : 'HK Tramways'))}">
+           th:text="${title}">
+        HK Tramways
     </title>
     <!--[if mso]>
     <noscript>
@@ -112,9 +111,7 @@
                     line-height: 1.3;
                   "
                         >
-                            <span th:text="${subjectZhHk != null ? subjectZhHk :
-                                (subjectZhCn != null ? subjectZhCn :
-                                (subject != null ? subject : ''))}">
+                            <span th:text="${subject}">
                             </span>
                         </h1>
 
@@ -129,9 +126,7 @@
                     line-height: 1.7;
                   "
                         >
-                            <div th:utext="${mainBodyZhHk != null ? mainBodyZhHk :
-                                (mainBodyZhCn != null ? mainBodyZhCn :
-                                (mainBody != null ? mainBody : ''))}">
+                            <div th:utext="${mainBody}">
                             </div>
                         </p>
 
@@ -304,9 +299,7 @@
                         <p
                                 style="margin: 0 0 12px 0;font-size: 13px;color: #444444;line-height: 1.7;"
                         >
-                        <div th:utext="${importantInfoIntroZhHk != null ? importantInfoIntroZhHk :
-                (importantInfoIntroZhCn != null ? importantInfoIntroZhCn :
-                (importantInfoIntro != null ? importantInfoIntro : ''))}">
+                        <div th:utext="${importantInfoIntro}">
                         </div>
                         </p>
                         <table
@@ -316,9 +309,7 @@
                                 border="0"
                                 width="100%"
                         >
-                            <div th:utext="${importantInfoBodyZhHk != null ? importantInfoBodyZhHk :
-                                (importantInfoBodyZhCn != null ? importantInfoBodyZhCn :
-                                (importantInfoBody != null ? importantInfoBody : ''))}">
+                            <div th:utext="${importantInfoBody}">
                             </div>
                         </table>
                     </td>
@@ -335,9 +326,7 @@
                     line-height: 1.7;
                   "
                         >
-                            <div th:utext="${contactBodyZhHk != null ? contactBodyZhHk :
-                                (contactBodyZhCn != null ? contactBodyZhCn :
-                                (contactBody != null ? contactBody : ''))}">
+                            <div th:utext="${contactBody}">
                             </div>
                         </p>
                         <p

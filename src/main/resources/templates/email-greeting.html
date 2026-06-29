@@ -3,7 +3,7 @@
 <body>
 <th:block th:fragment="localizedGreeting">
     <p
-            th:if="${titleZhHk != null}"
+            th:if="${lang == 'HK'}"
             style="
                     margin: 0 0 12px 0;
                     font-size: 14px;
@@ -14,7 +14,7 @@
         <span th:text="${firstName}"/>，您好，
     </p>
     <p
-            th:if="${titleZhCn != null}"
+            th:if="${lang == 'CN'}"
             style="
                     margin: 0 0 12px 0;
                     font-size: 14px;
@@ -25,7 +25,7 @@
         <span th:text="${firstName}"/>，您好，
     </p>
     <p
-            th:if="${title != null}"
+            th:if="${lang == 'EN'}"
             style="
                     margin: 0 0 12px 0;
                     font-size: 14px;
