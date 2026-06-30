@@ -370,11 +370,42 @@ public class AwsService {
     }
 
     public String getFileFromS3(String key) {
+        return getFileFromS3(key, Duration.ofSeconds(30));
+    }
+
+    public String getFileFromS3(String key, Duration signatureDuration) {
         PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(r ->
                 r.getObjectRequest(b -> b.bucket(bucketName).key(key))
-                        .signatureDuration(Duration.ofSeconds(30))
+                        .signatureDuration(signatureDuration)
         );
         return presignedRequest.url().toString();
+    }
+
+    public String uploadBytes(String key, byte[] bytes, String contentType) {
+        if (key == null || key.isBlank()) {
+            throw new MissingRequiredFieldException("File key cannot be null or empty");
+        }
+        if (bytes == null || bytes.length == 0) {
+            throw new MissingRequiredFieldException("File content cannot be null or empty");
+        }
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(contentType)
+                .build();
+
+        UploadRequest uploadRequest = UploadRequest.builder()
+                .putObjectRequest(putObjectRequest)
+                .requestBody(AsyncRequestBody.fromBytes(bytes))
+                .build();
+
+        try {
+            s3TransferManager.upload(uploadRequest).completionFuture().join();
+            return key;
+        } catch (RuntimeException e) {
+            throw new FileOperationException("Failed to upload file to S3");
+        }
     }
 
     public String uploadFile(String uniqueIdentifier, MultipartFile file) {
