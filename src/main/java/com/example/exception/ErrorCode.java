@@ -137,7 +137,8 @@ public class ErrorCode {
     public static final ErrorDefinition USER_NOT_FOUND =
             new ErrorDefinition("BT806", HttpStatus.NOT_FOUND, "User not found");
 
-    public static final ErrorDefinition TOKEN_EXPIRED =
-            new ErrorDefinition("BT807", HttpStatus.UNAUTHORIZED, "Session has expired");
+    // Report
+    public static final ErrorDefinition REPORT_NOT_FOUND =
+            new ErrorDefinition("BT901", HttpStatus.NOT_FOUND, "Report not found");
 
 }

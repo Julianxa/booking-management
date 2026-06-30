@@ -2,15 +2,23 @@ package com.example.service;
 
 import com.example.constant.Enums;
 import com.example.exception.BusinessException;
+import com.example.exception.report.ReportNotFoundException;
 import com.example.exception.ErrorCode;
+import com.example.mapper.ReportMapper;
+import com.example.model.dto.DeleteReportResponseDTO;
 import com.example.model.dto.GenerateBookingsByActivityDateReportRequestDTO;
 import com.example.model.dto.GenerateBookingsByActivityDateReportResponseDTO;
+import com.example.model.dto.GetListReportsResponseDTO;
+import com.example.model.dto.ReportSummaryResponseDTO;
 import com.example.model.entity.Reports;
 import com.example.model.record.BookingsByActivityDateReportRow;
 import com.example.repository.ReportDataRepository;
 import com.example.repository.ReportsRepository;
 import com.example.utils.ReferenceNoGenerator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +39,7 @@ public class ReportService {
   private final BookingsByActivityDateExcelBuilder excelBuilder;
   private final AwsService awsService;
   private final ReferenceNoGenerator referenceNoGenerator;
+  private final ReportMapper reportMapper;
 
   @Transactional(readOnly = true)
   public ReportData loadBookingsByActivityDateReportData(
@@ -107,6 +116,60 @@ public class ReportService {
         .message(buildReportMessage(reportData, startDate, endDate))
         .timestamp(ZonedDateTime.now())
         .build();
+  }
+
+  @Transactional(readOnly = true)
+  public GetListReportsResponseDTO getAllReports(
+      Pageable pageable, Enums.ReportType reportType) {
+    Page<Reports> reportsPage =
+        reportType == null
+            ? reportsRepository.findAll(pageable)
+            : reportsRepository.findByReportType(reportType, pageable);
+
+    List<ReportSummaryResponseDTO> content =
+        reportsPage.getContent().stream().map(this::toSummaryWithDownloadUrl).toList();
+
+    Page<ReportSummaryResponseDTO> mappedPage =
+        new PageImpl<>(content, pageable, reportsPage.getTotalElements());
+    return reportMapper.toGetListResponse(mappedPage);
+  }
+
+  @Transactional(readOnly = true)
+  public ReportSummaryResponseDTO getReportByRefNo(String refNo) {
+    Reports report =
+        reportsRepository
+            .findByRefNo(refNo)
+            .orElseThrow(
+                () -> new ReportNotFoundException(String.format("Report %s not found", refNo)));
+    return toSummaryWithDownloadUrl(report);
+  }
+
+  @Transactional
+  public DeleteReportResponseDTO deleteReportByRefNo(String refNo) {
+    Reports report =
+        reportsRepository
+            .findByRefNo(refNo)
+            .orElseThrow(
+                () -> new ReportNotFoundException(String.format("Report %s not found", refNo)));
+
+    if (report.getS3Key() != null && !report.getS3Key().isBlank()) {
+      awsService.deleteFile(report.getS3Key());
+    }
+
+    reportsRepository.delete(report);
+
+    DeleteReportResponseDTO response = new DeleteReportResponseDTO();
+    response.setMessage("Report deleted successfully");
+    response.setTimestamp(ZonedDateTime.now());
+    return response;
+  }
+
+  private ReportSummaryResponseDTO toSummaryWithDownloadUrl(Reports report) {
+    ReportSummaryResponseDTO summary = reportMapper.toSummaryResponseDTO(report);
+    if (report.getS3Key() != null && !report.getS3Key().isBlank()) {
+      summary.setDownloadUrl(awsService.getFileFromS3(report.getS3Key(), Duration.ofHours(1)));
+    }
+    return summary;
   }
 
   private String buildReportMessage(ReportData reportData, LocalDate startDate, LocalDate endDate) {
