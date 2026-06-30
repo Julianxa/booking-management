@@ -406,18 +406,20 @@ public class AwsService {
         }
     }
 
-    public String uploadFile(String uniqueIdentifier, MultipartFile file) {
+    public String uploadFile(String key, MultipartFile file) {
+        String s3Key = "eventImages/" + key;
+
         if (file == null || file.isEmpty()) {
             return null;
         }
         if (!fileUtils.isValidImageFile(file)) {
             throw new IllegalArgumentException("Invalid file format. Only JPEG, PNG, GIF, BMP and HEIC allowed.");
         }
-        String key = uniqueIdentifier + "_" + file.getOriginalFilename();
+        String uniqueIdentifier = s3Key + "_" + file.getOriginalFilename();
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
-                .key(key)
+                .key(uniqueIdentifier)
                 .contentType(file.getContentType())
                 .build();
 
@@ -428,7 +430,7 @@ public class AwsService {
                     .build();
 
         CompletedUpload uploadResult = s3TransferManager.upload(uploadRequest).completionFuture().join();
-        return key;
+        return uniqueIdentifier;
         } catch (IOException e) {
             throw new FileOperationException("Failed to extract the content of the uploaded file");
         }
