@@ -185,7 +185,7 @@ public class EventService {
 
             String eventPicUrl = null;
             if (updatedEvent.getEventPicKey() != null) {
-                eventPicUrl = awsService.getFileFromS3(updatedEvent.getEventPicKey());
+                eventPicUrl = awsService.getFileFromS3(updatedEvent.getEventPicKey(), null);
             }
 
             UpdateEventResponseDTO updateEventResponseDTO = eventMapper.toUpdateResponseDTO(updatedEvent);
@@ -374,7 +374,7 @@ public class EventService {
                 .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
         String eventPicUrl = null;
         if (event.getEventPicKey() != null) {
-            eventPicUrl = awsService.getFileFromS3(event.getEventPicKey());
+            eventPicUrl = awsService.getFileFromS3(event.getEventPicKey(), null);
         }
 
         CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(event);
@@ -402,7 +402,7 @@ public class EventService {
                 .map(event -> {
                     String eventPicUrl = null;
                     if (event.getEventPicKey() != null) {
-                        eventPicUrl = awsService.getFileFromS3(event.getEventPicKey());
+                        eventPicUrl = awsService.getFileFromS3(event.getEventPicKey(), null);
                     }
                     CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(event);
                     createEventResponseDTO.setStatus(event.getStatus());
@@ -827,7 +827,7 @@ public class EventService {
         savedEvent.setEventPicKey(eventPicKey);
         eventsRepository.save(savedEvent);
 
-        return awsService.getFileFromS3(eventPicKey);
+        return awsService.getFileFromS3(eventPicKey, null);
     }
 
     private void handleEventPictureUpdate(Events event, MultipartFile eventPic) {

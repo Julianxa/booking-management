@@ -369,14 +369,12 @@ public class AwsService {
         return kmsClient.decrypt(decryptRequest);
     }
 
-    public String getFileFromS3(String key) {
-        return getFileFromS3(key, Duration.ofSeconds(30));
-    }
-
     public String getFileFromS3(String key, Duration signatureDuration) {
+        Duration duration =
+                signatureDuration != null ? signatureDuration : Duration.ofSeconds(30);
         PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(r ->
                 r.getObjectRequest(b -> b.bucket(bucketName).key(key))
-                        .signatureDuration(signatureDuration)
+                        .signatureDuration(duration)
         );
         return presignedRequest.url().toString();
     }
