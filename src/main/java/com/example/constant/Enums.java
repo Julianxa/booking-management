@@ -146,4 +146,8 @@ public class Enums {
     public enum BookingEmailType {
         BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION, BOOKING_CANCELLATION, BOOKING_REMINDER
     }
+
+    public enum ReportType {
+        BOOKINGS_BY_ACTIVITY_DATE
+    }
 }

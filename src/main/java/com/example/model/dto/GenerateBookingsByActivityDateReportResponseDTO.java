@@ -16,6 +16,9 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GenerateBookingsByActivityDateReportResponseDTO {
+    @JsonProperty("id")
+    private String id;
+
     @JsonProperty("s3_key")
     private String s3Key;
 
@@ -28,11 +31,11 @@ public class GenerateBookingsByActivityDateReportResponseDTO {
     @JsonProperty("report_end_date")
     private LocalDate reportEndDate;
 
-    @JsonProperty("row_count")
-    private int rowCount;
+    @JsonProperty("included_booking_events")
+    private int includedBookingEvents;
 
-    @JsonProperty("booking_events_in_range")
-    private Long bookingEventsInRange;
+    @JsonProperty("total_booking_events_in_range")
+    private Long totalBookingEventsInRange;
 
     @JsonProperty("message")
     private String message;

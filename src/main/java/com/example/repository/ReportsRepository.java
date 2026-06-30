@@ -1,0 +1,10 @@
+package com.example.repository;
+
+import com.example.model.entity.Reports;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ReportsRepository extends JpaRepository<Reports, Long> {
+  boolean existsByRefNo(String refNo);
+}

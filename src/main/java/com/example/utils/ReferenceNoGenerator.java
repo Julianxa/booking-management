@@ -22,6 +22,7 @@ public class ReferenceNoGenerator {
     private final OrganizationsRepository organizationsRepository;
     private final RefundsRepository refundsRepository;
     private final PaymentLogRepository paymentLogRepository;
+    private final ReportsRepository reportsRepository;
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String SAFE_CHARS = "2346789ACDEFGHJKLMPQRTUVXY";
     private final TicketTypesRepository ticketTypesRepository;
@@ -78,6 +79,11 @@ public class ReferenceNoGenerator {
         return generateUniqueReference("GC-", 10, giftCertificatesRepository);
     }
 
+    public String generateReportReference() {
+        String datePart = ZonedDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        return generateUniqueReference("RPT-" + datePart + "-", 10, reportsRepository);
+    }
+
     public String generateGiftCertificatePromoCode() {
         return generateUniquePromoCode("PC-", 10);
     }
@@ -125,6 +131,8 @@ public class ReferenceNoGenerator {
                 exists = paymentsRepository.existsByRefNo(referenceNo);
             } else if (repository instanceof PaymentLogRepository) {
                 exists = paymentLogRepository.existsByRefNo(referenceNo);
+            } else if (repository instanceof ReportsRepository) {
+                exists = reportsRepository.existsByRefNo(referenceNo);
             }
             if (!exists) {
                 return referenceNo;
