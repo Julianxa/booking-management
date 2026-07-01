@@ -30,10 +30,8 @@ public class BookingsByActivityDateExcelBuilder {
       DateTimeFormatter.ofPattern("HH:mm:ss");
   private static final String[] ACTIVITY_HEADERS = {
     "Booking No.",
-    "GL Code",
     "Activity",
     "Category",
-    "Package",
     "Date",
     "Time",
     "Purchase Date",
@@ -42,8 +40,6 @@ public class BookingsByActivityDateExcelBuilder {
     "Company Group",
     "Booked by (Company)",
     "Booked by (User)",
-    "Group Name (Code)",
-    "Company (Vouchered)",
     "Activity Provider",
     "Guest",
     "Country",
@@ -144,10 +140,8 @@ public class BookingsByActivityDateExcelBuilder {
     Row excelRow = sheet.createRow(rowIndex);
     int column = 0;
     setTextCell(excelRow, column++, row.bookingRefNo());
-    excelRow.createCell(column++).setBlank();
     excelRow.createCell(column++).setCellValue(formatEventName(row));
     excelRow.createCell(column++).setCellValue(nullToBlank(row.eventCategory()));
-    excelRow.createCell(column++).setBlank();
     setDateCell(excelRow, column++, row.eventDate());
     setTimeCell(excelRow, column++, row.eventTime());
     setPurchaseDateCell(excelRow, column++, row.purchaseDate());
@@ -156,8 +150,6 @@ public class BookingsByActivityDateExcelBuilder {
     excelRow.createCell(column++).setCellValue(resolveCompanyGroup(row));
     excelRow.createCell(column++).setCellValue(resolveBookedByCompany(row));
     excelRow.createCell(column++).setCellValue(resolveBookedByUser(row));
-    excelRow.createCell(column++).setBlank();
-    excelRow.createCell(column++).setBlank();
     excelRow.createCell(column++).setCellValue(resolveActivityProvider(row));
     excelRow.createCell(column++).setCellValue(formatGuestName(row));
     excelRow.createCell(column++).setCellValue(nullToBlank(row.guestCountry()));
@@ -173,15 +165,15 @@ public class BookingsByActivityDateExcelBuilder {
   private void writeActivityTotalRow(Sheet sheet, int rowIndex, ActivityTotals totals) {
     Row row = sheet.createRow(rowIndex);
     row.createCell(0).setCellValue("Total");
-    row.createCell(8).setCellValue("Avg: " + totals.averageDaysToPurchase());
-    row.createCell(18).setCellValue(totals.totalPassengers);
-    setMoneyCell(row, 19, totals.subtotal);
-    setMoneyCell(row, 20, totals.discount);
-    setMoneyCell(row, 21, totals.netSale);
-    setMoneyCell(row, 22, totals.total);
+    row.createCell(6).setCellValue("Avg: " + totals.averageDaysToPurchase());
+    row.createCell(14).setCellValue(totals.totalPassengers);
+    setMoneyCell(row, 15, totals.subtotal);
+    setMoneyCell(row, 16, totals.discount);
+    setMoneyCell(row, 17, totals.netSale);
+    setMoneyCell(row, 18, totals.total);
 
     Row medianRow = sheet.createRow(rowIndex + 1);
-    medianRow.createCell(8).setCellValue("Median: " + totals.medianDaysToPurchase());
+    medianRow.createCell(6).setCellValue("Median: " + totals.medianDaysToPurchase());
   }
 
   private void createLabelValueRow(Sheet sheet, int rowIndex, String label, String value) {
