@@ -137,8 +137,10 @@ public class ReportDataRepository {
         SELECT COUNT(DISTINCT be.id)
         FROM bookings b
         INNER JOIN gift_certificates gc ON gc.id = b.gift_certificate_id
+        INNER JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
         INNER JOIN booking_events be ON be.booking_id = b.id
-        WHERE DATE(b.created_at) BETWEEN :startDate AND :endDate
+        WHERE p.paid_at IS NOT NULL
+          AND DATE(p.paid_at) BETWEEN :startDate AND :endDate
           AND gc.type IN ("""
             + PROMO_GIFT_CERTIFICATE_TYPES
             + """
@@ -157,7 +159,7 @@ public class ReportDataRepository {
         SELECT
             b.ref_no,
             be.id,
-            b.created_at,
+            p.paid_at,
             be.event_date,
             be.event_time,
             e.name,
@@ -172,6 +174,7 @@ public class ReportDataRepository {
             b.total_paid_price
         FROM bookings b
         INNER JOIN gift_certificates gc ON gc.id = b.gift_certificate_id
+        INNER JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
         INNER JOIN gift_certificate_redemptions gcr
             ON gcr.booking_id = b.id AND gcr.status = 'SUCCESS'
         INNER JOIN booking_events be ON be.booking_id = b.id
@@ -189,7 +192,8 @@ public class ReportDataRepository {
             ORDER BY ba2.sequence ASC, ba2.id ASC
             LIMIT 1
         )
-        WHERE DATE(b.created_at) BETWEEN :startDate AND :endDate
+        WHERE p.paid_at IS NOT NULL
+          AND DATE(p.paid_at) BETWEEN :startDate AND :endDate
           AND gc.type IN ("""
             + PROMO_GIFT_CERTIFICATE_TYPES
             + """
@@ -200,7 +204,7 @@ public class ReportDataRepository {
             + EXCLUDED_BOOKING_STATUSES
             + """
           )
-        ORDER BY b.created_at ASC, be.event_date ASC, be.event_time ASC, b.id ASC
+        ORDER BY p.paid_at ASC, be.event_date ASC, be.event_time ASC, b.id ASC
         """;
 
     Query query = entityManager.createNativeQuery(sql);

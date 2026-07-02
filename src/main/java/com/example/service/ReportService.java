@@ -275,14 +275,14 @@ public class ReportService {
     }
     if (reportData.totalBookingEventsInRange() == 0) {
       return String.format(
-          "Report generated with no rows. No promo code bookings found with transaction date "
-              + "(booking created_at) between %s and %s.",
+          "Report generated with no rows. No promo code bookings found with payment transaction date "
+              + "between %s and %s.",
           startDate, endDate);
     }
     return String.format(
         "Report generated with no rows. Found %d promo booking event(s) in the transaction date "
             + "range, but none matched report filters (booking event not cancelled; booking status "
-            + "not CANCELLED/FAILED/EXPIRED/REFUNDED; promo redemption SUCCESS).",
+            + "not CANCELLED/FAILED/EXPIRED/REFUNDED; promo redemption SUCCESS; payment SUCCEEDED).",
         reportData.totalBookingEventsInRange());
   }
 

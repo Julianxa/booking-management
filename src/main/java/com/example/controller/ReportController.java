@@ -71,8 +71,8 @@ public class ReportController {
       summary = "Generate promo codes by transaction date report",
       description =
           "Builds an Excel report for bookings that redeemed VALUE, EVENT, PERSONAL_VALUE, or "
-              + "PERSONAL_EVENT promo codes within the transaction date range, uploads it to S3, "
-              + "and returns a presigned download URL.",
+              + "PERSONAL_EVENT promo codes within the payment transaction date range, uploads it to S3, "
+              + "and returns a pre-signed download URL.",
       responses = {
         @ApiResponse(
             responseCode = "200",
