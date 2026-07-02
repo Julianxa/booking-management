@@ -120,7 +120,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
       PromoTotals totals) {
     BigDecimal activityTotal = nullToZero(row.eventSubtotal());
     BigDecimal discount = allocatedDiscount(row);
-    int[] passengerCounts = countPassengersByCategory(ticketRows);
+    int passengers = countPassengers(ticketRows);
 
     Row excelRow = sheet.createRow(rowIndex);
     int column = 0;
@@ -129,7 +129,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
     setDateCell(excelRow, column++, row.eventDate());
     excelRow.createCell(column++).setCellValue(formatActivityName(row));
     excelRow.createCell(column++).setCellValue(formatGuestName(row));
-    excelRow.createCell(column++).setCellValue(formatPassengerCounts(passengerCounts));
+    excelRow.createCell(column++).setCellValue(passengers);
     setMoneyCell(excelRow, column++, activityTotal);
     excelRow.createCell(column++).setCellValue(DEFAULT_ACTIVITY_PROVIDER);
     excelRow.createCell(column++).setBlank();
@@ -138,13 +138,13 @@ public class PromoCodesByTransactionDateExcelBuilder {
     setMoneyCell(excelRow, column++, resolvePromoRate(row, activityTotal, discount));
     setMoneyCell(excelRow, column++, discount);
 
-    totals.add(passengerCounts, activityTotal, discount);
+    totals.add(passengers, discount);
   }
 
   private void writeTotalRow(Sheet sheet, int rowIndex, PromoTotals totals) {
     Row row = sheet.createRow(rowIndex);
     row.createCell(0).setCellValue("Total");
-    row.createCell(5).setCellValue(formatPassengerCounts(totals.passengerCounts));
+    row.createCell(5).setCellValue(totals.totalPassengers);
     setMoneyCell(row, 12, totals.discount);
   }
 
@@ -228,52 +228,8 @@ public class PromoCodesByTransactionDateExcelBuilder {
         .divide(totalPaid, 2, RoundingMode.HALF_UP);
   }
 
-  private static int[] countPassengersByCategory(
-      List<ReportDataRepository.TicketQuantityRow> ticketRows) {
-    int[] counts = new int[5];
-    for (ReportDataRepository.TicketQuantityRow ticketRow : ticketRows) {
-      addPassengerCount(counts, ticketRow);
-    }
-    return counts;
-  }
-
-  private static void addPassengerCount(
-      int[] counts, ReportDataRepository.TicketQuantityRow ticketRow) {
-    String combinedName =
-        String.join(
-                " ",
-                nullToBlank(ticketRow.ticketName()),
-                nullToBlank(ticketRow.ticketNameZhHk()),
-                nullToBlank(ticketRow.ticketNameZhCn()))
-            .toLowerCase(Locale.ENGLISH);
-    if (combinedName.contains("senior")
-        || combinedName.contains("長者")
-        || combinedName.contains("长者")) {
-      counts[0] += ticketRow.quantity();
-    } else if (combinedName.contains("adult")
-        || combinedName.contains("成人")
-        || combinedName.contains("大人")) {
-      counts[1] += ticketRow.quantity();
-    } else if (combinedName.contains("child")
-        || combinedName.contains("小童")
-        || combinedName.contains("儿童")
-        || combinedName.contains("兒童")) {
-      counts[2] += ticketRow.quantity();
-    } else {
-      counts[3] += ticketRow.quantity();
-    }
-  }
-
-  private static String formatPassengerCounts(int[] counts) {
-    return counts[0]
-        + "/"
-        + counts[1]
-        + "/"
-        + counts[2]
-        + "/"
-        + counts[3]
-        + "/"
-        + counts[4];
+  private static int countPassengers(List<ReportDataRepository.TicketQuantityRow> ticketRows) {
+    return ticketRows.stream().mapToInt(ReportDataRepository.TicketQuantityRow::quantity).sum();
   }
 
   private LocalTime parseEventTime(String eventTime) {
@@ -346,13 +302,11 @@ public class PromoCodesByTransactionDateExcelBuilder {
   }
 
   private static final class PromoTotals {
-    private final int[] passengerCounts = new int[5];
+    private int totalPassengers = 0;
     private BigDecimal discount = BigDecimal.ZERO;
 
-    private void add(int[] rowCounts, BigDecimal rowActivityTotal, BigDecimal rowDiscount) {
-      for (int i = 0; i < passengerCounts.length; i++) {
-        passengerCounts[i] += rowCounts[i];
-      }
+    private void add(int passengers, BigDecimal rowDiscount) {
+      totalPassengers += passengers;
       discount = discount.add(rowDiscount);
     }
   }
