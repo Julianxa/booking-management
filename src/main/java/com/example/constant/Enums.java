@@ -148,6 +148,7 @@ public class Enums {
     }
 
     public enum ReportType {
-        BOOKINGS_BY_ACTIVITY_DATE
+        BOOKINGS_BY_ACTIVITY_DATE,
+        PROMO_CODES_BY_TRANSACTION_DATE
     }
 }

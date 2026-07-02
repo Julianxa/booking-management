@@ -1,6 +1,7 @@
 package com.example.repository;
 
 import com.example.model.record.BookingsByActivityDateReportRow;
+import com.example.model.record.PromoCodesByTransactionDateReportRow;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
@@ -23,6 +24,9 @@ public class ReportDataRepository {
 
   private static final String EXCLUDED_BOOKING_STATUSES =
       "'CANCELLED', 'FAILED', 'EXPIRED', 'REFUNDED'";
+
+  private static final String PROMO_GIFT_CERTIFICATE_TYPES =
+      "'VALUE', 'EVENT', 'PERSONAL_VALUE', 'PERSONAL_EVENT'";
 
   @PersistenceContext private EntityManager entityManager;
 
@@ -125,6 +129,104 @@ public class ReportDataRepository {
           .add(new TicketQuantityRow(ticketName, ticketNameZhHk, ticketNameZhCn, quantity));
     }
     return result;
+  }
+
+  public long countPromoCodesByTransactionDateInRange(LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT COUNT(DISTINCT be.id)
+        FROM bookings b
+        INNER JOIN gift_certificates gc ON gc.id = b.gift_certificate_id
+        INNER JOIN booking_events be ON be.booking_id = b.id
+        WHERE DATE(b.created_at) BETWEEN :startDate AND :endDate
+          AND gc.type IN ("""
+            + PROMO_GIFT_CERTIFICATE_TYPES
+            + """
+          )
+        """;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+    return toLong(query.getSingleResult());
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<PromoCodesByTransactionDateReportRow> findPromoCodesByTransactionDate(
+      LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT
+            b.ref_no,
+            be.id,
+            b.created_at,
+            be.event_date,
+            be.event_time,
+            e.name,
+            e.name_zh_hk,
+            ba.first_name,
+            ba.last_name,
+            be.total,
+            gc.promo_code,
+            gc.type,
+            promo_item.value,
+            b.discount,
+            b.total_paid_price
+        FROM bookings b
+        INNER JOIN gift_certificates gc ON gc.id = b.gift_certificate_id
+        INNER JOIN gift_certificate_redemptions gcr
+            ON gcr.booking_id = b.id AND gcr.status = 'SUCCESS'
+        INNER JOIN booking_events be ON be.booking_id = b.id
+        INNER JOIN events e ON e.id = be.event_id
+        LEFT JOIN (
+            SELECT gift_certificate_id, MIN(id) AS item_id
+            FROM gift_certificate_items
+            GROUP BY gift_certificate_id
+        ) promo_item_pick ON promo_item_pick.gift_certificate_id = gc.id
+        LEFT JOIN gift_certificate_items promo_item ON promo_item.id = promo_item_pick.item_id
+        LEFT JOIN booking_attendees ba ON ba.id = (
+            SELECT ba2.id
+            FROM booking_attendees ba2
+            WHERE ba2.booking_event_id = be.id
+            ORDER BY ba2.sequence ASC, ba2.id ASC
+            LIMIT 1
+        )
+        WHERE DATE(b.created_at) BETWEEN :startDate AND :endDate
+          AND gc.type IN ("""
+            + PROMO_GIFT_CERTIFICATE_TYPES
+            + """
+          )
+          AND be.cancelled_at IS NULL
+          AND be.status <> 'CANCELLED'
+          AND b.status NOT IN ("""
+            + EXCLUDED_BOOKING_STATUSES
+            + """
+          )
+        ORDER BY b.created_at ASC, be.event_date ASC, be.event_time ASC, b.id ASC
+        """;
+
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+
+    return ((List<Object[]>) query.getResultList())
+        .stream().map(this::mapPromoCodesByTransactionDateRow).toList();
+  }
+
+  private PromoCodesByTransactionDateReportRow mapPromoCodesByTransactionDateRow(Object[] row) {
+    return new PromoCodesByTransactionDateReportRow(
+        asString(row[0]),
+        asLong(row[1]),
+        asZonedDateTime(row[2]),
+        asLocalDate(row[3]),
+        asString(row[4]),
+        asString(row[5]),
+        asString(row[6]),
+        asString(row[7]),
+        asString(row[8]),
+        asBigDecimal(row[9]),
+        asString(row[10]),
+        asString(row[11]),
+        asBigDecimal(row[12]),
+        asBigDecimal(row[13]),
+        asBigDecimal(row[14]));
   }
 
   private void bindDateRange(Query query, LocalDate startDate, LocalDate endDate) {

@@ -12,6 +12,7 @@ import com.example.model.dto.GetListReportsResponseDTO;
 import com.example.model.dto.ReportSummaryResponseDTO;
 import com.example.model.entity.Reports;
 import com.example.model.record.BookingsByActivityDateReportRow;
+import com.example.model.record.PromoCodesByTransactionDateReportRow;
 import com.example.repository.ReportDataRepository;
 import com.example.repository.ReportsRepository;
 import com.example.utils.ReferenceNoGenerator;
@@ -37,6 +38,7 @@ public class ReportService {
   private final ReportDataRepository reportDataRepository;
   private final ReportsRepository reportsRepository;
   private final BookingsByActivityDateExcelBuilder excelBuilder;
+  private final PromoCodesByTransactionDateExcelBuilder promoCodesByTransactionDateExcelBuilder;
   private final AwsService awsService;
   private final ReferenceNoGenerator referenceNoGenerator;
   private final ReportMapper reportMapper;
@@ -119,6 +121,83 @@ public class ReportService {
   }
 
   @Transactional(readOnly = true)
+  public PromoCodesReportData loadPromoCodesByTransactionDateReportData(
+      LocalDate startDate, LocalDate endDate) {
+    long totalBookingEventsInRange =
+        reportDataRepository.countPromoCodesByTransactionDateInRange(startDate, endDate);
+
+    List<PromoCodesByTransactionDateReportRow> rows =
+        reportDataRepository.findPromoCodesByTransactionDate(startDate, endDate);
+
+    List<Long> bookingEventIds =
+        rows.stream().map(PromoCodesByTransactionDateReportRow::bookingEventId).toList();
+    Map<Long, List<ReportDataRepository.TicketQuantityRow>> ticketQuantities =
+        reportDataRepository.findTicketQuantitiesByBookingEventIds(bookingEventIds);
+
+    return new PromoCodesReportData(rows, ticketQuantities, totalBookingEventsInRange);
+  }
+
+  @Transactional
+  public GenerateBookingsByActivityDateReportResponseDTO generatePromoCodesByTransactionDateReport(
+      GenerateBookingsByActivityDateReportRequestDTO request) {
+    LocalDate startDate = request.getStartDate();
+    LocalDate endDate = request.getEndDate();
+
+    if (startDate.isAfter(endDate)) {
+      throw new BusinessException(
+          ErrorCode.MISSING_REQUIRED_FIELD, "start_date must be on or before end_date");
+    }
+
+    PromoCodesReportData reportData = loadPromoCodesByTransactionDateReportData(startDate, endDate);
+
+    byte[] workbookBytes =
+        promoCodesByTransactionDateExcelBuilder.build(
+            startDate,
+            endDate,
+            request.getGeneratedBy(),
+            reportData.rows(),
+            reportData.ticketQuantities());
+
+    String s3Key =
+        "reports/promo-codes-by-transaction-date/"
+            + startDate
+            + "_to_"
+            + endDate
+            + "_"
+            + UUID.randomUUID()
+            + ".xlsx";
+
+    awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
+    String downloadUrl = awsService.getFileFromS3(s3Key, Duration.ofHours(1));
+
+    Reports savedReport =
+        reportsRepository.save(
+            Reports.builder()
+                .refNo(referenceNoGenerator.generateReportReference())
+                .reportType(Enums.ReportType.PROMO_CODES_BY_TRANSACTION_DATE)
+                .s3Key(s3Key)
+                .startDate(startDate)
+                .endDate(endDate)
+                .generatedBy(request.getGeneratedBy())
+                .includedBookingEvents(reportData.rows().size())
+                .totalBookingEventsInRange(reportData.totalBookingEventsInRange())
+                .fileSizeBytes((long) workbookBytes.length)
+                .build());
+
+    return GenerateBookingsByActivityDateReportResponseDTO.builder()
+        .id(savedReport.getRefNo())
+        .s3Key(s3Key)
+        .downloadUrl(downloadUrl)
+        .reportStartDate(startDate)
+        .reportEndDate(endDate)
+        .includedBookingEvents(reportData.rows().size())
+        .totalBookingEventsInRange(reportData.totalBookingEventsInRange())
+        .message(buildPromoCodesReportMessage(reportData, startDate, endDate))
+        .timestamp(ZonedDateTime.now())
+        .build();
+  }
+
+  @Transactional(readOnly = true)
   public GetListReportsResponseDTO getAllReports(
       Pageable pageable, Enums.ReportType reportType) {
     Page<Reports> reportsPage =
@@ -189,8 +268,31 @@ public class ReportService {
         reportData.totalBookingEventsInRange());
   }
 
+  private String buildPromoCodesReportMessage(
+      PromoCodesReportData reportData, LocalDate startDate, LocalDate endDate) {
+    if (!reportData.rows().isEmpty()) {
+      return "Promo codes by transaction date report generated successfully";
+    }
+    if (reportData.totalBookingEventsInRange() == 0) {
+      return String.format(
+          "Report generated with no rows. No promo code bookings found with transaction date "
+              + "(booking created_at) between %s and %s.",
+          startDate, endDate);
+    }
+    return String.format(
+        "Report generated with no rows. Found %d promo booking event(s) in the transaction date "
+            + "range, but none matched report filters (booking event not cancelled; booking status "
+            + "not CANCELLED/FAILED/EXPIRED/REFUNDED; promo redemption SUCCESS).",
+        reportData.totalBookingEventsInRange());
+  }
+
   private record ReportData(
       List<BookingsByActivityDateReportRow> rows,
+      Map<Long, List<ReportDataRepository.TicketQuantityRow>> ticketQuantities,
+      long totalBookingEventsInRange) {}
+
+  private record PromoCodesReportData(
+      List<PromoCodesByTransactionDateReportRow> rows,
       Map<Long, List<ReportDataRepository.TicketQuantityRow>> ticketQuantities,
       long totalBookingEventsInRange) {}
 }

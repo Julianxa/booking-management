@@ -68,6 +68,38 @@ public class ReportController {
   }
 
   @Operation(
+      summary = "Generate promo codes by transaction date report",
+      description =
+          "Builds an Excel report for bookings that redeemed VALUE, EVENT, PERSONAL_VALUE, or "
+              + "PERSONAL_EVENT promo codes within the transaction date range, uploads it to S3, "
+              + "and returns a presigned download URL.",
+      responses = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Report generated",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema =
+                        @Schema(
+                            implementation =
+                                GenerateBookingsByActivityDateReportResponseDTO.class))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request data",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+      })
+  @PostMapping("/reports/promo-codes-by-transaction-date")
+  public ResponseEntity<GenerateBookingsByActivityDateReportResponseDTO>
+      generatePromoCodesByTransactionDateReport(
+          @Valid @RequestBody GenerateBookingsByActivityDateReportRequestDTO request) {
+    return ResponseEntity.ok(reportService.generatePromoCodesByTransactionDateReport(request));
+  }
+
+  @Operation(
       summary = "List generated reports",
       description = "Returns a paginated list of stored reports with presigned download URLs.",
       responses = {
