@@ -28,6 +28,20 @@ public class ReportDataRepository {
   private static final String PROMO_GIFT_CERTIFICATE_TYPES =
       "'VALUE', 'EVENT', 'PERSONAL_VALUE', 'PERSONAL_EVENT'";
 
+  private static final String TRANSACTION_DATE_TIME_SQL =
+      "CASE WHEN b.type = 'OFFLINE_PAYMENT' THEN b.created_at ELSE p.paid_at END";
+
+  private static final String TRANSACTION_DATE_SQL =
+      "DATE(" + TRANSACTION_DATE_TIME_SQL + ")";
+
+  private static final String TRANSACTION_DATE_ELIGIBILITY_SQL =
+      """
+      (
+        b.type = 'OFFLINE_PAYMENT'
+        OR (b.type = 'ONLINE_PAYMENT' AND p.paid_at IS NOT NULL)
+      )
+      """;
+
   @PersistenceContext private EntityManager entityManager;
 
   public long countBookingEventsInDateRange(LocalDate startDate, LocalDate endDate) {
@@ -53,7 +67,10 @@ public class ReportDataRepository {
             be.event_date,
             be.event_time,
             be.total,
-            b.created_at,
+            """
+            + TRANSACTION_DATE_TIME_SQL
+            + """
+            ,
             b.discount,
             b.total_paid_price,
             b.final_paid_amount,
@@ -73,6 +90,7 @@ public class ReportDataRepository {
             o.company_group
         FROM booking_events be
         INNER JOIN bookings b ON b.id = be.booking_id
+        LEFT JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
         INNER JOIN events e ON e.id = be.event_id
         LEFT JOIN booking_attendees ba ON ba.id = (
             SELECT ba2.id
@@ -137,10 +155,15 @@ public class ReportDataRepository {
         SELECT COUNT(DISTINCT be.id)
         FROM bookings b
         INNER JOIN gift_certificates gc ON gc.id = b.gift_certificate_id
-        INNER JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
+        LEFT JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
         INNER JOIN booking_events be ON be.booking_id = b.id
-        WHERE p.paid_at IS NOT NULL
-          AND DATE(p.paid_at) BETWEEN :startDate AND :endDate
+        WHERE """
+            + TRANSACTION_DATE_SQL
+            + """
+           BETWEEN :startDate AND :endDate
+          AND """
+            + TRANSACTION_DATE_ELIGIBILITY_SQL
+            + """
           AND gc.type IN ("""
             + PROMO_GIFT_CERTIFICATE_TYPES
             + """
@@ -159,7 +182,10 @@ public class ReportDataRepository {
         SELECT
             b.ref_no,
             be.id,
-            p.paid_at,
+            """
+            + TRANSACTION_DATE_TIME_SQL
+            + """
+            ,
             be.event_date,
             be.event_time,
             e.name,
@@ -174,7 +200,7 @@ public class ReportDataRepository {
             b.total_paid_price
         FROM bookings b
         INNER JOIN gift_certificates gc ON gc.id = b.gift_certificate_id
-        INNER JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
+        LEFT JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
         INNER JOIN gift_certificate_redemptions gcr
             ON gcr.booking_id = b.id AND gcr.status = 'SUCCESS'
         INNER JOIN booking_events be ON be.booking_id = b.id
@@ -192,8 +218,13 @@ public class ReportDataRepository {
             ORDER BY ba2.sequence ASC, ba2.id ASC
             LIMIT 1
         )
-        WHERE p.paid_at IS NOT NULL
-          AND DATE(p.paid_at) BETWEEN :startDate AND :endDate
+        WHERE """
+            + TRANSACTION_DATE_SQL
+            + """
+           BETWEEN :startDate AND :endDate
+          AND """
+            + TRANSACTION_DATE_ELIGIBILITY_SQL
+            + """
           AND gc.type IN ("""
             + PROMO_GIFT_CERTIFICATE_TYPES
             + """
@@ -204,7 +235,10 @@ public class ReportDataRepository {
             + EXCLUDED_BOOKING_STATUSES
             + """
           )
-        ORDER BY p.paid_at ASC, be.event_date ASC, be.event_time ASC, b.id ASC
+        ORDER BY """
+            + TRANSACTION_DATE_TIME_SQL
+            + """
+           ASC, be.event_date ASC, be.event_time ASC, b.id ASC
         """;
 
     Query query = entityManager.createNativeQuery(sql);
