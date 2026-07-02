@@ -29,6 +29,10 @@ public class Reports {
     @Column(name = "report_type", nullable = false)
     private Enums.ReportType reportType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private Enums.ReportStatus status;
+
     @Column(name = "s3_key")
     private String s3Key;
 
@@ -49,6 +53,13 @@ public class Reports {
 
     @Column(name = "file_size_bytes")
     private Long fileSizeBytes;
+
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
+
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
+    @Column(name = "completed_at")
+    private ZonedDateTime completedAt;
 
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", updatable = false, nullable = false)

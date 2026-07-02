@@ -39,12 +39,12 @@ public class ReportController {
   @Operation(
       summary = "Generate bookings by activity date report",
       description =
-          "Builds an Excel report for all paid online bookings within the activity date range, "
-              + "uploads it to S3, and returns a presigned download URL.",
+          "Queues an Excel report for all paid online bookings within the activity date range, "
+              + "stores generation status in the database, and returns a report record immediately.",
       responses = {
         @ApiResponse(
-            responseCode = "200",
-            description = "Report generated",
+            responseCode = "202",
+            description = "Report generation queued",
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -64,19 +64,19 @@ public class ReportController {
   public ResponseEntity<GenerateBookingsByActivityDateReportResponseDTO>
       generateBookingsByActivityDateReport(
           @Valid @RequestBody GenerateBookingsByActivityDateReportRequestDTO request) {
-    return ResponseEntity.ok(reportService.generateBookingsByActivityDateReport(request));
+    return ResponseEntity.accepted().body(reportService.generateBookingsByActivityDateReport(request));
   }
 
   @Operation(
       summary = "Generate promo codes by transaction date report",
       description =
-          "Builds an Excel report for bookings that redeemed VALUE, EVENT, PERSONAL_VALUE, or "
-              + "PERSONAL_EVENT promo codes within the payment transaction date range, uploads it to S3, "
-              + "and returns a pre-signed download URL.",
+          "Queues an Excel report for bookings that redeemed VALUE, EVENT, PERSONAL_VALUE, or "
+              + "PERSONAL_EVENT promo codes within the payment transaction date range, stores "
+              + "generation status in the database, and returns a report record immediately.",
       responses = {
         @ApiResponse(
-            responseCode = "200",
-            description = "Report generated",
+            responseCode = "202",
+            description = "Report generation queued",
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -96,12 +96,15 @@ public class ReportController {
   public ResponseEntity<GenerateBookingsByActivityDateReportResponseDTO>
       generatePromoCodesByTransactionDateReport(
           @Valid @RequestBody GenerateBookingsByActivityDateReportRequestDTO request) {
-    return ResponseEntity.ok(reportService.generatePromoCodesByTransactionDateReport(request));
+    return ResponseEntity.accepted()
+        .body(reportService.generatePromoCodesByTransactionDateReport(request));
   }
 
   @Operation(
       summary = "List generated reports",
-      description = "Returns a paginated list of stored reports with presigned download URLs.",
+      description =
+          "Returns a paginated list of stored reports. Download URLs are only included once the "
+              + "report status is COMPLETED.",
       responses = {
         @ApiResponse(
             responseCode = "200",
@@ -131,7 +134,9 @@ public class ReportController {
 
   @Operation(
       summary = "Get report by ID",
-      description = "Returns a stored report by its reference number with a presigned download URL.",
+      description =
+          "Returns a stored report by its reference number. Download URL is only included once "
+              + "the report status is COMPLETED.",
       responses = {
         @ApiResponse(
             responseCode = "200",
@@ -200,9 +205,11 @@ public class ReportController {
       case "created_at" -> "createdAt";
       case "report_type" -> "reportType";
       case "generated_by" -> "generatedBy";
+      case "status" -> "status";
       case "included_booking_events" -> "includedBookingEvents";
       case "total_booking_events_in_range" -> "totalBookingEventsInRange";
       case "file_size_bytes" -> "fileSizeBytes";
+      case "completed_at" -> "completedAt";
       default -> sortBy;
     };
   }

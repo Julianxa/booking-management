@@ -147,6 +147,13 @@ public class Enums {
         BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION, BOOKING_CANCELLATION, BOOKING_REMINDER
     }
 
+    public enum ReportStatus {
+        PENDING,
+        IN_PROGRESS,
+        COMPLETED,
+        FAILED
+    }
+
     public enum ReportType {
         BOOKINGS_BY_ACTIVITY_DATE,
         PROMO_CODES_BY_TRANSACTION_DATE

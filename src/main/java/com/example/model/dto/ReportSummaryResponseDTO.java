@@ -23,6 +23,9 @@ public class ReportSummaryResponseDTO {
     @JsonProperty("report_type")
     private Enums.ReportType reportType;
 
+    @JsonProperty("status")
+    private Enums.ReportStatus status;
+
     @JsonProperty("s3_key")
     private String s3Key;
 
@@ -46,6 +49,12 @@ public class ReportSummaryResponseDTO {
 
     @JsonProperty("file_size_bytes")
     private Long fileSizeBytes;
+
+    @JsonProperty("error_message")
+    private String errorMessage;
+
+    @JsonProperty("completed_at")
+    private ZonedDateTime completedAt;
 
     @JsonProperty("created_at")
     private ZonedDateTime createdAt;

@@ -1,5 +1,6 @@
 package com.example.model.dto;
 
+import com.example.constant.Enums;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -36,6 +37,12 @@ public class GenerateBookingsByActivityDateReportResponseDTO {
 
     @JsonProperty("total_booking_events_in_range")
     private Long totalBookingEventsInRange;
+
+    @JsonProperty("status")
+    private Enums.ReportStatus status;
+
+    @JsonProperty("error_message")
+    private String errorMessage;
 
     @JsonProperty("message")
     private String message;

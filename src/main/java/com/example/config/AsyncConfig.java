@@ -28,6 +28,14 @@ public class AsyncConfig {
         return createExecutor(corePoolSize, maxPoolSize, queueCapacity, "email-");
     }
 
+    @Bean(name = "reportExecutor")
+    public Executor reportExecutor(
+            @Value("${app.report.executor.core-pool-size:2}") int corePoolSize,
+            @Value("${app.report.executor.max-pool-size:4}") int maxPoolSize,
+            @Value("${app.report.executor.queue-capacity:100}") int queueCapacity) {
+        return createExecutor(corePoolSize, maxPoolSize, queueCapacity, "report-");
+    }
+
     private static ThreadPoolTaskExecutor createExecutor(
             int corePoolSize, int maxPoolSize, int queueCapacity, String threadNamePrefix) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
