@@ -15,10 +15,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.example.constant.Enums.UserRole.AGENT;
 
@@ -200,21 +200,46 @@ public class EmailDispatchService {
             return;
         }
 
-        findPrimaryAttendee(bookingEventDTOs).ifPresentOrElse(attendee -> {
-            Users guestRecipient = new Users();
-            guestRecipient.setEmail(attendee.getEmail());
-            guestRecipient.setFirstName(attendee.getFirstName());
-            emailService.sendPaymentConfirmationEmail(
-                    guestRecipient, booking, bookingEventDTOs, resolvedPromoCode, resolvedTickets);
-        }, () -> log.warn("No primary attendee found for payment confirmation email on booking {}", booking.getRefNo()));
+        List<CreateBookingRequestDTO.AttendeeDTO> primaryAttendees = findPrimaryAttendees(bookingEventDTOs);
+        if (primaryAttendees.isEmpty()) {
+            log.warn("No primary attendee found for payment confirmation email on booking {}", booking.getRefNo());
+            return;
+        }
+
+        Map<String, CreateBookingRequestDTO.AttendeeDTO> recipientsByEmail = new LinkedHashMap<>();
+        for (CreateBookingRequestDTO.AttendeeDTO attendee : primaryAttendees) {
+            if (attendee.getEmail() == null || attendee.getEmail().isBlank()) {
+                continue;
+            }
+            recipientsByEmail.putIfAbsent(attendee.getEmail().trim().toLowerCase(), attendee);
+        }
+
+        if (recipientsByEmail.isEmpty()) {
+            log.warn("No primary attendee email found for payment confirmation email on booking {}", booking.getRefNo());
+            return;
+        }
+
+        for (CreateBookingRequestDTO.AttendeeDTO attendee : recipientsByEmail.values()) {
+            try {
+                Users guestRecipient = new Users();
+                guestRecipient.setEmail(attendee.getEmail());
+                guestRecipient.setFirstName(attendee.getFirstName());
+                emailService.sendPaymentConfirmationEmail(
+                        guestRecipient, booking, bookingEventDTOs, resolvedPromoCode, resolvedTickets);
+            } catch (Exception e) {
+                log.error("Failed to send payment confirmation email to {} for booking {}",
+                        attendee.getEmail(), booking.getRefNo(), e);
+            }
+        }
     }
 
-    private Optional<CreateBookingRequestDTO.AttendeeDTO> findPrimaryAttendee(
+    private List<CreateBookingRequestDTO.AttendeeDTO> findPrimaryAttendees(
             List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs) {
         return bookingEventDTOs.stream()
                 .filter(event -> event.getAttendees() != null && !event.getAttendees().isEmpty())
                 .flatMap(event -> event.getAttendees().stream())
-                .min(Comparator.comparingInt(CreateBookingRequestDTO.AttendeeDTO::getSequence));
+                .filter(attendee -> attendee.getSequence() == 1)
+                .toList();
     }
 
     private Bookings requireBooking(Bookings booking) {
