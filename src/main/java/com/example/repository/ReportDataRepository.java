@@ -34,13 +34,25 @@ public class ReportDataRepository {
   private static final String TRANSACTION_DATE_SQL =
       "DATE(" + TRANSACTION_DATE_TIME_SQL + ")";
 
+  private static final String TRANSACTION_DATE_BETWEEN_SQL =
+      "WHERE " + TRANSACTION_DATE_SQL + " BETWEEN :startDate AND :endDate";
+
   private static final String TRANSACTION_DATE_ELIGIBILITY_SQL =
-      """
-      (
-        b.type = 'OFFLINE_PAYMENT'
-        OR (b.type = 'ONLINE_PAYMENT' AND p.paid_at IS NOT NULL)
-      )
-      """;
+      "(b.type = 'OFFLINE_PAYMENT' OR (b.type = 'ONLINE_PAYMENT' AND p.paid_at IS NOT NULL))";
+
+  private static final String PROMO_CODES_TRANSACTION_DATE_WHERE_SQL =
+      TRANSACTION_DATE_BETWEEN_SQL
+          + " AND "
+          + TRANSACTION_DATE_ELIGIBILITY_SQL
+          + " AND gc.type IN ("
+          + PROMO_GIFT_CERTIFICATE_TYPES
+          + ")";
+
+  private static final String ORDER_BY_TRANSACTION_DATE_TIME_SQL =
+      "ORDER BY " + TRANSACTION_DATE_TIME_SQL + " ASC";
+
+  private static final String PROMO_CODES_ORDER_BY_SQL =
+      ORDER_BY_TRANSACTION_DATE_TIME_SQL + ", be.event_date ASC, be.event_time ASC, b.id ASC";
 
   @PersistenceContext private EntityManager entityManager;
 
@@ -157,18 +169,8 @@ public class ReportDataRepository {
         INNER JOIN gift_certificates gc ON gc.id = b.gift_certificate_id
         LEFT JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
         INNER JOIN booking_events be ON be.booking_id = b.id
-        WHERE """
-            + TRANSACTION_DATE_SQL
-            + """
-           BETWEEN :startDate AND :endDate
-          AND """
-            + TRANSACTION_DATE_ELIGIBILITY_SQL
-            + """
-          AND gc.type IN ("""
-            + PROMO_GIFT_CERTIFICATE_TYPES
-            + """
-          )
-        """;
+        """
+            + PROMO_CODES_TRANSACTION_DATE_WHERE_SQL;
     Query query = entityManager.createNativeQuery(sql);
     bindDateRange(query, startDate, endDate);
     return toLong(query.getSingleResult());
@@ -218,29 +220,17 @@ public class ReportDataRepository {
             ORDER BY ba2.sequence ASC, ba2.id ASC
             LIMIT 1
         )
-        WHERE """
-            + TRANSACTION_DATE_SQL
+        """
+            + PROMO_CODES_TRANSACTION_DATE_WHERE_SQL
             + """
-           BETWEEN :startDate AND :endDate
-          AND """
-            + TRANSACTION_DATE_ELIGIBILITY_SQL
-            + """
-          AND gc.type IN ("""
-            + PROMO_GIFT_CERTIFICATE_TYPES
-            + """
-          )
           AND be.cancelled_at IS NULL
           AND be.status <> 'CANCELLED'
           AND b.status NOT IN ("""
             + EXCLUDED_BOOKING_STATUSES
             + """
           )
-        ORDER BY """
-            + TRANSACTION_DATE_TIME_SQL
-            + """
-           ASC, be.event_date ASC, be.event_time ASC, b.id ASC
-        """;
-
+        """
+            + PROMO_CODES_ORDER_BY_SQL;
     Query query = entityManager.createNativeQuery(sql);
     bindDateRange(query, startDate, endDate);
 
