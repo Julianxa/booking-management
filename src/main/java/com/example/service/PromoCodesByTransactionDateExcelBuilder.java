@@ -39,7 +39,6 @@ public class PromoCodesByTransactionDateExcelBuilder {
     "Passengers",
     "Activity Total",
     "Activity Provider",
-    "Product Name",
     "Promo Name",
     "Promo Rate Type",
     "Promo Rate",
@@ -132,7 +131,6 @@ public class PromoCodesByTransactionDateExcelBuilder {
     excelRow.createCell(column++).setCellValue(passengers);
     setMoneyCell(excelRow, column++, activityTotal);
     excelRow.createCell(column++).setCellValue(DEFAULT_ACTIVITY_PROVIDER);
-    excelRow.createCell(column++).setBlank();
     excelRow.createCell(column++).setCellValue(nullToBlank(row.promoCode()));
     excelRow.createCell(column++).setCellValue(resolvePromoRateType(row, activityTotal, discount));
     setMoneyCell(excelRow, column++, resolvePromoRate(row, activityTotal, discount));
@@ -145,7 +143,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
     Row row = sheet.createRow(rowIndex);
     row.createCell(0).setCellValue("Total");
     row.createCell(5).setCellValue(totals.totalPassengers);
-    setMoneyCell(row, 12, totals.discount);
+    setMoneyCell(row, 11, totals.discount);
   }
 
   private void createLabelValueRow(Sheet sheet, int rowIndex, String label, String value) {
