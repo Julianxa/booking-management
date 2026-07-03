@@ -43,6 +43,14 @@ public class ReportService {
   }
 
   @Transactional
+  public GenerateBookingsByActivityDateReportResponseDTO generateBookingsByPurchaseDateReport(
+      GenerateBookingsByActivityDateReportRequestDTO request) {
+    Reports report = createQueuedReport(request, Enums.ReportType.BOOKINGS_BY_PURCHASE_DATE);
+    reportGenerationAsyncService.generateReportAsync(report.getId());
+    return toQueuedResponse(report, "Report generation started");
+  }
+
+  @Transactional
   public GenerateBookingsByActivityDateReportResponseDTO generatePromoCodesByTransactionDateReport(
       GenerateBookingsByActivityDateReportRequestDTO request) {
     Reports report = createQueuedReport(request, Enums.ReportType.PROMO_CODES_BY_TRANSACTION_DATE);

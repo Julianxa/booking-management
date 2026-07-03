@@ -1,6 +1,7 @@
 package com.example.repository;
 
 import com.example.model.record.BookingsByActivityDateReportRow;
+import com.example.model.record.GiftCertificateUsedInBookingReportRow;
 import com.example.model.record.PromoCodesByTransactionDateReportRow;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -54,25 +55,24 @@ public class ReportDataRepository {
   private static final String PROMO_CODES_ORDER_BY_SQL =
       ORDER_BY_TRANSACTION_DATE_TIME_SQL + ", be.event_date ASC, be.event_time ASC, b.id ASC";
 
-  @PersistenceContext private EntityManager entityManager;
+  private static final String ONLINE_PURCHASE_DATE_WHERE_SQL =
+      TRANSACTION_DATE_BETWEEN_SQL
+          + " AND b.type = 'ONLINE_PAYMENT'"
+          + " AND p.paid_at IS NOT NULL";
 
-  public long countBookingEventsInDateRange(LocalDate startDate, LocalDate endDate) {
-    String sql =
-        """
-        SELECT COUNT(*)
-        FROM booking_events be
-        WHERE be.event_date BETWEEN :startDate AND :endDate
-        """;
-    Query query = entityManager.createNativeQuery(sql);
-    bindDateRange(query, startDate, endDate);
-    return toLong(query.getSingleResult());
-  }
+  private static final String BOOKINGS_BY_PURCHASE_DATE_WHERE_SQL =
+      ONLINE_PURCHASE_DATE_WHERE_SQL
+          + " AND be.cancelled_at IS NULL"
+          + " AND be.status <> 'CANCELLED'"
+          + " AND b.status NOT IN ("
+          + EXCLUDED_BOOKING_STATUSES
+          + ")";
 
-  @SuppressWarnings("unchecked")
-  public List<BookingsByActivityDateReportRow> findBookingsByActivityDate(
-      LocalDate startDate, LocalDate endDate) {
-    String sql =
-        """
+  private static final String BOOKINGS_BY_PURCHASE_DATE_ORDER_BY_SQL =
+      ORDER_BY_TRANSACTION_DATE_TIME_SQL + ", be.event_date ASC, be.event_time ASC, b.id ASC";
+
+  private static final String BOOKINGS_BY_ACTIVITY_DATE_SELECT_SQL =
+      """
         SELECT
             b.ref_no,
             be.id,
@@ -80,8 +80,8 @@ public class ReportDataRepository {
             be.event_time,
             be.total,
             """
-            + TRANSACTION_DATE_TIME_SQL
-            + """
+          + TRANSACTION_DATE_TIME_SQL
+          + """
             ,
             b.discount,
             b.total_paid_price,
@@ -113,6 +113,103 @@ public class ReportDataRepository {
         )
         LEFT JOIN users u ON u.id = b.user_id
         LEFT JOIN organizations o ON o.id = u.org_id AND u.role = 'AGENT'
+        """;
+
+  @PersistenceContext private EntityManager entityManager;
+
+  public long countBookingEventsInDateRange(LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT COUNT(*)
+        FROM booking_events be
+        WHERE be.event_date BETWEEN :startDate AND :endDate
+        """;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+    return toLong(query.getSingleResult());
+  }
+
+  public long countBookingEventsByPurchaseDateInRange(LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT COUNT(*)
+        FROM booking_events be
+        INNER JOIN bookings b ON b.id = be.booking_id
+        LEFT JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
+        """
+            + ONLINE_PURCHASE_DATE_WHERE_SQL;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+    return toLong(query.getSingleResult());
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<BookingsByActivityDateReportRow> findBookingsByPurchaseDate(
+      LocalDate startDate, LocalDate endDate) {
+    String sql =
+        BOOKINGS_BY_ACTIVITY_DATE_SELECT_SQL
+            + BOOKINGS_BY_PURCHASE_DATE_WHERE_SQL
+            + " "
+            + BOOKINGS_BY_PURCHASE_DATE_ORDER_BY_SQL;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+
+    return ((List<Object[]>) query.getResultList()).stream().map(this::mapRow).toList();
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<GiftCertificateUsedInBookingReportRow> findGiftCertificatesUsedInBookingsByPurchaseDate(
+      LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT
+            b.ref_no,
+            """
+            + TRANSACTION_DATE_TIME_SQL
+            + """
+            ,
+            gc.ref_no,
+            COALESCE(
+                NULLIF(TRIM(CONCAT(COALESCE(gc_user.first_name, ''), ' ', COALESCE(gc_user.last_name, ''))), ''),
+                NULLIF(TRIM(CONCAT(COALESCE(ba.first_name, ''), ' ', COALESCE(ba.last_name, ''))), '')
+            ),
+            gc.message_to_recipient,
+            b.discount
+        FROM bookings b
+        INNER JOIN gift_certificate_redemptions gcr
+            ON gcr.booking_id = b.id AND gcr.status = 'SUCCESS'
+        INNER JOIN gift_certificates gc ON gc.id = gcr.gift_certificate_id
+        LEFT JOIN payments p ON p.booking_id = b.id AND p.payment_status = 'SUCCEEDED'
+        LEFT JOIN users gc_user ON gc_user.id = gc.user_id
+        LEFT JOIN booking_attendees ba ON ba.id = (
+            SELECT ba2.id
+            FROM booking_attendees ba2
+            INNER JOIN booking_events be2 ON be2.id = ba2.booking_event_id
+            WHERE be2.booking_id = b.id
+            ORDER BY ba2.sequence ASC, ba2.id ASC
+            LIMIT 1
+        )
+        """
+            + ONLINE_PURCHASE_DATE_WHERE_SQL
+            + " AND b.status NOT IN ("
+            + EXCLUDED_BOOKING_STATUSES
+            + ") "
+            + ORDER_BY_TRANSACTION_DATE_TIME_SQL
+            + ", b.ref_no ASC";
+
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+
+    return ((List<Object[]>) query.getResultList())
+        .stream().map(this::mapGiftCertificateUsedInBookingRow).toList();
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<BookingsByActivityDateReportRow> findBookingsByActivityDate(
+      LocalDate startDate, LocalDate endDate) {
+    String sql =
+        BOOKINGS_BY_ACTIVITY_DATE_SELECT_SQL
+            + """
         WHERE be.event_date BETWEEN :startDate AND :endDate
           AND be.cancelled_at IS NULL
           AND be.status <> 'CANCELLED'
@@ -236,6 +333,16 @@ public class ReportDataRepository {
 
     return ((List<Object[]>) query.getResultList())
         .stream().map(this::mapPromoCodesByTransactionDateRow).toList();
+  }
+
+  private GiftCertificateUsedInBookingReportRow mapGiftCertificateUsedInBookingRow(Object[] row) {
+    return new GiftCertificateUsedInBookingReportRow(
+        asString(row[0]),
+        asZonedDateTime(row[1]),
+        asString(row[2]),
+        asString(row[3]),
+        asString(row[4]),
+        asBigDecimal(row[5]));
   }
 
   private PromoCodesByTransactionDateReportRow mapPromoCodesByTransactionDateRow(Object[] row) {

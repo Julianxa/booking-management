@@ -68,6 +68,39 @@ public class ReportController {
   }
 
   @Operation(
+      summary = "Generate bookings by purchase date report",
+      description =
+          "Queues an Excel report for online bookings within the purchase date range "
+              + "(payment paid_at), stores generation status in the database, and returns a "
+              + "report record immediately.",
+      responses = {
+        @ApiResponse(
+            responseCode = "202",
+            description = "Report generation queued",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema =
+                        @Schema(
+                            implementation =
+                                GenerateBookingsByActivityDateReportResponseDTO.class))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request data",
+            content =
+                @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponseDTO.class)))
+      })
+  @PostMapping("/reports/bookings-by-purchase-date")
+  public ResponseEntity<GenerateBookingsByActivityDateReportResponseDTO>
+      generateBookingsByPurchaseDateReport(
+          @Valid @RequestBody GenerateBookingsByActivityDateReportRequestDTO request) {
+    return ResponseEntity.accepted()
+        .body(reportService.generateBookingsByPurchaseDateReport(request));
+  }
+
+  @Operation(
       summary = "Generate promo codes by transaction date report",
       description =
           "Queues an Excel report for bookings that redeemed VALUE, EVENT, PERSONAL_VALUE, or "

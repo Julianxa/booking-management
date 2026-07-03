@@ -63,12 +63,12 @@ public class BookingsByActivityDateExcelBuilder {
       Sheet sheet = workbook.createSheet(sheetName.substring(0, Math.min(sheetName.length(), 31)));
 
       ZonedDateTime generatedAt = ZonedDateTime.now(REPORT_ZONE);
-      writeMetadata(sheet, startDate, endDate, generatedBy, generatedAt);
+      CellStyle sectionTitleStyle = createSectionTitleStyle(workbook);
+      int rowIndex =
+          writeMetadata(sheet, startDate, endDate, generatedBy, generatedAt, sectionTitleStyle);
 
-      int headerRowIndex = 18;
-      writeActivityHeaderRow(sheet, headerRowIndex);
+      writeActivityHeaderRow(sheet, rowIndex++);
 
-      int rowIndex = headerRowIndex + 1;
       ActivityTotals totals = new ActivityTotals();
 
       for (BookingsByActivityDateReportRow row : rows) {
@@ -90,12 +90,13 @@ public class BookingsByActivityDateExcelBuilder {
     }
   }
 
-  private void writeMetadata(
+  private int writeMetadata(
       Sheet sheet,
       LocalDate startDate,
       LocalDate endDate,
       String generatedBy,
-      ZonedDateTime generatedAt) {
+      ZonedDateTime generatedAt,
+      CellStyle sectionTitleStyle) {
     int row = 2;
     createLabelValueRow(sheet, row++, "ALL INTERNET BOOKINGS BY ACTIVITY DATE", null);
     row++;
@@ -109,12 +110,25 @@ public class BookingsByActivityDateExcelBuilder {
     createLabelValueRow(sheet, row++, "Download Excel Download CSV", null);
     row++;
     createLabelValueRow(
-        sheet,
-        row++,
-        "*Passenger Legend Seniors/Adult//Child (4-11)/",
-        null);
-    row++;
-    createLabelValueRow(sheet, row++, "Activity Summary", null);
+        sheet, row++, "*Passenger Legend Seniors/Adult//Child (4-11)/", null);
+    createSectionTitleRow(sheet, row++, "Activity Summary", sectionTitleStyle);
+    return row;
+  }
+
+  private CellStyle createSectionTitleStyle(Workbook workbook) {
+    CellStyle style = workbook.createCellStyle();
+    Font font = workbook.createFont();
+    font.setBold(true);
+    style.setFont(font);
+    return style;
+  }
+
+  private void createSectionTitleRow(
+      Sheet sheet, int rowIndex, String title, CellStyle sectionTitleStyle) {
+    Row row = sheet.createRow(rowIndex);
+    Cell cell = row.createCell(0);
+    cell.setCellValue(title);
+    cell.setCellStyle(sectionTitleStyle);
   }
 
   private void writeActivityHeaderRow(Sheet sheet, int rowIndex) {
