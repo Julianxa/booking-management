@@ -6,8 +6,8 @@ import com.example.exception.report.ReportNotFoundException;
 import com.example.exception.ErrorCode;
 import com.example.mapper.ReportMapper;
 import com.example.model.dto.DeleteReportResponseDTO;
-import com.example.model.dto.GenerateBookingsByActivityDateReportRequestDTO;
-import com.example.model.dto.GenerateBookingsByActivityDateReportResponseDTO;
+import com.example.model.dto.GenerateReportRequestDTO;
+import com.example.model.dto.GenerateReportResponseDTO;
 import com.example.model.dto.GetListReportsResponseDTO;
 import com.example.model.dto.ReportSummaryResponseDTO;
 import com.example.model.entity.Reports;
@@ -35,25 +35,8 @@ public class ReportService {
   private final ReportGenerationAsyncService reportGenerationAsyncService;
 
   @Transactional
-  public GenerateBookingsByActivityDateReportResponseDTO generateBookingsByActivityDateReport(
-      GenerateBookingsByActivityDateReportRequestDTO request) {
-    Reports report = createQueuedReport(request, Enums.ReportType.BOOKINGS_BY_ACTIVITY_DATE);
-    reportGenerationAsyncService.generateReportAsync(report.getId());
-    return toQueuedResponse(report, "Report generation started");
-  }
-
-  @Transactional
-  public GenerateBookingsByActivityDateReportResponseDTO generateBookingsByPurchaseDateReport(
-      GenerateBookingsByActivityDateReportRequestDTO request) {
-    Reports report = createQueuedReport(request, Enums.ReportType.BOOKINGS_BY_PURCHASE_DATE);
-    reportGenerationAsyncService.generateReportAsync(report.getId());
-    return toQueuedResponse(report, "Report generation started");
-  }
-
-  @Transactional
-  public GenerateBookingsByActivityDateReportResponseDTO generatePromoCodesByTransactionDateReport(
-      GenerateBookingsByActivityDateReportRequestDTO request) {
-    Reports report = createQueuedReport(request, Enums.ReportType.PROMO_CODES_BY_TRANSACTION_DATE);
+  public GenerateReportResponseDTO generateReport(GenerateReportRequestDTO request) {
+    Reports report = createQueuedReport(request);
     reportGenerationAsyncService.generateReportAsync(report.getId());
     return toQueuedResponse(report, "Report generation started");
   }
@@ -116,8 +99,7 @@ public class ReportService {
     return summary;
   }
 
-  private Reports createQueuedReport(
-      GenerateBookingsByActivityDateReportRequestDTO request, Enums.ReportType reportType) {
+  private Reports createQueuedReport(GenerateReportRequestDTO request) {
     LocalDate startDate = request.getStartDate();
     LocalDate endDate = request.getEndDate();
 
@@ -129,7 +111,7 @@ public class ReportService {
     return reportsRepository.save(
         Reports.builder()
             .refNo(referenceNoGenerator.generateReportReference())
-            .reportType(reportType)
+            .reportType(request.getReportType())
             .status(Enums.ReportStatus.PENDING)
             .startDate(startDate)
             .endDate(endDate)
@@ -139,10 +121,10 @@ public class ReportService {
             .build());
   }
 
-  private GenerateBookingsByActivityDateReportResponseDTO toQueuedResponse(
-      Reports report, String message) {
-    return GenerateBookingsByActivityDateReportResponseDTO.builder()
+  private GenerateReportResponseDTO toQueuedResponse(Reports report, String message) {
+    return GenerateReportResponseDTO.builder()
         .id(report.getRefNo())
+        .reportType(report.getReportType())
         .reportStartDate(report.getStartDate())
         .reportEndDate(report.getEndDate())
         .includedBookingEvents(report.getIncludedBookingEvents())

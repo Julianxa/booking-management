@@ -2,8 +2,8 @@ package com.example.controller;
 
 import com.example.model.dto.DeleteReportResponseDTO;
 import com.example.model.dto.ErrorResponseDTO;
-import com.example.model.dto.GenerateBookingsByActivityDateReportRequestDTO;
-import com.example.model.dto.GenerateBookingsByActivityDateReportResponseDTO;
+import com.example.model.dto.GenerateReportRequestDTO;
+import com.example.model.dto.GenerateReportResponseDTO;
 import com.example.model.dto.GetListReportsResponseDTO;
 import com.example.model.dto.ReportSummaryResponseDTO;
 import com.example.service.ReportService;
@@ -37,10 +37,12 @@ public class ReportController {
   private final ReportService reportService;
 
   @Operation(
-      summary = "Generate bookings by activity date report",
+      summary = "Generate report",
       description =
-          "Queues an Excel report for all paid online bookings within the activity date range, "
-              + "stores generation status in the database, and returns a report record immediately.",
+          "Queues an Excel report for the requested report type and date range, stores "
+              + "generation status in the database, and returns a report record immediately. "
+              + "Supported report types: BOOKINGS_BY_ACTIVITY_DATE, BOOKINGS_BY_PURCHASE_DATE, "
+              + "PROMO_CODES_BY_TRANSACTION_DATE.",
       responses = {
         @ApiResponse(
             responseCode = "202",
@@ -48,10 +50,7 @@ public class ReportController {
             content =
                 @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema =
-                        @Schema(
-                            implementation =
-                                GenerateBookingsByActivityDateReportResponseDTO.class))),
+                    schema = @Schema(implementation = GenerateReportResponseDTO.class))),
         @ApiResponse(
             responseCode = "400",
             description = "Invalid request data",
@@ -60,77 +59,10 @@ public class ReportController {
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponseDTO.class)))
       })
-  @PostMapping("/reports/bookings-by-activity-date")
-  public ResponseEntity<GenerateBookingsByActivityDateReportResponseDTO>
-      generateBookingsByActivityDateReport(
-          @Valid @RequestBody GenerateBookingsByActivityDateReportRequestDTO request) {
-    return ResponseEntity.accepted().body(reportService.generateBookingsByActivityDateReport(request));
-  }
-
-  @Operation(
-      summary = "Generate bookings by purchase date report",
-      description =
-          "Queues an Excel report for online bookings within the purchase date range "
-              + "(payment paid_at), stores generation status in the database, and returns a "
-              + "report record immediately.",
-      responses = {
-        @ApiResponse(
-            responseCode = "202",
-            description = "Report generation queued",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema =
-                        @Schema(
-                            implementation =
-                                GenerateBookingsByActivityDateReportResponseDTO.class))),
-        @ApiResponse(
-            responseCode = "400",
-            description = "Invalid request data",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = ErrorResponseDTO.class)))
-      })
-  @PostMapping("/reports/bookings-by-purchase-date")
-  public ResponseEntity<GenerateBookingsByActivityDateReportResponseDTO>
-      generateBookingsByPurchaseDateReport(
-          @Valid @RequestBody GenerateBookingsByActivityDateReportRequestDTO request) {
-    return ResponseEntity.accepted()
-        .body(reportService.generateBookingsByPurchaseDateReport(request));
-  }
-
-  @Operation(
-      summary = "Generate promo codes by transaction date report",
-      description =
-          "Queues an Excel report for bookings that redeemed VALUE, EVENT, PERSONAL_VALUE, or "
-              + "PERSONAL_EVENT promo codes within the payment transaction date range, stores "
-              + "generation status in the database, and returns a report record immediately.",
-      responses = {
-        @ApiResponse(
-            responseCode = "202",
-            description = "Report generation queued",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema =
-                        @Schema(
-                            implementation =
-                                GenerateBookingsByActivityDateReportResponseDTO.class))),
-        @ApiResponse(
-            responseCode = "400",
-            description = "Invalid request data",
-            content =
-                @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = ErrorResponseDTO.class)))
-      })
-  @PostMapping("/reports/promo-codes-by-transaction-date")
-  public ResponseEntity<GenerateBookingsByActivityDateReportResponseDTO>
-      generatePromoCodesByTransactionDateReport(
-          @Valid @RequestBody GenerateBookingsByActivityDateReportRequestDTO request) {
-    return ResponseEntity.accepted()
-        .body(reportService.generatePromoCodesByTransactionDateReport(request));
+  @PostMapping("/reports")
+  public ResponseEntity<GenerateReportResponseDTO> generateReport(
+      @Valid @RequestBody GenerateReportRequestDTO request) {
+    return ResponseEntity.accepted().body(reportService.generateReport(request));
   }
 
   @Operation(
