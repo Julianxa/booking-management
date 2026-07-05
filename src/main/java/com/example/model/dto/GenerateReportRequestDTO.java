@@ -26,7 +26,8 @@ public class GenerateReportRequestDTO {
         "BOOKINGS_BY_ACTIVITY_DATE",
         "BOOKINGS_BY_PURCHASE_DATE",
         "PROMO_CODES_BY_TRANSACTION_DATE",
-        "COUNTRY_OF_ORIGIN"
+        "COUNTRY_OF_ORIGIN",
+        "EXPIRED_GIFT_CERTIFICATE_CODES"
       })
   private Enums.ReportType reportType;
 

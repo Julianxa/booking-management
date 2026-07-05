@@ -2,6 +2,7 @@ package com.example.repository;
 
 import com.example.model.record.BookingsByActivityDateReportRow;
 import com.example.model.record.CountryOfOriginReportRow;
+import com.example.model.record.ExpiredGiftCertificateCodesReportRow;
 import com.example.model.record.GiftCertificateUsedInBookingReportRow;
 import com.example.model.record.PromoCodesByTransactionDateReportRow;
 import jakarta.persistence.EntityManager;
@@ -86,6 +87,13 @@ public class ReportDataRepository {
   private static final String ACTIVITY_DATE_COUNTRY_OF_ORIGIN_WHERE_SQL =
       ACTIVITY_DATE_BOOKING_WHERE_SQL
           + " AND ba.country IS NOT NULL AND TRIM(ba.country) <> ''";
+
+  private static final String EXPIRED_GIFT_CERTIFICATE_EXPIRY_WHERE_SQL =
+      "WHERE gc.expiry_date BETWEEN :startDate AND :endDate"
+          + " AND gc.cancelled_at IS NULL";
+
+  private static final String EXPIRED_GIFT_CERTIFICATE_ORDER_BY_SQL =
+      "ORDER BY gc.expiry_date ASC, gc.id ASC";
 
   private static final String BOOKINGS_BY_ACTIVITY_DATE_ORDER_BY_SQL =
       "ORDER BY be.event_date ASC, be.event_time ASC, b.id ASC";
@@ -186,6 +194,91 @@ public class ReportDataRepository {
 
     return ((List<Object[]>) query.getResultList())
         .stream().map(this::mapCountryOfOriginRow).toList();
+  }
+
+  public long countExpiredGiftCertificateCodesInRange(LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT COUNT(*)
+        FROM gift_certificates gc
+        """
+            + EXPIRED_GIFT_CERTIFICATE_EXPIRY_WHERE_SQL;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+    return toLong(query.getSingleResult());
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<ExpiredGiftCertificateCodesReportRow> findExpiredGiftCertificateCodes(
+      LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT
+            CASE WHEN gc.cancelled_at IS NULL THEN 'Open' ELSE 'Close' END AS type_label,
+            gc.ref_no,
+            gc.promo_code,
+            CASE WHEN gc.expiry_date < CURRENT_DATE THEN 'Expired' ELSE 'Active' END AS status_label,
+            CASE
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                    COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
+                ELSE COALESCE(event_value.event_face_value, 0)
+            END AS wholesale_value,
+            CASE
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                    COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
+                ELSE COALESCE(event_value.event_face_value, 0)
+            END AS retail_value,
+            gc.expiry_date,
+            NULLIF(
+                TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))),
+                ''
+            ) AS purchaser_name,
+            gc.message_to_recipient,
+            CASE
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN COALESCE(gci.value, 0)
+                WHEN gc.quantity IS NULL OR gc.quantity = 0 THEN 0
+                ELSE COALESCE(event_value.event_face_value, 0) * gc.remaining_quantity / gc.quantity
+            END AS balance
+        FROM gift_certificates gc
+        LEFT JOIN users u ON u.id = gc.user_id
+        LEFT JOIN (
+            SELECT gift_certificate_id, MIN(id) AS item_id
+            FROM gift_certificate_items
+            GROUP BY gift_certificate_id
+        ) gci_pick ON gci_pick.gift_certificate_id = gc.id
+        LEFT JOIN gift_certificate_items gci ON gci.id = gci_pick.item_id
+        LEFT JOIN (
+            SELECT gcr.gift_certificate_id,
+                   SUM(COALESCE(b.discount, 0)) AS total_discount
+            FROM gift_certificate_redemptions gcr
+            INNER JOIN bookings b ON b.id = gcr.booking_id
+            WHERE gcr.status = 'SUCCESS'
+            GROUP BY gcr.gift_certificate_id
+        ) redeemed ON redeemed.gift_certificate_id = gc.id
+        LEFT JOIN (
+            SELECT gci2.gift_certificate_id,
+                   SUM(COALESCE(price_pick.price, 0) * gci2.quantity) AS event_face_value
+            FROM gift_certificate_items gci2
+            LEFT JOIN (
+                SELECT tpp.ticket_type_id, tpp.price
+                FROM ticket_price_periods tpp
+                INNER JOIN (
+                    SELECT ticket_type_id, MAX(id) AS period_id
+                    FROM ticket_price_periods
+                    GROUP BY ticket_type_id
+                ) latest_period ON latest_period.period_id = tpp.id
+            ) price_pick ON price_pick.ticket_type_id = gci2.ticket_type_id
+            GROUP BY gci2.gift_certificate_id
+        ) event_value ON event_value.gift_certificate_id = gc.id
+        """
+            + EXPIRED_GIFT_CERTIFICATE_EXPIRY_WHERE_SQL
+            + " "
+            + EXPIRED_GIFT_CERTIFICATE_ORDER_BY_SQL;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+
+    return ((List<Object[]>) query.getResultList())
+        .stream().map(this::mapExpiredGiftCertificateCodesRow).toList();
   }
 
   public long countBookingEventsByPurchaseDateInRange(LocalDate startDate, LocalDate endDate) {
@@ -401,6 +494,20 @@ public class ReportDataRepository {
   private CountryOfOriginReportRow mapCountryOfOriginRow(Object[] row) {
     return new CountryOfOriginReportRow(
         asString(row[0]), toLong(row[1]), toLong(row[2]));
+  }
+
+  private ExpiredGiftCertificateCodesReportRow mapExpiredGiftCertificateCodesRow(Object[] row) {
+    return new ExpiredGiftCertificateCodesReportRow(
+        asString(row[0]),
+        asString(row[1]),
+        asString(row[2]),
+        asString(row[3]),
+        asBigDecimal(row[4]),
+        asBigDecimal(row[5]),
+        asLocalDate(row[6]),
+        asString(row[7]),
+        asString(row[8]),
+        asBigDecimal(row[9]));
   }
 
   private PromoCodesByTransactionDateReportRow mapPromoCodesByTransactionDateRow(Object[] row) {
