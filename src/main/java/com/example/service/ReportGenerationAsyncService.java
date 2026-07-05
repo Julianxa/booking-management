@@ -3,6 +3,7 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.model.entity.Reports;
 import com.example.model.record.BookingsByActivityDateReportRow;
+import com.example.model.record.CountryOfOriginReportRow;
 import com.example.model.record.GiftCertificateUsedInBookingReportRow;
 import com.example.model.record.PromoCodesByTransactionDateReportRow;
 import com.example.repository.ReportDataRepository;
@@ -30,6 +31,7 @@ public class ReportGenerationAsyncService {
   private final BookingsByActivityDateExcelBuilder bookingsByActivityDateExcelBuilder;
   private final BookingsByPurchaseDateExcelBuilder bookingsByPurchaseDateExcelBuilder;
   private final PromoCodesByTransactionDateExcelBuilder promoCodesByTransactionDateExcelBuilder;
+  private final CountryOfOriginExcelBuilder countryOfOriginExcelBuilder;
   private final AwsService awsService;
 
   @Async("reportExecutor")
@@ -47,6 +49,7 @@ public class ReportGenerationAsyncService {
         case BOOKINGS_BY_ACTIVITY_DATE -> generateBookingsByActivityDateReport(reportId);
         case BOOKINGS_BY_PURCHASE_DATE -> generateBookingsByPurchaseDateReport(reportId);
         case PROMO_CODES_BY_TRANSACTION_DATE -> generatePromoCodesByTransactionDateReport(reportId);
+        case COUNTRY_OF_ORIGIN -> generateCountryOfOriginReport(reportId);
       }
     } catch (Exception e) {
       log.error("Async report generation failed for report {}", reportId, e);
@@ -197,6 +200,45 @@ public class ReportGenerationAsyncService {
     report.setS3Key(s3Key);
     report.setIncludedBookingEvents(rows.size());
     report.setTotalBookingEventsInRange(totalBookingEventsInRange);
+    report.setFileSizeBytes((long) workbookBytes.length);
+    report.setStatus(Enums.ReportStatus.COMPLETED);
+    report.setCompletedAt(ZonedDateTime.now());
+    report.setErrorMessage(null);
+    reportsRepository.save(report);
+  }
+
+  @Transactional
+  protected void generateCountryOfOriginReport(Long reportId) {
+    Reports report = reportsRepository.findById(reportId).orElseThrow();
+
+    long totalBookingsInRange =
+        reportDataRepository.countDistinctBookingsWithCountryByActivityDateInRange(
+            report.getStartDate(), report.getEndDate());
+    List<CountryOfOriginReportRow> rows =
+        reportDataRepository.findCountryOfOriginByActivityDate(
+            report.getStartDate(), report.getEndDate());
+
+    byte[] workbookBytes =
+        countryOfOriginExcelBuilder.build(
+            report.getStartDate(),
+            report.getEndDate(),
+            report.getGeneratedBy(),
+            rows);
+
+    String s3Key =
+        "reports/country-of-origin/"
+            + report.getStartDate()
+            + "_to_"
+            + report.getEndDate()
+            + "_"
+            + UUID.randomUUID()
+            + ".xlsx";
+
+    awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
+
+    report.setS3Key(s3Key);
+    report.setIncludedBookingEvents(rows.size());
+    report.setTotalBookingEventsInRange(totalBookingsInRange);
     report.setFileSizeBytes((long) workbookBytes.length);
     report.setStatus(Enums.ReportStatus.COMPLETED);
     report.setCompletedAt(ZonedDateTime.now());

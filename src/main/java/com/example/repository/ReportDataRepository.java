@@ -1,6 +1,7 @@
 package com.example.repository;
 
 import com.example.model.record.BookingsByActivityDateReportRow;
+import com.example.model.record.CountryOfOriginReportRow;
 import com.example.model.record.GiftCertificateUsedInBookingReportRow;
 import com.example.model.record.PromoCodesByTransactionDateReportRow;
 import jakarta.persistence.EntityManager;
@@ -71,6 +72,24 @@ public class ReportDataRepository {
   private static final String BOOKINGS_BY_PURCHASE_DATE_ORDER_BY_SQL =
       ORDER_BY_TRANSACTION_DATE_TIME_SQL + ", be.event_date ASC, be.event_time ASC, b.id ASC";
 
+  private static final String ACTIVITY_DATE_BOOKING_FILTER_SQL =
+      "be.event_date BETWEEN :startDate AND :endDate"
+          + " AND be.cancelled_at IS NULL"
+          + " AND be.status <> 'CANCELLED'"
+          + " AND b.status NOT IN ("
+          + EXCLUDED_BOOKING_STATUSES
+          + ")";
+
+  private static final String ACTIVITY_DATE_BOOKING_WHERE_SQL =
+      "WHERE " + ACTIVITY_DATE_BOOKING_FILTER_SQL;
+
+  private static final String ACTIVITY_DATE_COUNTRY_OF_ORIGIN_WHERE_SQL =
+      ACTIVITY_DATE_BOOKING_WHERE_SQL
+          + " AND ba.country IS NOT NULL AND TRIM(ba.country) <> ''";
+
+  private static final String BOOKINGS_BY_ACTIVITY_DATE_ORDER_BY_SQL =
+      "ORDER BY be.event_date ASC, be.event_time ASC, b.id ASC";
+
   private static final String BOOKINGS_BY_ACTIVITY_DATE_SELECT_SQL =
       """
         SELECT
@@ -127,6 +146,46 @@ public class ReportDataRepository {
     Query query = entityManager.createNativeQuery(sql);
     bindDateRange(query, startDate, endDate);
     return toLong(query.getSingleResult());
+  }
+
+  public long countDistinctBookingsWithCountryByActivityDateInRange(
+      LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT COUNT(DISTINCT b.id)
+        FROM booking_attendees ba
+        INNER JOIN booking_events be ON be.id = ba.booking_event_id
+        INNER JOIN bookings b ON b.id = be.booking_id
+        """
+            + ACTIVITY_DATE_COUNTRY_OF_ORIGIN_WHERE_SQL;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+    return toLong(query.getSingleResult());
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<CountryOfOriginReportRow> findCountryOfOriginByActivityDate(
+      LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT
+            UPPER(TRIM(ba.country)) AS country_code,
+            COUNT(ba.id) AS total_passengers,
+            COUNT(DISTINCT b.id) AS booking_count
+        FROM booking_attendees ba
+        INNER JOIN booking_events be ON be.id = ba.booking_event_id
+        INNER JOIN bookings b ON b.id = be.booking_id
+        """
+            + ACTIVITY_DATE_COUNTRY_OF_ORIGIN_WHERE_SQL
+            + """
+        GROUP BY UPPER(TRIM(ba.country))
+        ORDER BY total_passengers DESC, country_code ASC
+        """;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+
+    return ((List<Object[]>) query.getResultList())
+        .stream().map(this::mapCountryOfOriginRow).toList();
   }
 
   public long countBookingEventsByPurchaseDateInRange(LocalDate startDate, LocalDate endDate) {
@@ -209,16 +268,10 @@ public class ReportDataRepository {
       LocalDate startDate, LocalDate endDate) {
     String sql =
         BOOKINGS_BY_ACTIVITY_DATE_SELECT_SQL
-            + """
-        WHERE be.event_date BETWEEN :startDate AND :endDate
-          AND be.cancelled_at IS NULL
-          AND be.status <> 'CANCELLED'
-          AND b.status NOT IN ("""
-            + EXCLUDED_BOOKING_STATUSES
-            + """
-          )
-        ORDER BY be.event_date ASC, be.event_time ASC, b.id ASC
-        """;
+            + " "
+            + ACTIVITY_DATE_BOOKING_WHERE_SQL
+            + " "
+            + BOOKINGS_BY_ACTIVITY_DATE_ORDER_BY_SQL;
 
     Query query = entityManager.createNativeQuery(sql);
     bindDateRange(query, startDate, endDate);
@@ -343,6 +396,11 @@ public class ReportDataRepository {
         asString(row[3]),
         asString(row[4]),
         asBigDecimal(row[5]));
+  }
+
+  private CountryOfOriginReportRow mapCountryOfOriginRow(Object[] row) {
+    return new CountryOfOriginReportRow(
+        asString(row[0]), toLong(row[1]), toLong(row[2]));
   }
 
   private PromoCodesByTransactionDateReportRow mapPromoCodesByTransactionDateRow(Object[] row) {

@@ -25,7 +25,8 @@ public class GenerateReportRequestDTO {
       allowableValues = {
         "BOOKINGS_BY_ACTIVITY_DATE",
         "BOOKINGS_BY_PURCHASE_DATE",
-        "PROMO_CODES_BY_TRANSACTION_DATE"
+        "PROMO_CODES_BY_TRANSACTION_DATE",
+        "COUNTRY_OF_ORIGIN"
       })
   private Enums.ReportType reportType;
 
