@@ -4,6 +4,7 @@ import com.example.model.record.BookingsByActivityDateReportRow;
 import com.example.model.record.CountryOfOriginReportRow;
 import com.example.model.record.ExpiredGiftCertificateCodesReportRow;
 import com.example.model.record.GiftCertificateUsedInBookingReportRow;
+import com.example.model.record.RedeemedGiftCertificateCodesReportRow;
 import com.example.model.record.PromoCodesByTransactionDateReportRow;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -94,6 +95,13 @@ public class ReportDataRepository {
 
   private static final String EXPIRED_GIFT_CERTIFICATE_ORDER_BY_SQL =
       "ORDER BY gc.expiry_date ASC, gc.id ASC";
+
+  private static final String REDEEMED_GIFT_CERTIFICATE_REDEMPTION_WHERE_SQL =
+      "WHERE gcr.status = 'SUCCESS'"
+          + " AND DATE(gcr.redeemed_at) BETWEEN :startDate AND :endDate";
+
+  private static final String REDEEMED_GIFT_CERTIFICATE_ORDER_BY_SQL =
+      "ORDER BY gcr.redeemed_at ASC, gc.id ASC";
 
   private static final String BOOKINGS_BY_ACTIVITY_DATE_ORDER_BY_SQL =
       "ORDER BY be.event_date ASC, be.event_time ASC, b.id ASC";
@@ -279,6 +287,98 @@ public class ReportDataRepository {
 
     return ((List<Object[]>) query.getResultList())
         .stream().map(this::mapExpiredGiftCertificateCodesRow).toList();
+  }
+
+  public long countRedeemedGiftCertificateCodesInRange(LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT COUNT(*)
+        FROM gift_certificate_redemptions gcr
+        """
+            + REDEEMED_GIFT_CERTIFICATE_REDEMPTION_WHERE_SQL;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+    return toLong(query.getSingleResult());
+  }
+
+  @SuppressWarnings("unchecked")
+  public List<RedeemedGiftCertificateCodesReportRow> findRedeemedGiftCertificateCodes(
+      LocalDate startDate, LocalDate endDate) {
+    String sql =
+        """
+        SELECT
+            CASE WHEN gc.cancelled_at IS NULL THEN 'Open' ELSE 'Close' END AS type_label,
+            gc.ref_no,
+            gc.promo_code,
+            'Redeemed' AS status_label,
+            b.id,
+            DATE(gc.created_at),
+            gc.expiry_date,
+            gcr.redeemed_at,
+            DATEDIFF(DATE(gcr.redeemed_at), DATE(gc.created_at)),
+            NULLIF(
+                TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))),
+                ''
+            ) AS purchaser_name,
+            gc.message_to_recipient,
+            CASE
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                    COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
+                ELSE COALESCE(event_value.event_face_value, 0)
+            END AS wholesale_value,
+            CASE
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                    COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
+                ELSE COALESCE(event_value.event_face_value, 0)
+            END AS retail_value,
+            COALESCE(b.discount, 0),
+            CASE
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                    COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
+                ELSE COALESCE(event_value.event_face_value, 0)
+            END - COALESCE(b.discount, 0)
+        FROM gift_certificate_redemptions gcr
+        INNER JOIN gift_certificates gc ON gc.id = gcr.gift_certificate_id
+        INNER JOIN bookings b ON b.id = gcr.booking_id
+        LEFT JOIN users u ON u.id = gc.user_id
+        LEFT JOIN (
+            SELECT gift_certificate_id, MIN(id) AS item_id
+            FROM gift_certificate_items
+            GROUP BY gift_certificate_id
+        ) gci_pick ON gci_pick.gift_certificate_id = gc.id
+        LEFT JOIN gift_certificate_items gci ON gci.id = gci_pick.item_id
+        LEFT JOIN (
+            SELECT gcr_inner.gift_certificate_id,
+                   SUM(COALESCE(b_inner.discount, 0)) AS total_discount
+            FROM gift_certificate_redemptions gcr_inner
+            INNER JOIN bookings b_inner ON b_inner.id = gcr_inner.booking_id
+            WHERE gcr_inner.status = 'SUCCESS'
+            GROUP BY gcr_inner.gift_certificate_id
+        ) redeemed ON redeemed.gift_certificate_id = gc.id
+        LEFT JOIN (
+            SELECT gci2.gift_certificate_id,
+                   SUM(COALESCE(price_pick.price, 0) * gci2.quantity) AS event_face_value
+            FROM gift_certificate_items gci2
+            LEFT JOIN (
+                SELECT tpp.ticket_type_id, tpp.price
+                FROM ticket_price_periods tpp
+                INNER JOIN (
+                    SELECT ticket_type_id, MAX(id) AS period_id
+                    FROM ticket_price_periods
+                    GROUP BY ticket_type_id
+                ) latest_period ON latest_period.period_id = tpp.id
+            ) price_pick ON price_pick.ticket_type_id = gci2.ticket_type_id
+            GROUP BY gci2.gift_certificate_id
+        ) event_value ON event_value.gift_certificate_id = gc.id
+        """
+            + REDEEMED_GIFT_CERTIFICATE_REDEMPTION_WHERE_SQL
+            + " "
+            + REDEEMED_GIFT_CERTIFICATE_ORDER_BY_SQL;
+    Query query = entityManager.createNativeQuery(sql);
+    bindDateRange(query, startDate, endDate);
+
+    return ((List<Object[]>) query.getResultList())
+        .stream().map(this::mapRedeemedGiftCertificateCodesRow).toList();
   }
 
   public long countBookingEventsByPurchaseDateInRange(LocalDate startDate, LocalDate endDate) {
@@ -508,6 +608,25 @@ public class ReportDataRepository {
         asString(row[7]),
         asString(row[8]),
         asBigDecimal(row[9]));
+  }
+
+  private RedeemedGiftCertificateCodesReportRow mapRedeemedGiftCertificateCodesRow(Object[] row) {
+    return new RedeemedGiftCertificateCodesReportRow(
+        asString(row[0]),
+        asString(row[1]),
+        asString(row[2]),
+        asString(row[3]),
+        asLong(row[4]),
+        asLocalDate(row[5]),
+        asLocalDate(row[6]),
+        asZonedDateTime(row[7]),
+        toLong(row[8]),
+        asString(row[9]),
+        asString(row[10]),
+        asBigDecimal(row[11]),
+        asBigDecimal(row[12]),
+        asBigDecimal(row[13]),
+        asBigDecimal(row[14]));
   }
 
   private PromoCodesByTransactionDateReportRow mapPromoCodesByTransactionDateRow(Object[] row) {

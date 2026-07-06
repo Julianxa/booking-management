@@ -1,7 +1,7 @@
-package com.example.service;
+package com.example.report.excel;
 
 import com.example.exception.general.FileOperationException;
-import com.example.model.record.ExpiredGiftCertificateCodesReportRow;
+import com.example.model.record.RedeemedGiftCertificateCodesReportRow;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -12,42 +12,49 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
 @Component
-public class ExpiredGiftCertificateCodesExcelBuilder {
+public class RedeemedGiftCertificateCodesExcelBuilder {
   private static final ZoneId REPORT_ZONE = ZoneId.of("Asia/Hong_Kong");
 
   private static final DateTimeFormatter REPORT_DATE_FORMAT =
       DateTimeFormatter.ofPattern("EEEE, MMM dd yyyy", Locale.ENGLISH);
 
-  private static final DateTimeFormatter EXPIRY_DATE_FORMAT =
-      DateTimeFormatter.ofPattern("dd/MM/yyyy");
+  private static final DateTimeFormatter DAY_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
   private static final String[] HEADERS = {
     "Type",
     "GC ID",
     "Online Code",
     "Status",
-    "Wholesale Value",
-    "Retail Value",
+    "Booking No.",
+    "Date Issued",
     "Expiry",
+    "Date Redeemed",
+    "Days To Redeemed",
     "Purchaser Name",
     "Description",
-    "Balance"
+    "Wholesale Value",
+    "Retail Value",
+    "Redeemed Value",
+    "Difference"
   };
 
   public byte[] build(
       LocalDate startDate,
       LocalDate endDate,
       String generatedBy,
-      List<ExpiredGiftCertificateCodesReportRow> rows) {
+      List<RedeemedGiftCertificateCodesReportRow> rows) {
     try (Workbook workbook = new XSSFWorkbook();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
       String sheetName =
@@ -61,15 +68,21 @@ public class ExpiredGiftCertificateCodesExcelBuilder {
 
       BigDecimal totalWholesale = BigDecimal.ZERO;
       BigDecimal totalRetail = BigDecimal.ZERO;
-      BigDecimal totalBalance = BigDecimal.ZERO;
-      for (ExpiredGiftCertificateCodesReportRow row : rows) {
+      BigDecimal totalRedeemed = BigDecimal.ZERO;
+      BigDecimal totalDifference = BigDecimal.ZERO;
+      List<Long> daysToRedeemedValues = new ArrayList<>();
+      for (RedeemedGiftCertificateCodesReportRow row : rows) {
         writeDataRow(sheet, rowIndex++, row);
         totalWholesale = totalWholesale.add(nullToZero(row.wholesaleValue()));
         totalRetail = totalRetail.add(nullToZero(row.retailValue()));
-        totalBalance = totalBalance.add(nullToZero(row.balance()));
+        totalRedeemed = totalRedeemed.add(nullToZero(row.redeemedValue()));
+        totalDifference = totalDifference.add(nullToZero(row.difference()));
+        daysToRedeemedValues.add(row.daysToRedeemed());
       }
 
-      writeTotalRow(sheet, rowIndex, totalWholesale, totalRetail, totalBalance);
+      rowIndex =
+          writeSummaryRows(
+              sheet, rowIndex, totalWholesale, totalRetail, totalRedeemed, totalDifference, daysToRedeemedValues);
 
       for (int columnIndex = 0; columnIndex < HEADERS.length; columnIndex++) {
         sheet.autoSizeColumn(columnIndex);
@@ -78,7 +91,7 @@ public class ExpiredGiftCertificateCodesExcelBuilder {
       workbook.write(outputStream);
       return outputStream.toByteArray();
     } catch (IOException e) {
-      throw new FileOperationException("Failed to generate expired gift certificate codes report");
+      throw new FileOperationException("Failed to generate redeemed gift certificate codes report");
     }
   }
 
@@ -89,7 +102,7 @@ public class ExpiredGiftCertificateCodesExcelBuilder {
       String generatedBy,
       ZonedDateTime generatedAt) {
     int row = 2;
-    createValueRow(sheet, row++, "ALL EXPIRED GIFT CERTIFICATES");
+    createValueRow(sheet, row++, "ALL REDEEMED GIFT CERTIFICATES");
     row++;
     createValueRow(sheet, row++, "Report Start Date:");
     createValueRow(sheet, row++, startDate.format(REPORT_DATE_FORMAT));
@@ -111,32 +124,77 @@ public class ExpiredGiftCertificateCodesExcelBuilder {
     }
   }
 
-  private void writeDataRow(Sheet sheet, int rowIndex, ExpiredGiftCertificateCodesReportRow row) {
+  private void writeDataRow(Sheet sheet, int rowIndex, RedeemedGiftCertificateCodesReportRow row) {
     Row excelRow = sheet.createRow(rowIndex);
     excelRow.createCell(0).setCellValue(row.typeLabel());
     excelRow.createCell(1).setCellValue(row.giftCertificateRefNo());
     excelRow.createCell(2).setCellValue(row.promoCode());
     excelRow.createCell(3).setCellValue(row.statusLabel());
-    setNumericCell(excelRow.createCell(4), row.wholesaleValue());
-    setNumericCell(excelRow.createCell(5), row.retailValue());
-    if (row.expiryDate() != null) {
-      excelRow.createCell(6).setCellValue(row.expiryDate().format(EXPIRY_DATE_FORMAT));
+    if (row.bookingId() != null) {
+      excelRow.createCell(4).setCellValue(row.bookingId());
     }
+    if (row.dateIssued() != null) {
+      excelRow.createCell(5).setCellValue(row.dateIssued().format(DAY_FORMAT));
+    }
+    if (row.expiryDate() != null) {
+      excelRow.createCell(6).setCellValue(row.expiryDate().format(DAY_FORMAT));
+    }
+    if (row.dateRedeemed() != null) {
+      excelRow
+          .createCell(7)
+          .setCellValue(row.dateRedeemed().withZoneSameInstant(REPORT_ZONE).toLocalDate().format(DAY_FORMAT));
+    }
+    excelRow.createCell(8).setCellValue(row.daysToRedeemed());
     if (row.purchaserName() != null && !row.purchaserName().isBlank()) {
-      excelRow.createCell(7).setCellValue(row.purchaserName());
+      excelRow.createCell(9).setCellValue(row.purchaserName());
     }
     if (row.description() != null) {
-      excelRow.createCell(8).setCellValue(row.description());
+      excelRow.createCell(10).setCellValue(row.description());
     }
-    setNumericCell(excelRow.createCell(9), row.balance());
+    setNumericCell(excelRow.createCell(11), row.wholesaleValue());
+    setNumericCell(excelRow.createCell(12), row.retailValue());
+    setNumericCell(excelRow.createCell(13), row.redeemedValue());
+    setNumericCell(excelRow.createCell(14), row.difference());
   }
 
-  private void writeTotalRow(
-      Sheet sheet, int rowIndex, BigDecimal totalWholesale, BigDecimal totalRetail, BigDecimal totalBalance) {
-    Row row = sheet.createRow(rowIndex);
-    setNumericCell(row.createCell(4), totalWholesale);
-    setNumericCell(row.createCell(5), totalRetail);
-    setNumericCell(row.createCell(9), totalBalance);
+  private int writeSummaryRows(
+      Sheet sheet,
+      int rowIndex,
+      BigDecimal totalWholesale,
+      BigDecimal totalRetail,
+      BigDecimal totalRedeemed,
+      BigDecimal totalDifference,
+      List<Long> daysToRedeemedValues) {
+    Row totalRow = sheet.createRow(rowIndex++);
+    setNumericCell(totalRow.createCell(11), totalWholesale);
+    setNumericCell(totalRow.createCell(12), totalRetail);
+    setNumericCell(totalRow.createCell(13), totalRedeemed);
+    setNumericCell(totalRow.createCell(14), totalDifference);
+
+    if (!daysToRedeemedValues.isEmpty()) {
+      double average =
+          daysToRedeemedValues.stream().mapToLong(Long::longValue).average().orElse(0);
+      totalRow
+          .createCell(8)
+          .setCellValue(
+              "Avg: "
+                  + BigDecimal.valueOf(average).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString());
+
+      Row medianRow = sheet.createRow(rowIndex++);
+      medianRow.createCell(8).setCellValue("Median: " + median(daysToRedeemedValues));
+    }
+
+    return rowIndex;
+  }
+
+  private long median(List<Long> values) {
+    List<Long> sorted = new ArrayList<>(values);
+    Collections.sort(sorted);
+    int size = sorted.size();
+    if (size % 2 == 1) {
+      return sorted.get(size / 2);
+    }
+    return Math.round((sorted.get(size / 2 - 1) + sorted.get(size / 2)) / 2.0);
   }
 
   private void createValueRow(Sheet sheet, int rowIndex, String value) {

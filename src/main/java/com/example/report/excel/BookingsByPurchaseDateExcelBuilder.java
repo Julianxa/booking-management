@@ -1,4 +1,4 @@
-package com.example.service;
+package com.example.report.excel;
 
 import com.example.exception.general.FileOperationException;
 import com.example.model.record.BookingsByActivityDateReportRow;

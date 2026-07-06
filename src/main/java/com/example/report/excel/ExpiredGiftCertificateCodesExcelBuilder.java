@@ -1,7 +1,8 @@
-package com.example.service;
+package com.example.report.excel;
 
 import com.example.exception.general.FileOperationException;
-import com.example.model.record.CountryOfOriginReportRow;
+import com.example.model.record.ExpiredGiftCertificateCodesReportRow;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -19,19 +21,33 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Component
-public class CountryOfOriginExcelBuilder {
+public class ExpiredGiftCertificateCodesExcelBuilder {
   private static final ZoneId REPORT_ZONE = ZoneId.of("Asia/Hong_Kong");
 
   private static final DateTimeFormatter REPORT_DATE_FORMAT =
       DateTimeFormatter.ofPattern("EEEE, MMM dd yyyy", Locale.ENGLISH);
 
-  private static final String[] HEADERS = {"Country", "Total", "Bookings"};
+  private static final DateTimeFormatter EXPIRY_DATE_FORMAT =
+      DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+  private static final String[] HEADERS = {
+    "Type",
+    "GC ID",
+    "Online Code",
+    "Status",
+    "Wholesale Value",
+    "Retail Value",
+    "Expiry",
+    "Purchaser Name",
+    "Description",
+    "Balance"
+  };
 
   public byte[] build(
       LocalDate startDate,
       LocalDate endDate,
       String generatedBy,
-      List<CountryOfOriginReportRow> rows) {
+      List<ExpiredGiftCertificateCodesReportRow> rows) {
     try (Workbook workbook = new XSSFWorkbook();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
       String sheetName =
@@ -43,15 +59,17 @@ public class CountryOfOriginExcelBuilder {
 
       writeHeaderRow(sheet, rowIndex++);
 
-      long totalPassengers = 0;
-      long totalBookings = 0;
-      for (CountryOfOriginReportRow row : rows) {
+      BigDecimal totalWholesale = BigDecimal.ZERO;
+      BigDecimal totalRetail = BigDecimal.ZERO;
+      BigDecimal totalBalance = BigDecimal.ZERO;
+      for (ExpiredGiftCertificateCodesReportRow row : rows) {
         writeDataRow(sheet, rowIndex++, row);
-        totalPassengers += row.totalPassengers();
-        totalBookings += row.bookingCount();
+        totalWholesale = totalWholesale.add(nullToZero(row.wholesaleValue()));
+        totalRetail = totalRetail.add(nullToZero(row.retailValue()));
+        totalBalance = totalBalance.add(nullToZero(row.balance()));
       }
 
-      writeTotalRow(sheet, rowIndex, totalPassengers, totalBookings);
+      writeTotalRow(sheet, rowIndex, totalWholesale, totalRetail, totalBalance);
 
       for (int columnIndex = 0; columnIndex < HEADERS.length; columnIndex++) {
         sheet.autoSizeColumn(columnIndex);
@@ -60,7 +78,7 @@ public class CountryOfOriginExcelBuilder {
       workbook.write(outputStream);
       return outputStream.toByteArray();
     } catch (IOException e) {
-      throw new FileOperationException("Failed to generate country of origin report");
+      throw new FileOperationException("Failed to generate expired gift certificate codes report");
     }
   }
 
@@ -71,7 +89,7 @@ public class CountryOfOriginExcelBuilder {
       String generatedBy,
       ZonedDateTime generatedAt) {
     int row = 2;
-    createValueRow(sheet, row++, "DEMOGRAPHICS - COUNTRY OF ORIGIN");
+    createValueRow(sheet, row++, "ALL EXPIRED GIFT CERTIFICATES");
     row++;
     createValueRow(sheet, row++, "Report Start Date:");
     createValueRow(sheet, row++, startDate.format(REPORT_DATE_FORMAT));
@@ -93,33 +111,45 @@ public class CountryOfOriginExcelBuilder {
     }
   }
 
-  private void writeDataRow(Sheet sheet, int rowIndex, CountryOfOriginReportRow row) {
+  private void writeDataRow(Sheet sheet, int rowIndex, ExpiredGiftCertificateCodesReportRow row) {
     Row excelRow = sheet.createRow(rowIndex);
-    excelRow.createCell(0).setCellValue(formatCountryName(row.countryCode()));
-    excelRow.createCell(1).setCellValue(row.totalPassengers());
-    excelRow.createCell(2).setCellValue(row.bookingCount());
+    excelRow.createCell(0).setCellValue(row.typeLabel());
+    excelRow.createCell(1).setCellValue(row.giftCertificateRefNo());
+    excelRow.createCell(2).setCellValue(row.promoCode());
+    excelRow.createCell(3).setCellValue(row.statusLabel());
+    setNumericCell(excelRow.createCell(4), row.wholesaleValue());
+    setNumericCell(excelRow.createCell(5), row.retailValue());
+    if (row.expiryDate() != null) {
+      excelRow.createCell(6).setCellValue(row.expiryDate().format(EXPIRY_DATE_FORMAT));
+    }
+    if (row.purchaserName() != null && !row.purchaserName().isBlank()) {
+      excelRow.createCell(7).setCellValue(row.purchaserName());
+    }
+    if (row.description() != null) {
+      excelRow.createCell(8).setCellValue(row.description());
+    }
+    setNumericCell(excelRow.createCell(9), row.balance());
   }
 
   private void writeTotalRow(
-      Sheet sheet, int rowIndex, long totalPassengers, long totalBookings) {
+      Sheet sheet, int rowIndex, BigDecimal totalWholesale, BigDecimal totalRetail, BigDecimal totalBalance) {
     Row row = sheet.createRow(rowIndex);
-    row.createCell(1).setCellValue(totalPassengers);
-    row.createCell(2).setCellValue(totalBookings);
+    setNumericCell(row.createCell(4), totalWholesale);
+    setNumericCell(row.createCell(5), totalRetail);
+    setNumericCell(row.createCell(9), totalBalance);
   }
 
   private void createValueRow(Sheet sheet, int rowIndex, String value) {
     sheet.createRow(rowIndex).createCell(0).setCellValue(value);
   }
 
-  static String formatCountryName(String countryCode) {
-    if (countryCode == null || countryCode.isBlank()) {
-      return "Unknown";
+  private void setNumericCell(Cell cell, BigDecimal value) {
+    if (value != null) {
+      cell.setCellValue(value.doubleValue());
     }
-    String normalized = countryCode.trim().toUpperCase(Locale.ROOT);
-    if (normalized.length() != 2) {
-      return countryCode.trim();
-    }
-    String displayName = new Locale("", normalized).getDisplayCountry(Locale.ENGLISH);
-    return displayName == null || displayName.isBlank() ? countryCode.trim() : displayName;
+  }
+
+  private BigDecimal nullToZero(BigDecimal value) {
+    return value != null ? value : BigDecimal.ZERO;
   }
 }
