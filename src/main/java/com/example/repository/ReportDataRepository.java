@@ -311,11 +311,11 @@ public class ReportDataRepository {
             gc.ref_no,
             gc.promo_code,
             'Redeemed' AS status_label,
-            b.id,
+            b.ref_no,
             DATE(gc.created_at),
             gc.expiry_date,
             gcr.redeemed_at,
-            DATEDIFF(DATE(gcr.redeemed_at), DATE(gc.created_at)),
+            DATEDIFF(gc.expiry_date, DATE(gcr.redeemed_at)),
             NULLIF(
                 TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))),
                 ''
@@ -336,7 +336,8 @@ public class ReportDataRepository {
                 WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
                     COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
                 ELSE COALESCE(event_value.event_face_value, 0)
-            END - COALESCE(b.discount, 0)
+            END - COALESCE(b.discount, 0),
+            b.total_paid_price
         FROM gift_certificate_redemptions gcr
         INNER JOIN gift_certificates gc ON gc.id = gcr.gift_certificate_id
         INNER JOIN bookings b ON b.id = gcr.booking_id
@@ -616,7 +617,7 @@ public class ReportDataRepository {
         asString(row[1]),
         asString(row[2]),
         asString(row[3]),
-        asLong(row[4]),
+        asString(row[4]),
         asLocalDate(row[5]),
         asLocalDate(row[6]),
         asZonedDateTime(row[7]),
@@ -626,7 +627,8 @@ public class ReportDataRepository {
         asBigDecimal(row[11]),
         asBigDecimal(row[12]),
         asBigDecimal(row[13]),
-        asBigDecimal(row[14]));
+        asBigDecimal(row[14]),
+        asBigDecimal(row[15]));
   }
 
   private PromoCodesByTransactionDateReportRow mapPromoCodesByTransactionDateRow(Object[] row) {

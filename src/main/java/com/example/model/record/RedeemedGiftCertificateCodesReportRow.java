@@ -9,7 +9,7 @@ public record RedeemedGiftCertificateCodesReportRow(
     String giftCertificateRefNo,
     String promoCode,
     String statusLabel,
-    Long bookingId,
+    String bookingRefNo,
     LocalDate dateIssued,
     LocalDate expiryDate,
     ZonedDateTime dateRedeemed,
@@ -19,4 +19,5 @@ public record RedeemedGiftCertificateCodesReportRow(
     BigDecimal wholesaleValue,
     BigDecimal retailValue,
     BigDecimal redeemedValue,
-    BigDecimal difference) {}
+    BigDecimal difference,
+    BigDecimal bookingTotal) {}

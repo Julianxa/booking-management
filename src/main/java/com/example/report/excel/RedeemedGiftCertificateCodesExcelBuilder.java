@@ -47,7 +47,11 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
     "Wholesale Value",
     "Retail Value",
     "Redeemed Value",
-    "Difference"
+    "Difference",
+    "Sub-Total",
+    "Total",
+    "Discounts",
+    "Net Total"
   };
 
   public byte[] build(
@@ -70,19 +74,39 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
       BigDecimal totalRetail = BigDecimal.ZERO;
       BigDecimal totalRedeemed = BigDecimal.ZERO;
       BigDecimal totalDifference = BigDecimal.ZERO;
+      BigDecimal totalSubTotal = BigDecimal.ZERO;
+      BigDecimal totalTotal = BigDecimal.ZERO;
+      BigDecimal totalDiscounts = BigDecimal.ZERO;
+      BigDecimal totalNetTotal = BigDecimal.ZERO;
       List<Long> daysToRedeemedValues = new ArrayList<>();
       for (RedeemedGiftCertificateCodesReportRow row : rows) {
         writeDataRow(sheet, rowIndex++, row);
+        BigDecimal discount = nullToZero(row.redeemedValue());
+        BigDecimal netTotal = netTotalAfterDiscount(row);
         totalWholesale = totalWholesale.add(nullToZero(row.wholesaleValue()));
         totalRetail = totalRetail.add(nullToZero(row.retailValue()));
-        totalRedeemed = totalRedeemed.add(nullToZero(row.redeemedValue()));
+        totalRedeemed = totalRedeemed.add(discount);
         totalDifference = totalDifference.add(nullToZero(row.difference()));
+        totalSubTotal = totalSubTotal.add(nullToZero(row.bookingTotal()));
+        totalTotal = totalTotal.add(nullToZero(row.bookingTotal()));
+        totalDiscounts = totalDiscounts.add(discount);
+        totalNetTotal = totalNetTotal.add(netTotal);
         daysToRedeemedValues.add(row.daysToRedeemed());
       }
 
       rowIndex =
           writeSummaryRows(
-              sheet, rowIndex, totalWholesale, totalRetail, totalRedeemed, totalDifference, daysToRedeemedValues);
+              sheet,
+              rowIndex,
+              totalWholesale,
+              totalRetail,
+              totalRedeemed,
+              totalDifference,
+              totalSubTotal,
+              totalTotal,
+              totalDiscounts,
+              totalNetTotal,
+              daysToRedeemedValues);
 
       for (int columnIndex = 0; columnIndex < HEADERS.length; columnIndex++) {
         sheet.autoSizeColumn(columnIndex);
@@ -130,8 +154,8 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
     excelRow.createCell(1).setCellValue(row.giftCertificateRefNo());
     excelRow.createCell(2).setCellValue(row.promoCode());
     excelRow.createCell(3).setCellValue(row.statusLabel());
-    if (row.bookingId() != null) {
-      excelRow.createCell(4).setCellValue(row.bookingId());
+    if (row.bookingRefNo() != null && !row.bookingRefNo().isBlank()) {
+      excelRow.createCell(4).setCellValue(row.bookingRefNo());
     }
     if (row.dateIssued() != null) {
       excelRow.createCell(5).setCellValue(row.dateIssued().format(DAY_FORMAT));
@@ -155,6 +179,10 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
     setNumericCell(excelRow.createCell(12), row.retailValue());
     setNumericCell(excelRow.createCell(13), row.redeemedValue());
     setNumericCell(excelRow.createCell(14), row.difference());
+    setNumericCell(excelRow.createCell(15), row.bookingTotal());
+    setNumericCell(excelRow.createCell(16), row.bookingTotal());
+    setNumericCell(excelRow.createCell(17), row.redeemedValue());
+    setNumericCell(excelRow.createCell(18), netTotalAfterDiscount(row));
   }
 
   private int writeSummaryRows(
@@ -164,12 +192,20 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
       BigDecimal totalRetail,
       BigDecimal totalRedeemed,
       BigDecimal totalDifference,
+      BigDecimal totalSubTotal,
+      BigDecimal totalTotal,
+      BigDecimal totalDiscounts,
+      BigDecimal totalNetTotal,
       List<Long> daysToRedeemedValues) {
     Row totalRow = sheet.createRow(rowIndex++);
     setNumericCell(totalRow.createCell(11), totalWholesale);
     setNumericCell(totalRow.createCell(12), totalRetail);
     setNumericCell(totalRow.createCell(13), totalRedeemed);
     setNumericCell(totalRow.createCell(14), totalDifference);
+    setNumericCell(totalRow.createCell(15), totalSubTotal);
+    setNumericCell(totalRow.createCell(16), totalTotal);
+    setNumericCell(totalRow.createCell(17), totalDiscounts);
+    setNumericCell(totalRow.createCell(18), totalNetTotal);
 
     if (!daysToRedeemedValues.isEmpty()) {
       double average =
@@ -205,6 +241,10 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
     if (value != null) {
       cell.setCellValue(value.doubleValue());
     }
+  }
+
+  private BigDecimal netTotalAfterDiscount(RedeemedGiftCertificateCodesReportRow row) {
+    return nullToZero(row.bookingTotal()).subtract(nullToZero(row.redeemedValue())).max(BigDecimal.ZERO);
   }
 
   private BigDecimal nullToZero(BigDecimal value) {
