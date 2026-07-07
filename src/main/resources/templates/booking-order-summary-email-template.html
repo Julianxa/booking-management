@@ -232,7 +232,30 @@
                   <tr>
                     <td style="padding: 24px">
                       <h3
+                        th:if="${lang == 'HK'}"
                         style="
+                          margin: 0 0 16px 0;
+                          font-size: 16px;
+                          font-weight: 700;
+                          color: #2d6a4f;
+                        "
+                      >
+                        訂單摘要
+                      </h3>
+                      <h3
+                         th:if="${lang == 'CN'}"
+                         style="
+                          margin: 0 0 16px 0;
+                          font-size: 16px;
+                          font-weight: 700;
+                          color: #2d6a4f;
+                        "
+                      >
+                        订单摘要
+                      </h3>
+                      <h3
+                          th:if="${lang == 'EN'}"
+                          style="
                           margin: 0 0 16px 0;
                           font-size: 16px;
                           font-weight: 700;
