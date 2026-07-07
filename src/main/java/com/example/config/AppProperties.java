@@ -14,7 +14,15 @@ public class AppProperties {
 
     private String baseUrl;
 
+    private Frontend frontend = new Frontend();
+
     private CheckIn checkin = new CheckIn();
+
+    @Getter
+    @Setter
+    public static class Frontend {
+        private String baseUrl;
+    }
 
     @Getter
     @Setter

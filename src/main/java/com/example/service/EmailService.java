@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.config.AppProperties;
 import com.example.constant.Enums;
 import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
@@ -50,6 +51,7 @@ public class EmailService {
     private final AuditService auditService;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final EmailLogsRepository emailLogsRepository;
+    private final AppProperties appProperties;
 
     @Value("${app.mail.from}")
     String senderEmail;
@@ -284,6 +286,9 @@ public class EmailService {
         context.setVariable("eventDate", bookingEvent.getEventDate());
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
+        context.setVariable(
+            "activityDetailsUrl",
+            buildActivityDetailsUrl(bookingEvent.getEvent(), booking.getLanguage()));
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
             context.setVariable("lang", Enums.Language.CN.name());
@@ -567,5 +572,23 @@ public class EmailService {
             return template.getSubjectZhHk();
         }
         return template.getSubject();
+    }
+
+    private String buildActivityDetailsUrl(Events event, Enums.Language language) {
+        String baseUrl = appProperties.getFrontend().getBaseUrl();
+        if (baseUrl == null || baseUrl.isBlank() || event == null || event.getRefNo() == null) {
+            return "#";
+        }
+        String langPath =
+            switch (language != null ? language : Enums.Language.EN) {
+                case CN -> "zh-CN";
+                case HK -> "zh-HK";
+                default -> "en";
+            };
+        return baseUrl.strip().replaceAll("/$", "")
+            + "/"
+            + langPath
+            + "/activity/details?id="
+            + event.getRefNo();
     }
 }
