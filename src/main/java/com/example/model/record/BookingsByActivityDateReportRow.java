@@ -6,6 +6,8 @@ import java.time.ZonedDateTime;
 
 public record BookingsByActivityDateReportRow(
         String bookingRefNo,
+        Long bookingId,
+        String bookingType,
         Long bookingEventId,
         LocalDate eventDate,
         String eventTime,

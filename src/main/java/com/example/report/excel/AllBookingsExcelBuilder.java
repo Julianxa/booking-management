@@ -1,0 +1,442 @@
+package com.example.report.excel;
+
+import com.example.exception.general.FileOperationException;
+import com.example.model.record.BookingsByActivityDateReportRow;
+import com.example.repository.ReportDataRepository;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Component;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+
+@Component
+public class AllBookingsExcelBuilder {
+  private static final String DEFAULT_COMPANY = "Hong Kong Tramways";
+  private static final String INTERNET_USER = "Internet User";
+  private static final String BACK_OFFICE_SALES_CHANNEL = "Back Office";
+  private static final String DEFAULT_SALES_CHANNEL = "Default";
+  private static final ZoneId REPORT_ZONE = ZoneId.of("Asia/Hong_Kong");
+
+  private static final DateTimeFormatter REPORT_DATE_FORMAT =
+      DateTimeFormatter.ofPattern("EEEE, MMM d yyyy", Locale.ENGLISH);
+  private static final DateTimeFormatter REPORT_DAY_FORMAT =
+      DateTimeFormatter.ofPattern("dd/MM/yyyy");
+  private static final DateTimeFormatter PURCHASE_DATE_FORMAT =
+      DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+  private static final DateTimeFormatter REPORT_TIME_FORMAT =
+      DateTimeFormatter.ofPattern("HH:mm:ss");
+  private static final DateTimeFormatter ACTIVITY_TIME_FORMAT =
+      DateTimeFormatter.ofPattern("h:mma", Locale.ENGLISH);
+
+  private static final String[] ACTIVITY_HEADERS = {
+    "Booking No.",
+    "Activity",
+    "Category",
+    "Date",
+    "Time",
+    "Sales Channel",
+    "Purchase Date",
+    "Days to Purchase",
+    "Company Type",
+    "Company Group",
+    "Booked by (Company)",
+    "Booked by (User)",
+    "Activity Provider",
+    "Guest",
+    "Country",
+    "Passengers",
+    "Subtotal",
+    "Discount(s)",
+    "Net Sale",
+    "Total"
+  };
+
+  public byte[] build(
+      LocalDate startDate,
+      LocalDate endDate,
+      String generatedBy,
+      List<BookingsByActivityDateReportRow> activityRows,
+      Map<Long, List<ReportDataRepository.TicketQuantityRow>> ticketQuantitiesByBookingEventId) {
+    try (Workbook workbook = new XSSFWorkbook();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+      String sheetName =
+          startDate + "-Report-" + UUID.randomUUID().toString().replace("-", "").substring(0, 13);
+      Sheet sheet = workbook.createSheet(sheetName.substring(0, Math.min(sheetName.length(), 31)));
+
+      ZonedDateTime generatedAt = ZonedDateTime.now(REPORT_ZONE);
+      CellStyle sectionTitleStyle = createSectionTitleStyle(workbook);
+      int rowIndex =
+          writeMetadata(sheet, startDate, endDate, generatedBy, generatedAt, sectionTitleStyle);
+
+      writeHeaderRow(sheet, rowIndex++, ACTIVITY_HEADERS);
+
+      ActivityTotals activityTotals = new ActivityTotals();
+      for (BookingsByActivityDateReportRow row : activityRows) {
+        List<ReportDataRepository.TicketQuantityRow> ticketRows =
+            ticketQuantitiesByBookingEventId.getOrDefault(row.bookingEventId(), List.of());
+        writeActivityDataRow(sheet, rowIndex++, row, ticketRows, activityTotals);
+      }
+
+      writeActivityTotalRows(sheet, rowIndex, activityTotals);
+
+      for (int columnIndex = 0; columnIndex < ACTIVITY_HEADERS.length; columnIndex++) {
+        sheet.autoSizeColumn(columnIndex);
+      }
+
+      workbook.write(outputStream);
+      return outputStream.toByteArray();
+    } catch (IOException e) {
+      throw new FileOperationException("Failed to generate all bookings report");
+    }
+  }
+
+  private int writeMetadata(
+      Sheet sheet,
+      LocalDate startDate,
+      LocalDate endDate,
+      String generatedBy,
+      ZonedDateTime generatedAt,
+      CellStyle sectionTitleStyle) {
+    int row = 3;
+    createLabelRow(sheet, row++, "ALL BOOKINGS BY DATE RANGE");
+    row++;
+    createLabelRow(sheet, row++, "Report Start Date:");
+    createLabelRow(sheet, row++, startDate.format(REPORT_DATE_FORMAT));
+    createLabelRow(sheet, row++, "Report End Date:");
+    createLabelRow(sheet, row++, endDate.format(REPORT_DATE_FORMAT));
+    createLabelRow(sheet, row++, "Report Generated On:");
+    createLabelRow(sheet, row++, generatedAt.toLocalDateTime().toString());
+    createLabelRow(sheet, row++, "Generated By:");
+    createLabelRow(sheet, row++, generatedBy != null ? generatedBy : "System");
+    row++;
+    createLabelRow(sheet, row++, "Download Excel Download CSV");
+    row++;
+    createSectionTitleRow(sheet, row++, "Activity Summary", sectionTitleStyle);
+    return row;
+  }
+
+  private void writeActivityDataRow(
+      Sheet sheet,
+      int rowIndex,
+      BookingsByActivityDateReportRow row,
+      List<ReportDataRepository.TicketQuantityRow> ticketRows,
+      ActivityTotals totals) {
+    BigDecimal subtotal = nullToZero(row.eventSubtotal());
+    BigDecimal discount = allocatedDiscount(row);
+    BigDecimal netSale = subtotal.subtract(discount);
+    BigDecimal total = netSale;
+    BigDecimal daysToPurchase = BigDecimal.valueOf(daysToPurchase(row));
+
+    Row excelRow = sheet.createRow(rowIndex);
+    int column = 0;
+    setBookingNoCell(excelRow, column++, row);
+    excelRow.createCell(column++).setCellValue(formatActivityTime(row.eventTime()));
+    excelRow.createCell(column++).setCellValue(formatCategoryName(row));
+    setDateCell(excelRow, column++, row.eventDate());
+    setTimeCell(excelRow, column++, row.eventTime());
+    excelRow.createCell(column++).setCellValue(resolveSalesChannel(row));
+    setPurchaseDateCell(excelRow, column++, row.purchaseDate());
+    excelRow.createCell(column++).setCellValue(daysToPurchase.doubleValue());
+    excelRow.createCell(column++).setCellValue(resolveCompanyType(row));
+    excelRow.createCell(column++).setCellValue(resolveCompanyGroup(row));
+    excelRow.createCell(column++).setCellValue(resolveBookedByCompany(row));
+    excelRow.createCell(column++).setCellValue(resolveBookedByUser(row));
+    excelRow.createCell(column++).setCellValue(resolveActivityProvider(row));
+    excelRow.createCell(column++).setCellValue(formatGuestName(row));
+    excelRow.createCell(column++).setCellValue(nullToBlank(row.guestCountry()));
+    excelRow.createCell(column++).setCellValue(countPassengers(ticketRows));
+    setMoneyCell(excelRow, column++, subtotal);
+    setMoneyCell(excelRow, column++, discount);
+    setMoneyCell(excelRow, column++, netSale);
+    setMoneyCell(excelRow, column++, total);
+
+    totals.add(daysToPurchase, ticketRows, subtotal, discount, netSale, total);
+  }
+
+  private int writeActivityTotalRows(Sheet sheet, int rowIndex, ActivityTotals totals) {
+    Row row = sheet.createRow(rowIndex++);
+    row.createCell(0).setCellValue("Total");
+    row.createCell(7).setCellValue("Avg: " + totals.averageDaysToPurchase());
+    row.createCell(15).setCellValue(totals.totalPassengers);
+    setMoneyCell(row, 16, totals.subtotal);
+    setMoneyCell(row, 17, totals.discount);
+    setMoneyCell(row, 18, totals.netSale);
+    setMoneyCell(row, 19, totals.total);
+
+    Row medianRow = sheet.createRow(rowIndex++);
+    medianRow.createCell(7).setCellValue("Median: " + totals.medianDaysToPurchase());
+    return rowIndex;
+  }
+
+  private void setBookingNoCell(Row row, int columnIndex, BookingsByActivityDateReportRow bookingRow) {
+    if (bookingRow.bookingId() != null) {
+      row.createCell(columnIndex).setCellValue(bookingRow.bookingId().doubleValue());
+      return;
+    }
+    setTextCell(row, columnIndex, bookingRow.bookingRefNo());
+  }
+
+  private String formatCategoryName(BookingsByActivityDateReportRow row) {
+    return nullToBlank(row.eventNameZhHk(), row.eventName());
+  }
+
+  private String formatGuestName(BookingsByActivityDateReportRow row) {
+    return formatGuestName(row.guestFirstName(), row.guestLastName());
+  }
+
+  private String formatGuestName(String firstName, String lastName) {
+    return (nullToBlank(firstName) + " " + nullToBlank(lastName)).trim();
+  }
+
+  private String formatActivityTime(String eventTime) {
+    return parseEventTime(eventTime).format(ACTIVITY_TIME_FORMAT).toLowerCase(Locale.ENGLISH);
+  }
+
+  private static int countPassengers(List<ReportDataRepository.TicketQuantityRow> ticketRows) {
+    return ticketRows.stream().mapToInt(ReportDataRepository.TicketQuantityRow::quantity).sum();
+  }
+
+  private boolean isAgentBooking(BookingsByActivityDateReportRow row) {
+    return row.userRole() != null && "AGENT".equalsIgnoreCase(row.userRole());
+  }
+
+  private boolean isUserBooking(BookingsByActivityDateReportRow row) {
+    return row.userRole() == null || "USER".equalsIgnoreCase(row.userRole());
+  }
+
+  private boolean isEmployeeOrAdminBooking(BookingsByActivityDateReportRow row) {
+    return row.userRole() != null
+        && ("EMPLOYEE".equalsIgnoreCase(row.userRole())
+            || "ADMIN".equalsIgnoreCase(row.userRole()));
+  }
+
+  private String resolveSalesChannel(BookingsByActivityDateReportRow row) {
+    return isEmployeeOrAdminBooking(row) ? BACK_OFFICE_SALES_CHANNEL : DEFAULT_SALES_CHANNEL;
+  }
+
+  private String resolveCompanyType(BookingsByActivityDateReportRow row) {
+    return isAgentBooking(row) ? nullToBlank(row.companyType()) : "";
+  }
+
+  private String resolveCompanyGroup(BookingsByActivityDateReportRow row) {
+    return isAgentBooking(row) ? nullToBlank(row.companyGroup()) : "";
+  }
+
+  private String resolveBookedByCompany(BookingsByActivityDateReportRow row) {
+    if (isAgentBooking(row)) {
+      return nullToBlank(row.organizationName(), DEFAULT_COMPANY);
+    }
+    if (isEmployeeOrAdminBooking(row)) {
+      return DEFAULT_COMPANY;
+    }
+    return DEFAULT_COMPANY;
+  }
+
+  private String resolveBookedByUser(BookingsByActivityDateReportRow row) {
+    if (isUserBooking(row)) {
+      return INTERNET_USER;
+    }
+    String firstName = nullToBlank(row.userFirstName());
+    String lastName = nullToBlank(row.userLastName());
+    String fullName = (firstName + " " + lastName).trim();
+    return fullName.isBlank() ? INTERNET_USER : fullName;
+  }
+
+  private String resolveActivityProvider(BookingsByActivityDateReportRow row) {
+    return DEFAULT_COMPANY;
+  }
+
+  private double daysToPurchase(BookingsByActivityDateReportRow row) {
+    if (row.purchaseDate() == null || row.eventDate() == null) {
+      return 0;
+    }
+    ZonedDateTime purchase = row.purchaseDate().withZoneSameInstant(REPORT_ZONE);
+    ZonedDateTime activity =
+        LocalDateTime.of(row.eventDate(), parseEventTime(row.eventTime())).atZone(REPORT_ZONE);
+    long minutes = Duration.between(purchase, activity).toMinutes();
+    return Math.round(minutes / (24.0 * 60.0) * 100.0) / 100.0;
+  }
+
+  private BigDecimal allocatedDiscount(BookingsByActivityDateReportRow row) {
+    BigDecimal bookingDiscount = nullToZero(row.bookingDiscount());
+    BigDecimal totalPaid = nullToZero(row.bookingTotalPaidPrice());
+    BigDecimal eventSubtotal = nullToZero(row.eventSubtotal());
+    if (bookingDiscount.signum() == 0 || totalPaid.signum() == 0) {
+      return BigDecimal.ZERO;
+    }
+    return bookingDiscount.multiply(eventSubtotal).divide(totalPaid, 2, RoundingMode.HALF_UP);
+  }
+
+  private LocalTime parseEventTime(String eventTime) {
+    if (eventTime == null || eventTime.isBlank()) {
+      return LocalTime.MIDNIGHT;
+    }
+    String normalized = eventTime.trim();
+    String upperNormalized = normalized.toUpperCase(Locale.ENGLISH);
+    for (DateTimeFormatter formatter :
+        List.of(
+            DateTimeFormatter.ofPattern("H:mm"),
+            DateTimeFormatter.ofPattern("HH:mm"),
+            DateTimeFormatter.ofPattern("h:mma", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH))) {
+      try {
+        return LocalTime.parse(upperNormalized, formatter);
+      } catch (DateTimeParseException ignored) {
+        // try next pattern
+      }
+    }
+    if (normalized.length() >= 5) {
+      return LocalTime.parse(normalized.substring(0, 5));
+    }
+    return LocalTime.parse(normalized);
+  }
+
+  private void writeHeaderRow(Sheet sheet, int rowIndex, String[] headers) {
+    Row row = sheet.createRow(rowIndex);
+    for (int i = 0; i < headers.length; i++) {
+      row.createCell(i).setCellValue(headers[i]);
+    }
+  }
+
+  private CellStyle createSectionTitleStyle(Workbook workbook) {
+    CellStyle style = workbook.createCellStyle();
+    Font font = workbook.createFont();
+    font.setBold(true);
+    style.setFont(font);
+    return style;
+  }
+
+  private void createSectionTitleRow(
+      Sheet sheet, int rowIndex, String title, CellStyle sectionTitleStyle) {
+    Row row = sheet.createRow(rowIndex);
+    Cell cell = row.createCell(0);
+    cell.setCellValue(title);
+    cell.setCellStyle(sectionTitleStyle);
+  }
+
+  private void createLabelRow(Sheet sheet, int rowIndex, String label) {
+    sheet.createRow(rowIndex).createCell(0).setCellValue(label);
+  }
+
+  private void setTextCell(Row row, int columnIndex, String value) {
+    if (value == null || value.isBlank()) {
+      row.createCell(columnIndex).setBlank();
+      return;
+    }
+    row.createCell(columnIndex).setCellValue(value);
+  }
+
+  private void setMoneyCell(Row row, int columnIndex, BigDecimal value) {
+    row.createCell(columnIndex).setCellValue(nullToZero(value).doubleValue());
+  }
+
+  private void setDateCell(Row row, int columnIndex, LocalDate value) {
+    if (value == null) {
+      row.createCell(columnIndex).setBlank();
+      return;
+    }
+    row.createCell(columnIndex).setCellValue(value.format(REPORT_DAY_FORMAT));
+  }
+
+  private void setTimeCell(Row row, int columnIndex, String eventTime) {
+    row.createCell(columnIndex).setCellValue(parseEventTime(eventTime).format(REPORT_TIME_FORMAT));
+  }
+
+  private void setPurchaseDateCell(Row row, int columnIndex, ZonedDateTime value) {
+    if (value == null) {
+      row.createCell(columnIndex).setBlank();
+      return;
+    }
+    row.createCell(columnIndex)
+        .setCellValue(value.withZoneSameInstant(REPORT_ZONE).toLocalDateTime().format(PURCHASE_DATE_FORMAT));
+  }
+
+  private BigDecimal nullToZero(BigDecimal value) {
+    return value == null ? BigDecimal.ZERO : value;
+  }
+
+  private static String nullToBlank(String value) {
+    return value == null ? "" : value;
+  }
+
+  private static String nullToBlank(String value, String fallback) {
+    if (value != null && !value.isBlank()) {
+      return value;
+    }
+    return fallback == null ? "" : fallback;
+  }
+
+  private static final class ActivityTotals {
+    private final List<BigDecimal> daysToPurchaseValues = new ArrayList<>();
+    private int totalPassengers = 0;
+    private BigDecimal subtotal = BigDecimal.ZERO;
+    private BigDecimal discount = BigDecimal.ZERO;
+    private BigDecimal netSale = BigDecimal.ZERO;
+    private BigDecimal total = BigDecimal.ZERO;
+
+    private void add(
+        BigDecimal daysToPurchase,
+        List<ReportDataRepository.TicketQuantityRow> ticketRows,
+        BigDecimal rowSubtotal,
+        BigDecimal rowDiscount,
+        BigDecimal rowNetSale,
+        BigDecimal rowTotal) {
+      daysToPurchaseValues.add(daysToPurchase);
+      totalPassengers += countPassengers(ticketRows);
+      subtotal = subtotal.add(rowSubtotal);
+      discount = discount.add(rowDiscount);
+      netSale = netSale.add(rowNetSale);
+      total = total.add(rowTotal);
+    }
+
+    private String averageDaysToPurchase() {
+      if (daysToPurchaseValues.isEmpty()) {
+        return "0";
+      }
+      BigDecimal sum = daysToPurchaseValues.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+      return sum.divide(BigDecimal.valueOf(daysToPurchaseValues.size()), 2, RoundingMode.HALF_UP)
+          .stripTrailingZeros()
+          .toPlainString();
+    }
+
+    private String medianDaysToPurchase() {
+      if (daysToPurchaseValues.isEmpty()) {
+        return "0";
+      }
+      List<BigDecimal> sorted = new ArrayList<>(daysToPurchaseValues);
+      sorted.sort(Comparator.naturalOrder());
+      int middle = sorted.size() / 2;
+      if (sorted.size() % 2 == 0) {
+        return sorted
+            .get(middle - 1)
+            .add(sorted.get(middle))
+            .divide(BigDecimal.valueOf(2), 0, RoundingMode.HALF_UP)
+            .stripTrailingZeros()
+            .toPlainString();
+      }
+      return sorted.get(middle).setScale(0, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+    }
+  }
+}

@@ -39,6 +39,7 @@ public class ReportGenerationAsyncService {
   private final ExpiredGiftCertificateCodesExcelBuilder expiredGiftCertificateCodesExcelBuilder;
   private final RedeemedGiftCertificateCodesExcelBuilder redeemedGiftCertificateCodesExcelBuilder;
   private final UnredeemedGiftCertificateCodesExcelBuilder unredeemedGiftCertificateCodesExcelBuilder;
+  private final AllBookingsExcelBuilder allBookingsExcelBuilder;
   private final AwsService awsService;
 
   @Async("reportExecutor")
@@ -60,6 +61,7 @@ public class ReportGenerationAsyncService {
         case EXPIRED_GIFT_CERTIFICATE_CODES -> generateExpiredGiftCertificateCodesReport(reportId);
         case REDEEMED_GIFT_CERTIFICATE_CODES -> generateRedeemedGiftCertificateCodesReport(reportId);
         case UNREDEEMED_GIFT_CERTIFICATE_CODES -> generateUnredeemedGiftCertificateCodesReport(reportId);
+        case ALL_BOOKINGS -> generateAllBookingsReport(reportId);
       }
     } catch (Exception e) {
       log.error("Async report generation failed for report {}", reportId, e);
@@ -366,6 +368,47 @@ public class ReportGenerationAsyncService {
     report.setS3Key(s3Key);
     report.setIncludedBookingEvents(rows.size());
     report.setTotalBookingEventsInRange(totalGiftCertificatesInRange);
+    report.setFileSizeBytes((long) workbookBytes.length);
+    report.setStatus(Enums.ReportStatus.COMPLETED);
+    report.setCompletedAt(ZonedDateTime.now());
+    report.setErrorMessage(null);
+    reportsRepository.save(report);
+  }
+
+  @Transactional
+  protected void generateAllBookingsReport(Long reportId) {
+    Reports report = reportsRepository.findById(reportId).orElseThrow();
+
+    long totalBookingEventsInRange =
+        reportDataRepository.countBookingEventsInDateRange(report.getStartDate(), report.getEndDate());
+    List<BookingsByActivityDateReportRow> rows =
+        reportDataRepository.findBookingsByActivityDate(report.getStartDate(), report.getEndDate());
+    List<Long> bookingEventIds =
+        rows.stream().map(BookingsByActivityDateReportRow::bookingEventId).toList();
+    Map<Long, List<ReportDataRepository.TicketQuantityRow>> ticketQuantities =
+        reportDataRepository.findTicketQuantitiesByBookingEventIds(bookingEventIds);
+    byte[] workbookBytes =
+        allBookingsExcelBuilder.build(
+            report.getStartDate(),
+            report.getEndDate(),
+            report.getGeneratedBy(),
+            rows,
+            ticketQuantities);
+
+    String s3Key =
+        "reports/all-bookings/"
+            + report.getStartDate()
+            + "_to_"
+            + report.getEndDate()
+            + "_"
+            + UUID.randomUUID()
+            + ".xlsx";
+
+    awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
+
+    report.setS3Key(s3Key);
+    report.setIncludedBookingEvents(rows.size());
+    report.setTotalBookingEventsInRange(totalBookingEventsInRange);
     report.setFileSizeBytes((long) workbookBytes.length);
     report.setStatus(Enums.ReportStatus.COMPLETED);
     report.setCompletedAt(ZonedDateTime.now());

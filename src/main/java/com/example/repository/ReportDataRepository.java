@@ -132,6 +132,8 @@ public class ReportDataRepository {
       """
         SELECT
             b.ref_no,
+            b.id,
+            b.type,
             be.id,
             be.event_date,
             be.event_time,
@@ -791,16 +793,16 @@ public class ReportDataRepository {
     return new BookingsByActivityDateReportRow(
         asString(row[0]),
         asLong(row[1]),
-        asLocalDate(row[2]),
-        asString(row[3]),
-        asBigDecimal(row[4]),
-        asZonedDateTime(row[5]),
+        asString(row[2]),
+        asLong(row[3]),
+        asLocalDate(row[4]),
+        asString(row[5]),
         asBigDecimal(row[6]),
-        asBigDecimal(row[7]),
+        asZonedDateTime(row[7]),
         asBigDecimal(row[8]),
-        asLong(row[9]),
-        asString(row[10]),
-        asString(row[11]),
+        asBigDecimal(row[9]),
+        asBigDecimal(row[10]),
+        asLong(row[11]),
         asString(row[12]),
         asString(row[13]),
         asString(row[14]),
@@ -811,7 +813,9 @@ public class ReportDataRepository {
         asString(row[19]),
         asString(row[20]),
         asString(row[21]),
-        asString(row[22]));
+        asString(row[22]),
+        asString(row[23]),
+        asString(row[24]));
   }
 
   private Long asLong(Object value) {
