@@ -51,7 +51,6 @@ public class BookingsByPurchaseDateExcelBuilder {
     "Passengers",
     "Sub-Total",
     "Discount(s)",
-    "Taxes",
     "Total",
     "Net Total"
   };
@@ -146,8 +145,7 @@ public class BookingsByPurchaseDateExcelBuilder {
       ActivityTotals totals) {
     BigDecimal subtotal = nullToZero(row.eventSubtotal());
     BigDecimal discount = allocatedDiscount(row);
-    BigDecimal taxes = BigDecimal.ZERO;
-    BigDecimal total = subtotal.subtract(discount).add(taxes);
+    BigDecimal total = subtotal.subtract(discount);
     BigDecimal daysToPurchase = BigDecimal.valueOf(daysToPurchase(row));
 
     Row excelRow = sheet.createRow(rowIndex);
@@ -164,11 +162,10 @@ public class BookingsByPurchaseDateExcelBuilder {
     excelRow.createCell(column++).setCellValue(countPassengers(ticketRows));
     setMoneyCell(excelRow, column++, subtotal);
     setMoneyCell(excelRow, column++, discount);
-    setMoneyCell(excelRow, column++, taxes);
     setMoneyCell(excelRow, column++, total);
     setMoneyCell(excelRow, column++, total);
 
-    totals.add(daysToPurchase, ticketRows, subtotal, discount, taxes, total);
+    totals.add(daysToPurchase, ticketRows, subtotal, discount, total);
   }
 
   private int writeActivityTotalRows(Sheet sheet, int rowIndex, ActivityTotals totals) {
@@ -178,9 +175,8 @@ public class BookingsByPurchaseDateExcelBuilder {
     row.createCell(9).setCellValue(totals.totalPassengers);
     setMoneyCell(row, 10, totals.subtotal);
     setMoneyCell(row, 11, totals.discount);
-    setMoneyCell(row, 12, totals.taxes);
+    setMoneyCell(row, 12, totals.total);
     setMoneyCell(row, 13, totals.total);
-    setMoneyCell(row, 14, totals.total);
 
     Row medianRow = sheet.createRow(rowIndex++);
     medianRow.createCell(5).setCellValue("Median: " + totals.medianDaysToPurchase());
@@ -355,7 +351,6 @@ public class BookingsByPurchaseDateExcelBuilder {
     private int totalPassengers = 0;
     private BigDecimal subtotal = BigDecimal.ZERO;
     private BigDecimal discount = BigDecimal.ZERO;
-    private BigDecimal taxes = BigDecimal.ZERO;
     private BigDecimal total = BigDecimal.ZERO;
 
     private void add(
@@ -363,13 +358,11 @@ public class BookingsByPurchaseDateExcelBuilder {
         List<ReportDataRepository.TicketQuantityRow> ticketRows,
         BigDecimal rowSubtotal,
         BigDecimal rowDiscount,
-        BigDecimal rowTaxes,
         BigDecimal rowTotal) {
       daysToPurchaseValues.add(daysToPurchase);
       totalPassengers += countPassengers(ticketRows);
       subtotal = subtotal.add(rowSubtotal);
       discount = discount.add(rowDiscount);
-      taxes = taxes.add(rowTaxes);
       total = total.add(rowTotal);
     }
 

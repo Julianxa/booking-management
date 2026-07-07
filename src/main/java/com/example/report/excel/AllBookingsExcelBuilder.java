@@ -47,8 +47,6 @@ public class AllBookingsExcelBuilder {
       DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
   private static final DateTimeFormatter REPORT_TIME_FORMAT =
       DateTimeFormatter.ofPattern("HH:mm:ss");
-  private static final DateTimeFormatter ACTIVITY_TIME_FORMAT =
-      DateTimeFormatter.ofPattern("h:mma", Locale.ENGLISH);
 
   private static final String[] ACTIVITY_HEADERS = {
     "Booking No.",
@@ -152,8 +150,8 @@ public class AllBookingsExcelBuilder {
     Row excelRow = sheet.createRow(rowIndex);
     int column = 0;
     setBookingNoCell(excelRow, column++, row);
-    excelRow.createCell(column++).setCellValue(formatActivityTime(row.eventTime()));
-    excelRow.createCell(column++).setCellValue(formatCategoryName(row));
+    excelRow.createCell(column++).setCellValue(formatEventName(row));
+    excelRow.createCell(column++).setCellValue(nullToBlank(row.eventCategory()));
     setDateCell(excelRow, column++, row.eventDate());
     setTimeCell(excelRow, column++, row.eventTime());
     excelRow.createCell(column++).setCellValue(resolveSalesChannel(row));
@@ -191,14 +189,10 @@ public class AllBookingsExcelBuilder {
   }
 
   private void setBookingNoCell(Row row, int columnIndex, BookingsByActivityDateReportRow bookingRow) {
-    if (bookingRow.bookingId() != null) {
-      row.createCell(columnIndex).setCellValue(bookingRow.bookingId().doubleValue());
-      return;
-    }
     setTextCell(row, columnIndex, bookingRow.bookingRefNo());
   }
 
-  private String formatCategoryName(BookingsByActivityDateReportRow row) {
+  private String formatEventName(BookingsByActivityDateReportRow row) {
     return nullToBlank(row.eventNameZhHk(), row.eventName());
   }
 
@@ -208,10 +202,6 @@ public class AllBookingsExcelBuilder {
 
   private String formatGuestName(String firstName, String lastName) {
     return (nullToBlank(firstName) + " " + nullToBlank(lastName)).trim();
-  }
-
-  private String formatActivityTime(String eventTime) {
-    return parseEventTime(eventTime).format(ACTIVITY_TIME_FORMAT).toLowerCase(Locale.ENGLISH);
   }
 
   private static int countPassengers(List<ReportDataRepository.TicketQuantityRow> ticketRows) {

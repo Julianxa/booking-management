@@ -213,6 +213,7 @@ public class EventController {
     @PatchMapping(value = "/events/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> update(@RequestPart(value = "eventPic", required = false) MultipartFile eventPic,
                                     @PathVariable String id,
+                                    @RequestPart(value = "contactInfo")
                                     @Schema(
                                             description = "Event information in JSON format",
                                             type = "string",

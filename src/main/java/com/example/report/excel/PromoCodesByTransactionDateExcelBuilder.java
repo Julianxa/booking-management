@@ -132,7 +132,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
     setMoneyCell(excelRow, column++, activityTotal);
     excelRow.createCell(column++).setCellValue(DEFAULT_ACTIVITY_PROVIDER);
     excelRow.createCell(column++).setCellValue(nullToBlank(row.promoCode()));
-    excelRow.createCell(column++).setCellValue(resolvePromoRateType(row, activityTotal, discount));
+    excelRow.createCell(column++).setCellValue(resolvePromoRateType(row));
     setMoneyCell(excelRow, column++, resolvePromoRate(row, activityTotal, discount));
     setMoneyCell(excelRow, column++, discount);
 
@@ -173,45 +173,67 @@ public class PromoCodesByTransactionDateExcelBuilder {
     return (firstName + " " + lastName).trim();
   }
 
-  private String resolvePromoRateType(
-      PromoCodesByTransactionDateReportRow row, BigDecimal activityTotal, BigDecimal discount) {
-    if (isValuePromo(row)) {
-      return "Amount";
+  private String resolvePromoRateType(PromoCodesByTransactionDateReportRow row) {
+    String type = nullToBlank(row.giftCertificateType());
+    if ("VALUE".equalsIgnoreCase(type)) {
+      return "OPEN";
     }
-    if (hasConfiguredPercentage(row)) {
-      return "Percentage";
+    if ("EVENT".equalsIgnoreCase(type)) {
+      return "EVENT";
     }
-    if (activityTotal.signum() > 0 && discount.signum() > 0) {
-      return "Percentage";
-    }
-    return "Amount";
+    return type;
   }
 
   private BigDecimal resolvePromoRate(
       PromoCodesByTransactionDateReportRow row, BigDecimal activityTotal, BigDecimal discount) {
-    if (isValuePromo(row)) {
-      return row.promoItemValue() != null ? row.promoItemValue() : discount;
+    BigDecimal promoValue = row.promoItemValue();
+    if (isPercentagePromo(row, activityTotal, discount)) {
+      if (promoValue != null
+          && promoValue.compareTo(BigDecimal.ZERO) > 0
+          && promoValue.compareTo(BigDecimal.valueOf(100)) <= 0) {
+        return promoValue;
+      }
+      if (activityTotal.signum() > 0 && discount.signum() > 0) {
+        return discount
+            .multiply(BigDecimal.valueOf(100))
+            .divide(activityTotal, 2, RoundingMode.HALF_UP);
+      }
+      return BigDecimal.ZERO;
     }
-    if (hasConfiguredPercentage(row)) {
-      return row.promoItemValue();
+    if (promoValue != null && promoValue.compareTo(BigDecimal.ZERO) > 0) {
+      return promoValue;
     }
-    if (activityTotal.signum() > 0 && discount.signum() > 0) {
-      return discount
-          .multiply(BigDecimal.valueOf(100))
-          .divide(activityTotal, 2, RoundingMode.HALF_UP);
-    }
-    return BigDecimal.ZERO;
+    return discount;
   }
 
-  private boolean isValuePromo(PromoCodesByTransactionDateReportRow row) {
-    String type = nullToBlank(row.giftCertificateType());
-    return "VALUE".equalsIgnoreCase(type) || "PERSONAL_VALUE".equalsIgnoreCase(type);
-  }
+  private boolean isPercentagePromo(
+      PromoCodesByTransactionDateReportRow row, BigDecimal activityTotal, BigDecimal discount) {
+    if (discount.signum() <= 0) {
+      return false;
+    }
 
-  private boolean hasConfiguredPercentage(PromoCodesByTransactionDateReportRow row) {
-    return row.promoItemValue() != null
-        && row.promoItemValue().compareTo(BigDecimal.ZERO) > 0
-        && row.promoItemValue().compareTo(BigDecimal.valueOf(100)) <= 0;
+    BigDecimal promoValue = row.promoItemValue();
+    if (promoValue == null || promoValue.compareTo(BigDecimal.ZERO) <= 0) {
+      return activityTotal.signum() > 0;
+    }
+
+    if (promoValue.compareTo(BigDecimal.valueOf(100)) > 0) {
+      return false;
+    }
+
+    if (activityTotal.signum() <= 0) {
+      return true;
+    }
+
+    BigDecimal percentageDiscount =
+        activityTotal
+            .multiply(promoValue)
+            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    if (percentageDiscount.subtract(discount).abs().compareTo(new BigDecimal("0.01")) <= 0) {
+      return true;
+    }
+
+    return promoValue.subtract(discount).abs().compareTo(new BigDecimal("0.01")) > 0;
   }
 
   private BigDecimal allocatedDiscount(PromoCodesByTransactionDateReportRow row) {

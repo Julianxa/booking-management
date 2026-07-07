@@ -30,8 +30,13 @@ public class ReportDataRepository {
   private static final String EXCLUDED_BOOKING_STATUSES =
       "'CANCELLED', 'FAILED', 'EXPIRED', 'REFUNDED'";
 
-  private static final String PROMO_GIFT_CERTIFICATE_TYPES =
-      "'VALUE', 'EVENT', 'PERSONAL_VALUE', 'PERSONAL_EVENT'";
+  private static final String PROMO_GIFT_CERTIFICATE_TYPES = "'VALUE', 'EVENT'";
+
+  private static final String PERSONAL_GIFT_CERTIFICATE_TYPES =
+      "'PERSONAL_VALUE', 'PERSONAL_EVENT'";
+
+  private static final String PERSONAL_GIFT_CERTIFICATE_TYPE_FILTER_SQL =
+      " AND gc.type IN (" + PERSONAL_GIFT_CERTIFICATE_TYPES + ")";
 
   private static final String TRANSACTION_DATE_TIME_SQL =
       "CASE WHEN b.type = 'OFFLINE_PAYMENT' THEN b.created_at ELSE p.paid_at END";
@@ -92,14 +97,16 @@ public class ReportDataRepository {
 
   private static final String EXPIRED_GIFT_CERTIFICATE_EXPIRY_WHERE_SQL =
       "WHERE gc.expiry_date BETWEEN :startDate AND :endDate"
-          + " AND gc.cancelled_at IS NULL";
+          + " AND gc.cancelled_at IS NULL"
+          + PERSONAL_GIFT_CERTIFICATE_TYPE_FILTER_SQL;
 
   private static final String EXPIRED_GIFT_CERTIFICATE_ORDER_BY_SQL =
       "ORDER BY gc.expiry_date ASC, gc.id ASC";
 
   private static final String REDEEMED_GIFT_CERTIFICATE_REDEMPTION_WHERE_SQL =
       "WHERE gcr.status = 'SUCCESS'"
-          + " AND DATE(gcr.redeemed_at) BETWEEN :startDate AND :endDate";
+          + " AND DATE(gcr.redeemed_at) BETWEEN :startDate AND :endDate"
+          + PERSONAL_GIFT_CERTIFICATE_TYPE_FILTER_SQL;
 
   private static final String REDEEMED_GIFT_CERTIFICATE_ORDER_BY_SQL =
       "ORDER BY gcr.redeemed_at ASC, gc.id ASC";
@@ -111,7 +118,8 @@ public class ReportDataRepository {
           + "   SELECT 1 FROM gift_certificate_redemptions gcr"
           + "   WHERE gcr.gift_certificate_id = gc.id AND gcr.status = 'SUCCESS'"
           + " )"
-          + " AND DATE(gc.created_at) BETWEEN :startDate AND :endDate";
+          + " AND DATE(gc.created_at) BETWEEN :startDate AND :endDate"
+          + PERSONAL_GIFT_CERTIFICATE_TYPE_FILTER_SQL;
 
   private static final String UNREDEEMED_GIFT_CERTIFICATE_ORDER_BY_SQL =
       "ORDER BY gc.created_at ASC, gc.id ASC";
@@ -321,6 +329,7 @@ public class ReportDataRepository {
         """
         SELECT COUNT(*)
         FROM gift_certificate_redemptions gcr
+        INNER JOIN gift_certificates gc ON gc.id = gcr.gift_certificate_id
         """
             + REDEEMED_GIFT_CERTIFICATE_REDEMPTION_WHERE_SQL;
     Query query = entityManager.createNativeQuery(sql);
