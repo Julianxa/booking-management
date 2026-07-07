@@ -3,6 +3,7 @@ package com.example.mapper;
 import com.example.constant.Enums;
 import com.example.model.dto.*;
 import com.example.model.entity.BookingEvents;
+import com.example.model.entity.EmailTemplates;
 import com.example.model.entity.EventDaySchedules;
 import com.example.model.entity.Events;
 import com.example.model.entity.TicketTypes;
@@ -78,7 +79,7 @@ public interface EventMapper {
         dto.setIsPublish(entity.getIsPublish());
         dto.setActivityDayThreshold(entity.getActivityDayThreshold());
         dto.setActivityHourThreshold(entity.getActivityHourThreshold());
-        dto.setEmailTemplate(entity.getEmailTemplate());
+        dto.setEmailTemplate(mapEmailTemplate(entity.getEmailTemplate()));
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         dto.setCreatedBy(entity.getCreatedBy());
@@ -144,6 +145,39 @@ public interface EventMapper {
                 .toList();
     }
 
+    default GetEmailTemplateResponseDTO mapEmailTemplate(EmailTemplates template) {
+        if (template == null) {
+            return null;
+        }
+
+        return GetEmailTemplateResponseDTO.builder()
+                .id(template.getRefNo())
+                .templateName(template.getTemplateName())
+                .title(template.getTitle())
+                .titleZhCn(template.getTitleZhCn())
+                .titleZhHk(template.getTitleZhHk())
+                .subject(template.getSubject())
+                .subjectZhCn(template.getSubjectZhCn())
+                .subjectZhHk(template.getSubjectZhHk())
+                .mainBody(template.getMainBody())
+                .mainBodyZhCn(template.getMainBodyZhCn())
+                .mainBodyZhHk(template.getMainBodyZhHk())
+                .importantInfoIntro(template.getImportantInfoIntro())
+                .importantInfoIntroZhCn(template.getImportantInfoIntroZhCn())
+                .importantInfoIntroZhHk(template.getImportantInfoIntroZhHk())
+                .importantInfoBody(template.getImportantInfoBody())
+                .importantInfoBodyZhCn(template.getImportantInfoBodyZhCn())
+                .importantInfoBodyZhHk(template.getImportantInfoBodyZhHk())
+                .contactBody(template.getContactBody())
+                .contactBodyZhCn(template.getContactBodyZhCn())
+                .contactBodyZhHk(template.getContactBodyZhHk())
+                .reminderDayInterval(template.getReminderDayInterval())
+                .isPerm(template.getIsPerm())
+                .createdAt(template.getCreatedAt())
+                .updatedAt(template.getUpdatedAt())
+                .build();
+    }
+
     @Mapping(target = "id", source = "entity.refNo")
     EventAvailabilityDTO toAvailabilityResponseDTO(Events entity);
 
@@ -156,6 +190,8 @@ public interface EventMapper {
         return CreateBookingRequestDTO.EventDTO.builder()
                 .id(event.getRefNo())
                 .name(event.getName())
+                .nameZhCn(event.getNameZhCn())
+                .nameZhHk(event.getNameZhHk())
                 .eventDate(bookingEvent.getEventDate())
                 .eventTime(bookingEvent.getEventTime())
                 .build();

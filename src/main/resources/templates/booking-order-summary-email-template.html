@@ -279,7 +279,9 @@
                             <td valign="top">
                               <!-- Event Name -->
                               <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #1a1a1a; line-height: 1.5;">
-                                <span th:text="${bookingEvent.event.name} ?: 'Event'"></span>
+                                <span th:if="${lang == 'EN'}" th:text="${bookingEvent.event.name} ?: 'Event'"></span>
+                                <span th:if="${lang == 'CN'}" th:text="${bookingEvent.event.nameZhCn} ?: 'Event'"></span>
+                                <span th:if="${lang == 'HK'}" th:text="${bookingEvent.event.nameZhHk} ?: 'Event'"></span>
                               </p>
 
                               <!-- Event Date, Time + Ticket Summary -->
@@ -290,9 +292,18 @@
 
                                 <!-- Ticket Summary -->
                                 <span th:each="ticket, ticketStat : ${bookingEvent.tickets}">
-                                  <span th:text="${ticket.name} + ' x ' + ${ticket.quantity}"></span>
+                                  <span th:if="${lang == 'EN'}" th:text="|${ticket.name} x ${ticket.quantity}|"></span>
+                                  <span th:if="${lang == 'CN'}" th:text="|${ticket.nameZhCn != null and !#strings.isEmpty(ticket.nameZhCn) ? ticket.nameZhCn : ticket.name} x ${ticket.quantity}|"></span>
+                                  <span th:if="${lang == 'HK'}" th:text="|${ticket.nameZhHk != null and !#strings.isEmpty(ticket.nameZhHk) ? ticket.nameZhHk : ticket.name} x ${ticket.quantity}|"></span>
                                   <span th:if="${!ticketStat.last}">, </span>
                                 </span>
+                              </p>
+                              <p style="margin: 6px 0 0 0; font-size: 11px; color: #444444; line-height: 1.8;">
+                                <a
+                                  th:href="${activityDetailsUrlPrefix == '#' ? '#' : activityDetailsUrlPrefix + bookingEvent.event.id}"
+                                  style="color: #888888; text-decoration: underline"
+                                 th:text="${lang == 'CN' ? '活动详情' : (lang == 'HK' ? '活動詳情' : 'Activity Details')}"
+                                >Activity Details</a>
                               </p>
                             </td>
 
@@ -345,7 +356,8 @@
                         style="margin-bottom: 6px"
                       >
                         <tr>
-                          <td style="font-size: 13px; color: #444444">
+                          <td style="font-size: 13px; color: #444444"
+                              th:text="${lang == 'CN' ? '小计' : (lang == 'HK' ? '小計' : 'Subtotal')}">
                             Subtotal
                           </td>
                           <td
@@ -377,7 +389,9 @@
                             <span th:text="${giftCertificatePromoCode}"/>
                             <span th:if="${redeemedTickets != null and !redeemedTickets.isEmpty()}">
                                 (<span th:each="ticket, stat : ${redeemedTickets}">
-                                    <span th:text="${ticket.name}"></span> x <span th:text="${ticket.quantity}"></span>
+                                    <span th:if="${lang == 'EN'}" th:text="|${ticket.name} x ${ticket.quantity}|"></span>
+                                    <span th:if="${lang == 'CN'}" th:text="|${ticket.nameZhCn != null and !#strings.isEmpty(ticket.nameZhCn) ? ticket.nameZhCn : ticket.name} x ${ticket.quantity}|"></span>
+                                    <span th:if="${lang == 'HK'}" th:text="|${ticket.nameZhHk != null and !#strings.isEmpty(ticket.nameZhHk) ? ticket.nameZhHk : ticket.name} x ${ticket.quantity}|"></span>
                                     <span th:if="${!stat.last}">, </span>
                                 </span>)
                             </span>
@@ -422,13 +436,12 @@
                         width="100%"
                       >
                         <tr>
-                          <td
-                            style="
+                          <td style="
                               font-size: 15px;
                               font-weight: 700;
                               color: #1a1a1a;
                             "
-                          >
+                              th:text="${lang == 'CN' ? '总额' : (lang == 'HK' ? '總額' : 'Total')}">
                             Total
                           </td>
                           <td

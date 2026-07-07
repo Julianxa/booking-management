@@ -196,7 +196,8 @@
                                         <a
                                                 th:href="${activityDetailsUrl}"
                                                 style="color: #888888; text-decoration: underline"
-                                        >Activity Details</a>
+                                         th:text="${lang == 'CN' ? '活动详情' : (lang == 'HK' ? '活動詳情' : 'Activity Details')}"
+                                >Activity Details</a>
                                     </p>
                                 </td>
                                 <td valign="top" align="right" style="width: 110px">

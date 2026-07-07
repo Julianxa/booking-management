@@ -2,7 +2,6 @@ package com.example.model.dto;
 
 
 import com.example.constant.Enums;
-import com.example.model.entity.EmailTemplates;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -202,7 +201,7 @@ public class CreateEventResponseDTO {
     private Enums.EventStatus status;
 
     @JsonProperty("email_template")
-    private EmailTemplates emailTemplate;
+    private GetEmailTemplateResponseDTO emailTemplate;
 
     @Schema(description = "When the event was created")
     @JsonProperty("created_at")

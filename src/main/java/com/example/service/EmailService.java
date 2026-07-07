@@ -5,13 +5,12 @@ import com.example.constant.Enums;
 import com.example.exception.email.EmailProcessException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.email.OfficialTemplateDeletionException;
-import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.mapper.EmailTemplateMapper;
+import com.example.mapper.TicketTypeMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
 import com.example.repository.EmailLogsRepository;
 import com.example.repository.EmailTemplatesRepository;
-import com.example.repository.TicketTypesRepository;
 import com.example.utils.PartialUpdateUtil;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
@@ -44,7 +43,6 @@ import java.util.stream.Collectors;
 public class EmailService {
     private final TemplateEngine templateEngine;
     private final EmailTemplatesRepository emailTemplatesRepository;
-    private final TicketTypesRepository ticketTypesRepository;
     private final QRCodeGenerator qrCodeGenerator;
     private final JavaMailSender javaMailSender;
     private final EmailTemplateMapper emailTemplateMapper;
@@ -214,6 +212,7 @@ public class EmailService {
 
         context.setVariable("bookingEvents", eventList);
         context.setVariable("redeemedTickets", redeemedTicketList);
+        context.setVariable("activityDetailsUrlPrefix", buildActivityDetailsUrlPrefix(booking.getLanguage()));
 
         context.setVariable("giftCertificatePromoCode", giftCertificatePromoCode);
         context.setVariable("giftCertificateDiscount", booking.getDiscount());
@@ -273,7 +272,7 @@ public class EmailService {
             template = resolveEmailTemplate(bookingEvent.getEvent().getEmailTemplate().getRefNo());
         }
 
-        String ticketSummary = buildTicketSummary(ticketsDTOs);
+        String ticketSummary = buildTicketSummary(ticketsDTOs, booking.getLanguage());
 
         context.setVariable("attendees", attendeeDTOs);
 
@@ -340,7 +339,7 @@ public class EmailService {
 
         EmailTemplates template = emailTemplatesRepository.findBookingCancellationEmailTemplate();
 
-        String ticketSummary = buildTicketSummary(ticketsDTOs);
+        String ticketSummary = buildTicketSummary(ticketsDTOs, booking.getLanguage());
 
         context.setVariable("attendees", attendeeDTOs);
 
@@ -353,6 +352,9 @@ public class EmailService {
         context.setVariable("eventDate", bookingEvent.getEventDate());
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
+        context.setVariable(
+                "activityDetailsUrl",
+                buildActivityDetailsUrl(bookingEvent.getEvent(), booking.getLanguage()));
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
             context.setVariable("lang", Enums.Language.CN.name());
@@ -404,7 +406,7 @@ public class EmailService {
 
         EmailTemplates template = emailTemplatesRepository.findBookingReminderEmailTemplate();
 
-        String ticketSummary = buildTicketSummary(ticketsDTOs);
+        String ticketSummary = buildTicketSummary(ticketsDTOs, booking.getLanguage());
 
         context.setVariable("attendees", attendeeDTOs);
 
@@ -417,6 +419,9 @@ public class EmailService {
         context.setVariable("eventDate", bookingEvent.getEventDate());
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
+        context.setVariable(
+                "activityDetailsUrl",
+                buildActivityDetailsUrl(bookingEvent.getEvent(), booking.getLanguage()));
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
             context.setVariable("lang", Enums.Language.CN.name());
@@ -458,20 +463,15 @@ public class EmailService {
     }
 
 
-    public String buildTicketSummary(List<CreateBookingRequestDTO.TicketTypeDTO> ticketTypesDTOs) {
+    public String buildTicketSummary(
+            List<CreateBookingRequestDTO.TicketTypeDTO> ticketTypesDTOs, Enums.Language language) {
         if (ticketTypesDTOs == null || ticketTypesDTOs.isEmpty()) {
             return "No tickets selected";
         }
 
         return ticketTypesDTOs.stream()
                 .filter(dto -> dto.getQuantity() > 0)
-                .map(dto -> {
-
-                    TicketTypes ticketType = ticketTypesRepository.findByRefNo(dto.getId())
-                            .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", dto.getId())));
-                    String name = ticketType.getName();
-                    return name + " x " + dto.getQuantity();
-                })
+                .map(dto -> TicketTypeMapper.resolveName(dto, language) + " x " + dto.getQuantity())
                 .collect(Collectors.joining(", "));
     }
 
@@ -575,8 +575,16 @@ public class EmailService {
     }
 
     private String buildActivityDetailsUrl(Events event, Enums.Language language) {
+        String activityDetailsUrlPrefix = buildActivityDetailsUrlPrefix(language);
+        if ("#".equals(activityDetailsUrlPrefix) || event == null || event.getRefNo() == null) {
+            return "#";
+        }
+        return activityDetailsUrlPrefix + event.getRefNo();
+    }
+
+    private String buildActivityDetailsUrlPrefix(Enums.Language language) {
         String baseUrl = appProperties.getFrontend().getBaseUrl();
-        if (baseUrl == null || baseUrl.isBlank() || event == null || event.getRefNo() == null) {
+        if (baseUrl == null || baseUrl.isBlank()) {
             return "#";
         }
         String langPath =
@@ -588,7 +596,6 @@ public class EmailService {
         return baseUrl.strip().replaceAll("/$", "")
             + "/"
             + langPath
-            + "/activity/details?id="
-            + event.getRefNo();
+            + "/activity/details?id=";
     }
 }

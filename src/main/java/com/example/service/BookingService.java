@@ -13,6 +13,7 @@ import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.exception.user.UserNotFoundException;
 import com.example.mapper.BookingEventsMapper;
 import com.example.mapper.BookingMapper;
+import com.example.mapper.TicketTypeMapper;
 import com.example.model.dto.*;
 import com.example.model.entity.*;
 import com.example.model.record.EventTimeSlotException;
@@ -519,7 +520,7 @@ public class BookingService {
         registerAttendeesForEvent(bookingEventDTO, bookingEvent);
 
         // 10. Enrich ticket names (this is the right place)
-        enrichTicketNames(bookingEventDTO.getTickets());
+        enrichTicketDetails(bookingEventDTO.getTickets());
 
         CreateBookingRequestDTO.BookingEventDTO responseEventDTO =
                 bookingEventsMapper.toCreateResponseDTO(booking, bookingEvent, bookingEventDTO,
@@ -528,18 +529,19 @@ public class BookingService {
         return new BookingEventProcessingResult(responseEventDTO, bookingEventTotal);
     }
 
-    private void enrichTicketNames(List<CreateBookingRequestDTO.TicketTypeDTO> tickets) {
+    private void enrichTicketDetails(List<CreateBookingRequestDTO.TicketTypeDTO> tickets) {
         if (tickets == null || tickets.isEmpty()) {
             return;
         }
 
         for (CreateBookingRequestDTO.TicketTypeDTO ticket : tickets) {
-            if (ticket.getName() == null || ticket.getName().isBlank()) {
-                TicketTypes ticketType = ticketTypesRepository.findByRefNo(ticket.getId())
-                        .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticket.getId())));
-
-                ticket.setName(ticketType.getName());
+            if (ticket.getId() == null || ticket.getId().isBlank()) {
+                continue;
             }
+            TicketTypes ticketType = ticketTypesRepository.findByRefNo(ticket.getId())
+                    .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticket.getId())));
+
+            TicketTypeMapper.copyLocalizedFields(ticketType, ticket);
         }
     }
 
@@ -787,6 +789,8 @@ public class BookingService {
 
     private BookingEvents registerBookingEvent(Bookings booking, Events event, CreateBookingRequestDTO.BookingEventDTO bookingEventDTO) {
         bookingEventDTO.getEvent().setName(event.getName());
+        bookingEventDTO.getEvent().setNameZhHk(event.getNameZhHk());
+        bookingEventDTO.getEvent().setNameZhCn(event.getNameZhCn());
         BookingEvents bookingEvent = BookingEvents.builder()
                 .refNo(referenceNoGenerator.generateBookingEventReference())
                 .booking(booking)

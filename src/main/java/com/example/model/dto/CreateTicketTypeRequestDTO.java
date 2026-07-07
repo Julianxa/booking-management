@@ -37,7 +37,7 @@ public class CreateTicketTypeRequestDTO {
 
     @JsonProperty("description_zh_hk")
     @Size(max = 255, message = "Description ≤ 255 characters")
-    private String descriptionZnHk;
+    private String descriptionZhHk;
 
     @JsonProperty("periods")
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)

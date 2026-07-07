@@ -1,6 +1,7 @@
 package com.example.converter;
 
 import com.example.exception.ticket.TicketTypeNotFoundException;
+import com.example.mapper.TicketTypeMapper;
 import com.example.model.dto.CreateBookingRequestDTO;
 import com.example.model.entity.BookingItems;
 import com.example.model.entity.TicketTypes;
@@ -21,11 +22,7 @@ public class BookingItemsConverter {
                     TicketTypes ticketType = ticketTypesRepository.findById(item.getTicketTypeId())
                             .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", item.getTicketTypeId())));
 
-                    CreateBookingRequestDTO.TicketTypeDTO dto = new CreateBookingRequestDTO.TicketTypeDTO();
-                    dto.setId(ticketType.getRefNo());
-                    dto.setName(ticketType.getName());
-                    dto.setDescription(ticketType.getDescription());
-                    dto.setStatus(ticketType.getStatus());
+                    CreateBookingRequestDTO.TicketTypeDTO dto = TicketTypeMapper.toTicketTypeDTO(ticketType);
                     dto.setQuantity(item.getQuantity());
                     return dto;
                 })

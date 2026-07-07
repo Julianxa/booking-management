@@ -99,6 +99,14 @@ public class CreateBookingRequestDTO {
         @JsonProperty("name")
         private String name;
 
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+        @JsonProperty("name_zh_cn")
+        private String nameZhCn;
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+        @JsonProperty("name_zh_hk")
+        private String nameZhHk;
+
         @Schema(
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 description = "Date of the event",
@@ -133,7 +141,23 @@ public class CreateBookingRequestDTO {
         private String name;
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+        @JsonProperty("name_zh_cn")
+        private String nameZhCn;
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+        @JsonProperty("name_zh_hk")
+        private String nameZhHk;
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY)
         private String description;
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+        @JsonProperty("description_zh_cn")
+        private String descriptionZhCn;
+
+        @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+        @JsonProperty("description_zh_hk")
+        private String descriptionZhHk;
 
         @Schema(accessMode = Schema.AccessMode.READ_ONLY)
         private Enums.TicketTypeStatus status;

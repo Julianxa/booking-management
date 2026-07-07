@@ -184,6 +184,20 @@
                                         <span th:text="${eventTime}"/><br />
                                         <span th:text="${ticketSummary}"/>
                                     </p>
+                                    <p
+                                            style="
+                                              margin: 0;
+                                              font-size: 11px;
+                                              color: #444444;
+                                              line-height: 1.8;
+                                            "
+                                    >
+                                        <a
+                                                th:href="${activityDetailsUrl}"
+                                                style="color: #888888; text-decoration: underline"
+                                         th:text="${lang == 'CN' ? '活动详情' : (lang == 'HK' ? '活動詳情' : 'Activity Details')}"
+                                >Activity Details</a>
+                                    </p>
                                 </td>
                             </tr>
                         </table>
@@ -205,6 +219,23 @@
 
                         <div th:each="attendee : ${attendees}">
                             <h3
+                                    th:if="${lang == 'HK'}"
+                                    style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
+                            >
+                                <span th:if="${attendee.sequence == 1}" th:text="'主要賓客（聯絡人）'"></span>
+                                <span th:if="${attendee.sequence != 1}"
+                                      th:text="'賓客 ' + ${attendee.sequence}"></span>
+                            </h3>
+                            <h3
+                                    th:if="${lang == 'CN'}"
+                                    style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
+                            >
+                                <span th:if="${attendee.sequence == 1}" th:text="'主要宾客（联系人）'"></span>
+                                <span th:if="${attendee.sequence != 1}"
+                                      th:text="'宾客 ' + ${attendee.sequence}"></span>
+                            </h3>
+                            <h3
+                                    th:if="${lang == 'EN'}"
                                     style="margin: 0 0 12px 0;font-size: 14px;font-weight: 700;color: #2d6a4f;line-height: 1.4;"
                             >
                                 <span th:if="${attendee.sequence == 1}" th:text="'Lead Guest (Contact Person)'"></span>
@@ -219,49 +250,156 @@
                                     width="100%"
                                     style="margin-bottom: 8px"
                             >
-                                <tr>
-                                    <td
-                                            style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
-                                    >
-                                        <strong style="color: #1a1a1a">First Name:</strong> <span th:text="${attendee.firstName}"/>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td
-                                            style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
-                                    >
-                                        <strong style="color: #1a1a1a">Last Name:</strong> <span th:text="${attendee.lastName}"/>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td
-                                            style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
-                                    >
-                                        <strong style="color: #1a1a1a">Email Address:</strong>
-                                        <span th:text="${attendee.email}"/>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td
-                                            style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
-                                    >
-                                        <strong style="color: #1a1a1a">Telephone:</strong>
-                                        <span th:text="${attendee.phone}"/>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td
-                                            style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
-                                    >
-                                        <strong style="color: #1a1a1a">Country/City:</strong> <span th:text="${attendee.country}"/>
-
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="font-size: 13px; color: #444444; line-height: 2">
-                                        <strong style="color: #1a1a1a">Gender:</strong> <span th:text="${attendee.gender}"/>
-                                    </td>
-                                </tr>
+                                <th:block th:if="${lang == 'HK'}">
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">名字：</strong> <span th:text="${attendee.firstName}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">姓氏：</strong> <span th:text="${attendee.lastName}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">電郵地址：</strong>
+                                            <span th:text="${attendee.email}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">電話：</strong>
+                                            <span th:text="${attendee.phone}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">國家/城市：</strong> <span th:text="${attendee.country}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-size: 13px; color: #444444; line-height: 2">
+                                            <strong style="color: #1a1a1a">性別：</strong>
+                                            <span th:text="${
+                                                #strings.equals(attendee.gender, 'M') ? '男' :
+                                                #strings.equals(attendee.gender, 'F') ? '女' :
+                                                #strings.equals(attendee.gender, 'N') ? '不願透露' :
+                                                '-'
+                                            }"></span>
+                                        </td>
+                                    </tr>
+                                </th:block>
+                                <th:block th:if="${lang == 'CN'}">
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">名字：</strong> <span th:text="${attendee.firstName}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">姓氏：</strong> <span th:text="${attendee.lastName}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">电邮地址：</strong>
+                                            <span th:text="${attendee.email}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">电话：</strong>
+                                            <span th:text="${attendee.phone}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">国家/城市：</strong> <span th:text="${attendee.country}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-size: 13px; color: #444444; line-height: 2">
+                                            <strong style="color: #1a1a1a">性别：</strong>
+                                            <span th:text="${
+                                                #strings.equals(attendee.gender, 'M') ? '男' :
+                                                #strings.equals(attendee.gender, 'F') ? '女' :
+                                                #strings.equals(attendee.gender, 'N') ? '不愿透露' :
+                                                '-'
+                                            }"></span>
+                                        </td>
+                                    </tr>
+                                </th:block>
+                                <th:block th:if="${lang == 'EN'}">
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">First Name:</strong> <span th:text="${attendee.firstName}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">Last Name:</strong> <span th:text="${attendee.lastName}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">Email Address:</strong>
+                                            <span th:text="${attendee.email}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">Telephone:</strong>
+                                            <span th:text="${attendee.phone}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td
+                                                style="font-size: 13px;color: #444444;line-height: 2;padding-bottom: 2px;"
+                                        >
+                                            <strong style="color: #1a1a1a">Country/City:</strong> <span th:text="${attendee.country}"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-size: 13px; color: #444444; line-height: 2">
+                                            <strong style="color: #1a1a1a">Gender:</strong>
+                                            <span th:text="${
+                                                #strings.equals(attendee.gender, 'M') ? 'Male' :
+                                                #strings.equals(attendee.gender, 'F') ? 'Female' :
+                                                #strings.equals(attendee.gender, 'N') ? 'Prefer not to say' :
+                                                '-'
+                                            }"></span>
+                                        </td>
+                                    </tr>
+                                </th:block>
                             </table>
                         </div>
 
