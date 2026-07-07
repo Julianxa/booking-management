@@ -28,7 +28,8 @@ public class GenerateReportRequestDTO {
         "PROMO_CODES_BY_TRANSACTION_DATE",
         "COUNTRY_OF_ORIGIN",
         "EXPIRED_GIFT_CERTIFICATE_CODES",
-        "REDEEMED_GIFT_CERTIFICATE_CODES"
+        "REDEEMED_GIFT_CERTIFICATE_CODES",
+        "UNREDEEMED_GIFT_CERTIFICATE_CODES"
       })
   private Enums.ReportType reportType;
 
