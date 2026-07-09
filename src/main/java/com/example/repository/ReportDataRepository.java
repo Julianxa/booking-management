@@ -32,6 +32,13 @@ public class ReportDataRepository {
 
   private static final String PROMO_GIFT_CERTIFICATE_TYPES = "'VALUE', 'EVENT'";
 
+  private static final String PROMO_GIFT_CERTIFICATE_RATE_TYPE_SQL =
+      "CASE gc.type"
+          + " WHEN 'VALUE' THEN 'OPEN'"
+          + " WHEN 'EVENT' THEN 'ACTIVITY'"
+          + " ELSE gc.type"
+          + " END";
+
   private static final String PERSONAL_GIFT_CERTIFICATE_TYPES =
       "'PERSONAL_VALUE', 'PERSONAL_EVENT'";
 
@@ -668,7 +675,10 @@ public class ReportDataRepository {
             ba.last_name,
             be.total,
             gc.promo_code,
-            gc.type,
+            """
+            + PROMO_GIFT_CERTIFICATE_RATE_TYPE_SQL
+            + """
+            ,
             promo_item.value,
             b.discount,
             b.total_paid_price

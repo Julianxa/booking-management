@@ -179,7 +179,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
       return "OPEN";
     }
     if ("EVENT".equalsIgnoreCase(type)) {
-      return "EVENT";
+      return "ACTIVITY";
     }
     return type;
   }
