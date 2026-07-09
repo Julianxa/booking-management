@@ -35,12 +35,23 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, ex.getHttpStatus());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", "BT400");
+        body.put("message", ex.getMessage());
+        body.put("timestamp", ZonedDateTime.now());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
     // Fallback for any other unexpected exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
+        log.error("Unhandled exception", ex);
+
         Map<String, Object> body = new HashMap<>();
         body.put("code", "BT999");
-        body.put("message", "An unexpected error occurred: " + ex.getMessage());
+        body.put("message", "Internal server error");
         body.put("timestamp", ZonedDateTime.now());
 
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);

@@ -17,7 +17,7 @@ public class ErrorCode {
             new ErrorDefinition("BT004", HttpStatus.BAD_REQUEST, "Failed to generate QR code");
 
     public static final ErrorDefinition INTERNAL_SERVER_ERROR =
-            new ErrorDefinition("BT005", HttpStatus.BAD_REQUEST, "Internal server error");
+            new ErrorDefinition("BT005", HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 
     public static final ErrorDefinition INVALID_JSON_FORMAT =
             new ErrorDefinition("BT006", HttpStatus.BAD_REQUEST, "Invalid Json format provided");
