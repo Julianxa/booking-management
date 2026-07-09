@@ -134,9 +134,9 @@ public class ReportDataRepository {
   private static final String GIFT_CERTIFICATE_TYPE_LABEL_SQL =
       "CASE gc.type"
           + " WHEN 'VALUE' THEN 'OPEN'"
-          + " WHEN 'PERSONAL_VALUE' THEN 'UNIQUE_CODE_OPEN'"
-          + " WHEN 'PERSONAL_EVENT' THEN 'UNIQUE_CODE_EVENT'"
+          + " WHEN 'PERSONAL_VALUE' THEN 'OPEN'"
           + " WHEN 'EVENT' THEN 'EVENT'"
+          + " WHEN 'PERSONAL_EVENT' THEN 'EVENT'"
           + " ELSE gc.type"
           + " END";
 
