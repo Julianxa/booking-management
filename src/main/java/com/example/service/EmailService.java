@@ -532,15 +532,15 @@ public class EmailService {
 
     private Map<String, String> embedInlineImages() {
         Map<String, String> inlineImages = new HashMap<>();
-        inlineImages.put("logo", "images/email/logo.png");
-        inlineImages.put("google", "images/email/google.png");
-        inlineImages.put("apple", "images/email/apple.png");
-        inlineImages.put("cat", "images/email/cat.png");
-        inlineImages.put("fb", "images/email/fb.png");
-        inlineImages.put("wb", "images/email/wb.png");
-        inlineImages.put("ta", "images/email/ta.png");
-        inlineImages.put("ig", "images/email/ig.png");
-        inlineImages.put("yt", "images/email/yt.png");
+        inlineImages.put("logo", "static/images/email/logo.png");
+        inlineImages.put("google", "static/images/email/google.png");
+        inlineImages.put("apple", "static/images/email/apple.png");
+        inlineImages.put("cat", "static/images/email/cat.png");
+        inlineImages.put("fb", "static/images/email/fb.png");
+        inlineImages.put("wb", "static/images/email/wb.png");
+        inlineImages.put("ta", "static/images/email/ta.png");
+        inlineImages.put("ig", "static/images/email/ig.png");
+        inlineImages.put("yt", "static/images/email/yt.png");
         return inlineImages;
     }
 
