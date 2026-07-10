@@ -135,8 +135,8 @@ public class ReportDataRepository {
       "CASE gc.type"
           + " WHEN 'VALUE' THEN 'OPEN'"
           + " WHEN 'PERSONAL_VALUE' THEN 'OPEN'"
-          + " WHEN 'EVENT' THEN 'EVENT'"
-          + " WHEN 'PERSONAL_EVENT' THEN 'EVENT'"
+          + " WHEN 'EVENT' THEN 'ACTIVITY'"
+          + " WHEN 'PERSONAL_EVENT' THEN 'ACTIVITY'"
           + " ELSE gc.type"
           + " END";
 
