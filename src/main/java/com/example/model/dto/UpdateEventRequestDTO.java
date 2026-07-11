@@ -186,6 +186,10 @@ public class UpdateEventRequestDTO extends AbstractPartialUpdateDto {
     @JsonProperty("activity_hour_threshold")
     private Integer activityHourThreshold;
 
+    @Schema(description = "Email template reference number")
+    @JsonProperty("email_template_id")
+    private String emailTemplateId;
+
     @Data
     @Builder
     @NoArgsConstructor

@@ -170,6 +170,8 @@ public class EventService {
             PartialUpdateUtil.apply(dto, "is_publish", dto::getIsPublish, event::setIsPublish);
             PartialUpdateUtil.apply(dto, "activity_day_threshold", dto::getActivityDayThreshold, event::setActivityDayThreshold);
             PartialUpdateUtil.apply(dto, "activity_hour_threshold", dto::getActivityHourThreshold, event::setActivityHourThreshold);
+            PartialUpdateUtil.ifPresent(dto, "email_template_id", () ->
+                    event.setEmailTemplate(emailService.resolveEmailTemplate(dto.getEmailTemplateId())));
             applyMutuallyExclusiveActivityThresholds(event);
 
             PartialUpdateUtil.ifPresent(dto, "available_days", () -> {

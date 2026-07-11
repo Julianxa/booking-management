@@ -190,6 +190,10 @@ public class UpdateEventResponseDTO {
     @JsonProperty("activity_hour_threshold")
     private Integer activityHourThreshold;
 
+    @Schema(description = "Associated email template")
+    @JsonProperty("email_template")
+    private GetEmailTemplateResponseDTO emailTemplate;
+
     @Schema(description = "When the event was created")
     @JsonProperty("created_at")
     private ZonedDateTime createdAt;
