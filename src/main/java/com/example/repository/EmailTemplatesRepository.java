@@ -30,6 +30,7 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
             SELECT new com.example.model.entity.EmailTemplates(
                 et.id,
                 et.refNo,
+                et.templateName,
                 et.templateHtmlFileName,
                 et.title,
                 et.titleZhCn,
@@ -58,6 +59,10 @@ public interface EmailTemplatesRepository extends JpaRepository<EmailTemplates, 
     Page<EmailTemplates> findAllActive(Pageable pageable);
 
     boolean existsByRefNo(String refNo);
+
+    boolean existsByTemplateName(String templateName);
+
+    boolean existsByTemplateNameAndIdNot(String templateName, Long id);
 
     @Query("""
             SELECT et.reminderDayInterval

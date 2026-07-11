@@ -19,6 +19,10 @@ public class GetEmailTemplateResponseDTO {
     @JsonProperty("id")
     private String id;
 
+    @Schema(description = "Template name")
+    @JsonProperty("template_name")
+    private String templateName;
+
     @Schema(description = "Template HTML file")
     @JsonProperty("template_html_file_name")
     private String templateHtmlFileName;

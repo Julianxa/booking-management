@@ -152,6 +152,7 @@ public interface EventMapper {
 
         return GetEmailTemplateResponseDTO.builder()
                 .id(template.getRefNo())
+                .templateName(template.getTemplateName())
                 .templateHtmlFileName(template.getTemplateHtmlFileName())
                 .title(template.getTitle())
                 .titleZhCn(template.getTitleZhCn())

@@ -63,6 +63,9 @@ public class ErrorCode {
 
     public static final ErrorDefinition OFFICIAL_TEMPLATE =
             new ErrorDefinition("BT203", HttpStatus.BAD_REQUEST, "Official template cannot be deleted");
+
+    public static final ErrorDefinition EMAIL_TEMPLATE_NAME_EXISTS =
+            new ErrorDefinition("BT204", HttpStatus.BAD_REQUEST, "Email template name already exists");
     // Event
     public static final ErrorDefinition CAPACITY_EXCEEDED =
             new ErrorDefinition("BT300", HttpStatus.BAD_REQUEST, "Event capacity is exceeded");

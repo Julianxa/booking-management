@@ -3,8 +3,10 @@ package com.example.service;
 import com.example.config.AppProperties;
 import com.example.constant.Enums;
 import com.example.exception.email.EmailProcessException;
+import com.example.exception.email.EmailTemplateNameExistsException;
 import com.example.exception.email.EmailTemplateNotFoundException;
 import com.example.exception.email.OfficialTemplateDeletionException;
+import com.example.exception.general.MissingRequiredFieldException;
 import com.example.mapper.EmailTemplateMapper;
 import com.example.mapper.TicketTypeMapper;
 import com.example.model.dto.*;
@@ -116,6 +118,8 @@ public class EmailService {
 
     @Transactional
     public CreateEmailTemplatesResponseDTO createEmailTemplate(CreateEmailTemplatesRequestDTO createEmailTemplatesRequestDTO) {
+        validateUniqueTemplateName(createEmailTemplatesRequestDTO.getTemplateName(), null);
+
         EmailTemplates template = emailTemplateMapper.toEntity(createEmailTemplatesRequestDTO);
         template.setRefNo(referenceNoGenerator.generateEmailTemplateReference());
         template.setTemplateHtmlFileName(CUSTOM_EMAIL_TEMPLATE_HTML_FILE);
@@ -137,6 +141,10 @@ public class EmailService {
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
                 .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", templateRefNo)));
 
+        PartialUpdateUtil.ifPresent(dto, "template_name", () -> {
+            validateUniqueTemplateName(dto.getTemplateName(), template.getId());
+            template.setTemplateName(dto.getTemplateName());
+        });
         PartialUpdateUtil.apply(dto, "title", dto::getTitle, template::setTitle);
         PartialUpdateUtil.apply(dto, "title_zh_cn", dto::getTitleZhCn, template::setTitleZhCn);
         PartialUpdateUtil.apply(dto, "title_zh_hk", dto::getTitleZhHk, template::setTitleZhHk);
@@ -595,5 +603,19 @@ public class EmailService {
             + "/"
             + langPath
             + "/activity/details?id=";
+    }
+
+    private void validateUniqueTemplateName(String templateName, Long excludeId) {
+        if (templateName == null || templateName.isBlank()) {
+            throw new MissingRequiredFieldException("template_name is required");
+        }
+
+        boolean exists = excludeId == null
+                ? emailTemplatesRepository.existsByTemplateName(templateName)
+                : emailTemplatesRepository.existsByTemplateNameAndIdNot(templateName, excludeId);
+        if (exists) {
+            throw new EmailTemplateNameExistsException(
+                    String.format("Template name %s already exists", templateName));
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.example.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,6 +17,9 @@ import java.time.ZonedDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CreateEmailTemplatesResponseDTO {
     private String id;
+    @Schema(description = "Template name")
+    @JsonProperty("template_name")
+    private String templateName;
     @JsonProperty("title")
     private String title;
     @JsonProperty("title_zh_cn")

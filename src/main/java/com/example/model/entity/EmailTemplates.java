@@ -15,7 +15,9 @@ import java.time.ZonedDateTime;
 @DynamicUpdate
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "email_templates")
+@Table(
+    name = "email_templates",
+    uniqueConstraints = @UniqueConstraint(name = "uk_email_templates_template_name", columnNames = "template_name"))
 public class EmailTemplates {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,6 +25,8 @@ public class EmailTemplates {
     private Long id;
     @Column(name = "ref_no", nullable = false)
     private String refNo;
+    @Column(name = "template_name", nullable = false, unique = true)
+    private String templateName;
     @Column(name = "template_html_file_name")
     private String templateHtmlFileName;
     @Column(name = "title")

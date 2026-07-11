@@ -4,6 +4,7 @@ import com.example.jackson.AbstractPartialUpdateDto;
 import com.example.jackson.PartialUpdate;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,6 +15,10 @@ import lombok.Setter;
 @PartialUpdate
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UpdateEmailTemplatesRequestDTO extends AbstractPartialUpdateDto {
+    @Schema(description = "Template name")
+    @JsonProperty("template_name")
+    private String templateName;
+
     @JsonProperty("title")
     private String title;
 

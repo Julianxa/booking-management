@@ -39,6 +39,7 @@ public interface EmailTemplateMapper {
     CreateEmailTemplatesResponseDTO toCreateResponseDTO(EmailTemplates template);
 
     @Mapping(target = "id", source = "template.refNo")
+    @Mapping(target = "templateName", source = "template.templateName")
     @Mapping(target = "templateHtmlFileName", source = "template.templateHtmlFileName")
     @Mapping(target = "title", source = "template.title")
     @Mapping(target = "titleZhCn", source = "template.titleZhCn")
