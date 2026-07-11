@@ -23,8 +23,8 @@ public class EmailTemplates {
     private Long id;
     @Column(name = "ref_no", nullable = false)
     private String refNo;
-    @Column(name = "template_name")
-    private String templateName;
+    @Column(name = "template_html_file_name")
+    private String templateHtmlFileName;
     @Column(name = "title")
     private String title;
     @Column(name = "title_zh_cn")

@@ -134,9 +134,9 @@ public class EmailService {
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
                 .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", templateRefNo)));
 
-        PartialUpdateUtil.ifPresent(dto, "template_name", () -> {
+        PartialUpdateUtil.ifPresent(dto, "template_html_file_name", () -> {
             if (!template.getIsPerm()) {
-                template.setTemplateName(dto.getTemplateName());
+                template.setTemplateHtmlFileName(dto.getTemplateHtmlFileName());
             }
         });
         PartialUpdateUtil.apply(dto, "title", dto::getTitle, template::setTitle);
@@ -319,7 +319,7 @@ public class EmailService {
             context.setVariable("importantInfoBody", template.getImportantInfoBody());
             context.setVariable("contactBody", template.getContactBody());
         }
-        String htmlContent = templateEngine.process(template.getTemplateName(), context);
+        String htmlContent = templateEngine.process(template.getTemplateHtmlFileName(), context);
 
         String emailParametersJson = convertContextToJson(context);
 

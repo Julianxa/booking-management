@@ -16,7 +16,7 @@ public interface EmailTemplateMapper {
     EmailTemplates toEntity(CreateEmailTemplatesRequestDTO dto);
 
     @Mapping(target = "id", source = "template.refNo")
-    @Mapping(target = "templateName", source = "template.templateName")
+    @Mapping(target = "templateHtmlFileName", source = "template.templateHtmlFileName")
     @Mapping(target = "subject", source = "template.subject")
     @Mapping(target = "subjectZhCn", source = "template.subjectZhCn")
     @Mapping(target = "subjectZhHk", source = "template.subjectZhHk")
@@ -40,7 +40,7 @@ public interface EmailTemplateMapper {
     CreateEmailTemplatesResponseDTO toCreateResponseDTO(EmailTemplates template);
 
     @Mapping(target = "id", source = "template.refNo")
-    @Mapping(target = "templateName", source = "template.templateName")
+    @Mapping(target = "templateHtmlFileName", source = "template.templateHtmlFileName")
     @Mapping(target = "title", source = "template.title")
     @Mapping(target = "titleZhCn", source = "template.titleZhCn")
     @Mapping(target = "titleZhHk", source = "template.titleZhHk")
