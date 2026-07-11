@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
+    private static final String CUSTOM_EMAIL_TEMPLATE_HTML_FILE = "booking-confirmation-email-template";
+
     private final TemplateEngine templateEngine;
     private final EmailTemplatesRepository emailTemplatesRepository;
     private final QRCodeGenerator qrCodeGenerator;
@@ -116,6 +118,7 @@ public class EmailService {
     public CreateEmailTemplatesResponseDTO createEmailTemplate(CreateEmailTemplatesRequestDTO createEmailTemplatesRequestDTO) {
         EmailTemplates template = emailTemplateMapper.toEntity(createEmailTemplatesRequestDTO);
         template.setRefNo(referenceNoGenerator.generateEmailTemplateReference());
+        template.setTemplateHtmlFileName(CUSTOM_EMAIL_TEMPLATE_HTML_FILE);
         emailTemplatesRepository.save(template);
 
         auditService.record("CREATE_EMAIL_TEMPLATE",
@@ -134,11 +137,6 @@ public class EmailService {
         EmailTemplates template = emailTemplatesRepository.findByRefNo(templateRefNo)
                 .orElseThrow(() -> new EmailTemplateNotFoundException(String.format("Email template not found with code %s", templateRefNo)));
 
-        PartialUpdateUtil.ifPresent(dto, "template_html_file_name", () -> {
-            if (!template.getIsPerm()) {
-                template.setTemplateHtmlFileName(dto.getTemplateHtmlFileName());
-            }
-        });
         PartialUpdateUtil.apply(dto, "title", dto::getTitle, template::setTitle);
         PartialUpdateUtil.apply(dto, "title_zh_cn", dto::getTitleZhCn, template::setTitleZhCn);
         PartialUpdateUtil.apply(dto, "title_zh_hk", dto::getTitleZhHk, template::setTitleZhHk);

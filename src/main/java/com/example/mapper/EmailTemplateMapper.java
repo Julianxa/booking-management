@@ -16,7 +16,6 @@ public interface EmailTemplateMapper {
     EmailTemplates toEntity(CreateEmailTemplatesRequestDTO dto);
 
     @Mapping(target = "id", source = "template.refNo")
-    @Mapping(target = "templateHtmlFileName", source = "template.templateHtmlFileName")
     @Mapping(target = "subject", source = "template.subject")
     @Mapping(target = "subjectZhCn", source = "template.subjectZhCn")
     @Mapping(target = "subjectZhHk", source = "template.subjectZhHk")
