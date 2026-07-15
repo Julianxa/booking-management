@@ -30,17 +30,18 @@ public class ReportDataRepository {
   private static final String EXCLUDED_BOOKING_STATUSES =
       "'CANCELLED', 'FAILED', 'EXPIRED', 'REFUNDED'";
 
-  private static final String PROMO_GIFT_CERTIFICATE_TYPES = "'VALUE', 'EVENT'";
+  private static final String PROMO_GIFT_CERTIFICATE_TYPES = "'VALUE', 'EVENT', 'PERCENT'";
 
   private static final String PROMO_GIFT_CERTIFICATE_RATE_TYPE_SQL =
       "CASE gc.type"
           + " WHEN 'VALUE' THEN 'OPEN'"
           + " WHEN 'EVENT' THEN 'ACTIVITY'"
+          + " WHEN 'PERCENT' THEN 'PERCENT'"
           + " ELSE gc.type"
           + " END";
 
   private static final String PERSONAL_GIFT_CERTIFICATE_TYPES =
-      "'PERSONAL_VALUE', 'PERSONAL_EVENT'";
+      "'PERSONAL_VALUE', 'PERSONAL_EVENT', 'PERSONAL_PERCENT'";
 
   private static final String PERSONAL_GIFT_CERTIFICATE_TYPE_FILTER_SQL =
       " AND gc.type IN (" + PERSONAL_GIFT_CERTIFICATE_TYPES + ")";
@@ -137,6 +138,8 @@ public class ReportDataRepository {
           + " WHEN 'PERSONAL_VALUE' THEN 'OPEN'"
           + " WHEN 'EVENT' THEN 'ACTIVITY'"
           + " WHEN 'PERSONAL_EVENT' THEN 'ACTIVITY'"
+          + " WHEN 'PERCENT' THEN 'PERCENT'"
+          + " WHEN 'PERSONAL_PERCENT' THEN 'PERCENT'"
           + " ELSE gc.type"
           + " END";
 
@@ -269,12 +272,12 @@ public class ReportDataRepository {
             gc.promo_code,
             CASE WHEN gc.expiry_date < CURRENT_DATE THEN 'Expired' ELSE 'Active' END AS status_label,
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN
                     COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
                 ELSE COALESCE(event_value.event_face_value, 0)
             END AS wholesale_value,
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN
                     COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
                 ELSE COALESCE(event_value.event_face_value, 0)
             END AS retail_value,
@@ -285,7 +288,7 @@ public class ReportDataRepository {
             ) AS purchaser_name,
             gc.message_to_recipient,
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN COALESCE(gci.value, 0)
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN COALESCE(gci.value, 0)
                 WHEN gc.quantity IS NULL OR gc.quantity = 0 THEN 0
                 ELSE COALESCE(event_value.event_face_value, 0) * gc.remaining_quantity / gc.quantity
             END AS balance
@@ -368,18 +371,18 @@ public class ReportDataRepository {
             ) AS purchaser_name,
             gc.message_to_recipient,
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN
                     COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
                 ELSE COALESCE(event_value.event_face_value, 0)
             END AS wholesale_value,
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN
                     COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
                 ELSE COALESCE(event_value.event_face_value, 0)
             END AS retail_value,
             COALESCE(b.discount, 0),
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN
                     COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
                 ELSE COALESCE(event_value.event_face_value, 0)
             END - COALESCE(b.discount, 0),
@@ -454,12 +457,12 @@ public class ReportDataRepository {
             gc.promo_code,
             CASE WHEN gc.expiry_date < CURRENT_DATE THEN 'Expired' ELSE 'Active' END AS status_label,
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN
                     COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
                 ELSE COALESCE(event_value.event_face_value, 0)
             END AS wholesale_value,
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN
                     COALESCE(gci.value, 0) + COALESCE(redeemed.total_discount, 0)
                 ELSE COALESCE(event_value.event_face_value, 0)
             END AS retail_value,
@@ -471,7 +474,7 @@ public class ReportDataRepository {
             ) AS purchaser_name,
             gc.message_to_recipient,
             CASE
-                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE') THEN COALESCE(gci.value, 0)
+                WHEN gc.type IN ('VALUE', 'PERSONAL_VALUE', 'PERCENT', 'PERSONAL_PERCENT') THEN COALESCE(gci.value, 0)
                 WHEN gc.quantity IS NULL OR gc.quantity = 0 THEN 0
                 ELSE COALESCE(event_value.event_face_value, 0) * gc.remaining_quantity / gc.quantity
             END AS balance

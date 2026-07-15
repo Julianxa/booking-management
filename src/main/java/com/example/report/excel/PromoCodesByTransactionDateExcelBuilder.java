@@ -181,6 +181,9 @@ public class PromoCodesByTransactionDateExcelBuilder {
     if ("EVENT".equalsIgnoreCase(type)) {
       return "ACTIVITY";
     }
+    if ("PERCENT".equalsIgnoreCase(type)) {
+      return "PERCENT";
+    }
     return type;
   }
 
@@ -208,6 +211,9 @@ public class PromoCodesByTransactionDateExcelBuilder {
 
   private boolean isPercentagePromo(
       PromoCodesByTransactionDateReportRow row, BigDecimal activityTotal, BigDecimal discount) {
+    if ("PERCENT".equalsIgnoreCase(nullToBlank(row.giftCertificateType()))) {
+      return true;
+    }
     if (discount.signum() <= 0) {
       return false;
     }

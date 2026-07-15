@@ -1,5 +1,6 @@
 package com.example.converter;
 
+import com.example.constant.Enums;
 import com.example.exception.ticket.TicketTypeNotFoundException;
 import com.example.model.dto.CreateGiftCertificateRequestDTO;
 import com.example.model.entity.GiftCertificateItems;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.example.constant.Enums.GiftCertificateType.PERCENT;
+import static com.example.constant.Enums.GiftCertificateType.PERSONAL_PERCENT;
 import static com.example.constant.Enums.GiftCertificateType.PERSONAL_VALUE;
 import static com.example.constant.Enums.GiftCertificateType.VALUE;
 
@@ -21,7 +24,8 @@ public class GiftCertificateItemsConverter {
     private final TicketTypesRepository ticketTypesRepository;
 
     public CreateGiftCertificateRequestDTO.GiftCertificateItemDTO toGiftCertificateItemDTO(GiftCertificateItems item) {
-        if (item.getGiftCertificates().getType() == VALUE || item.getGiftCertificates().getType() == PERSONAL_VALUE) {
+        Enums.GiftCertificateType type = item.getGiftCertificates().getType();
+        if (type == VALUE || type == PERSONAL_VALUE || type == PERCENT || type == PERSONAL_PERCENT) {
             return CreateGiftCertificateRequestDTO.GiftCertificateItemDTO.builder()
                     .value(item.getValue())
                     .build();

@@ -97,7 +97,7 @@ public class Enums {
     }
 
     public enum GiftCertificateType {
-        VALUE, EVENT, PERSONAL_VALUE, PERSONAL_EVENT
+        VALUE, EVENT, PERCENT, PERSONAL_VALUE, PERSONAL_EVENT, PERSONAL_PERCENT
     }
 
     public enum GiftCertificateStatus {
