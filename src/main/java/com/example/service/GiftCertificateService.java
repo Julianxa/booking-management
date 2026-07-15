@@ -376,17 +376,14 @@ public class GiftCertificateService {
 
     @Transactional
     private GiftCertificateApplicationResult applyValueType(GiftCertificates gc, BigDecimal grandTotal) {
-        GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
-                .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
+        GiftCertificateItems item = requireGiftCertificateItems(gc.getId()).get(0);
 
         BigDecimal cappedDiscount = item.getValue().min(grandTotal);
         return new GiftCertificateApplicationResult(gc, List.of(), cappedDiscount);
     }
 
     private GiftCertificateApplicationResult applyPercentType(GiftCertificates gc, BigDecimal grandTotal) {
-        GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
-                .orElseThrow(() -> new GCItemNotFoundException(
-                        String.format("Percent gift certificate item not found with %s", gc.getId())));
+        GiftCertificateItems item = requireGiftCertificateItems(gc.getId()).get(0);
 
         BigDecimal percent = item.getValue();
         // Example: payment 100 with 90% GC => discount 90, final paid 10
@@ -417,8 +414,7 @@ public class GiftCertificateService {
                 continue;
             }
 
-            List<GiftCertificateItems> gcItems = giftCertificateItemRepository.getEventCertByGiftCertificateId(gc.getId())
-                    .orElseThrow(() -> new GCItemNotFoundException(String.format("Gift Certificate items not found with %s", gc.getId())));
+            List<GiftCertificateItems> gcItems = requireGiftCertificateItems(gc.getId());
 
             for (CreateBookingRequestDTO.TicketTypeDTO ticketDTO : bookingEventDTO.getTickets()) {
                 for (GiftCertificateItems gcItem : gcItems) {
@@ -602,8 +598,7 @@ public class GiftCertificateService {
 
         BigDecimal discount = giftCertificateApplicationResult.discount();
         if (gc.getType() == VALUE || gc.getType() == PERSONAL_VALUE) {
-            GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
-                    .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
+            GiftCertificateItems item = requireGiftCertificateItems(gc.getId()).get(0);
             BigDecimal newBalance = item.getValue().subtract(discount);
             if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
                 throw new InvalidGCException("Gift certificate balance is insufficient");
@@ -671,8 +666,7 @@ public class GiftCertificateService {
         if (gc.getType() == VALUE || gc.getType() == PERSONAL_VALUE) {
             BigDecimal discount = booking.getDiscount() != null ? booking.getDiscount() : BigDecimal.ZERO;
             if (discount.compareTo(BigDecimal.ZERO) > 0) {
-                GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
-                        .orElseThrow(() -> new GCItemNotFoundException(String.format("Value gift certificate item not found with %s", gc.getId())));
+                GiftCertificateItems item = requireGiftCertificateItems(gc.getId()).get(0);
                 item.setValue(item.getValue().add(discount));
                 giftCertificateItemRepository.save(item);
             }
@@ -702,9 +696,7 @@ public class GiftCertificateService {
         BigDecimal discount = booking.getDiscount() != null ? booking.getDiscount() : BigDecimal.ZERO;
         if (gc.getType() == VALUE || gc.getType() == PERSONAL_VALUE) {
             if (discount.compareTo(BigDecimal.ZERO) > 0) {
-                GiftCertificateItems item = giftCertificateItemRepository.getValueCertByGiftCertificateId(gc.getId())
-                        .orElseThrow(() -> new GCItemNotFoundException(
-                                String.format("Value gift certificate item not found with %s", gc.getId())));
+                GiftCertificateItems item = requireGiftCertificateItems(gc.getId()).get(0);
                 BigDecimal newBalance = item.getValue().subtract(discount);
                 if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
                     throw new InvalidGCException("Gift certificate balance is insufficient");
@@ -719,5 +711,14 @@ public class GiftCertificateService {
 
         redemption.setStatus(PENDING);
         giftCertificateRedemptionRepository.save(redemption);
+    }
+
+    private List<GiftCertificateItems> requireGiftCertificateItems(Long giftCertificateId) {
+        List<GiftCertificateItems> items = giftCertificateItemRepository.findByGiftCertificatesId(giftCertificateId);
+        if (items.isEmpty()) {
+            throw new GCItemNotFoundException(
+                    String.format("Gift certificate items not found with %s", giftCertificateId));
+        }
+        return items;
     }
 }
