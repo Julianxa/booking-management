@@ -29,7 +29,7 @@ public class GiftCertificateController {
 
     @Operation(
             summary = "Create a new gift certificate",
-            description = "Create VALUE/EVENT gift certificate.",
+            description = "Create VALUE/EVENT/PERCENT gift certificate.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
