@@ -19,6 +19,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -37,7 +39,16 @@ public class ReportService {
   @Transactional
   public GenerateReportResponseDTO generateReport(GenerateReportRequestDTO request) {
     Reports report = createQueuedReport(request);
-    reportGenerationAsyncService.generateReportAsync(report.getId());
+    Long reportId = report.getId();
+    runAfterCommit(
+        () -> {
+          try {
+            reportGenerationAsyncService.generateReportAsync(reportId);
+          } catch (Exception e) {
+            reportGenerationAsyncService.markFailed(
+                reportId, "Failed to start report generation: " + e.getMessage());
+          }
+        });
     return toQueuedResponse(report, "Report generation started");
   }
 
@@ -134,5 +145,19 @@ public class ReportService {
         .message(message)
         .timestamp(ZonedDateTime.now())
         .build();
+  }
+
+  private void runAfterCommit(Runnable action) {
+    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+      action.run();
+      return;
+    }
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            action.run();
+          }
+        });
   }
 }

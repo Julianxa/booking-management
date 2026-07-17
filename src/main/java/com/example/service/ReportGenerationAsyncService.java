@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -41,6 +42,7 @@ public class ReportGenerationAsyncService {
   private final UnredeemedGiftCertificateCodesExcelBuilder unredeemedGiftCertificateCodesExcelBuilder;
   private final AllBookingsExcelBuilder allBookingsExcelBuilder;
   private final AwsService awsService;
+  private final TransactionTemplate transactionTemplate;
 
   @Async("reportExecutor")
   public void generateReportAsync(Long reportId) {
@@ -69,22 +71,24 @@ public class ReportGenerationAsyncService {
     }
   }
 
-  @Transactional
   protected void markInProgress(Long reportId) {
-    Reports report = reportsRepository.findById(reportId).orElseThrow();
-    report.setStatus(Enums.ReportStatus.IN_PROGRESS);
-    report.setCompletedAt(null);
-    report.setErrorMessage(null);
-    reportsRepository.save(report);
+    transactionTemplate.executeWithoutResult(status -> {
+      Reports report = reportsRepository.findById(reportId).orElseThrow();
+      report.setStatus(Enums.ReportStatus.IN_PROGRESS);
+      report.setCompletedAt(null);
+      report.setErrorMessage(null);
+      reportsRepository.save(report);
+    });
   }
 
-  @Transactional
-  protected void markFailed(Long reportId, String errorMessage) {
-    Reports report = reportsRepository.findById(reportId).orElseThrow();
-    report.setStatus(Enums.ReportStatus.FAILED);
-    report.setErrorMessage(truncate(errorMessage));
-    report.setCompletedAt(ZonedDateTime.now());
-    reportsRepository.save(report);
+  public void markFailed(Long reportId, String errorMessage) {
+    transactionTemplate.executeWithoutResult(status -> {
+      Reports report = reportsRepository.findById(reportId).orElseThrow();
+      report.setStatus(Enums.ReportStatus.FAILED);
+      report.setErrorMessage(truncate(errorMessage));
+      report.setCompletedAt(ZonedDateTime.now());
+      reportsRepository.save(report);
+    });
   }
 
   @Transactional
