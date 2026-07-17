@@ -283,7 +283,7 @@ public class GiftCertificateService {
                     || itemDTO.getValue().compareTo(BigDecimal.ZERO) <= 0
                     || itemDTO.getValue().compareTo(BigDecimal.valueOf(100)) > 0) {
                 throw new MissingRequiredFieldException(
-                        "value must be between 0 (exclusive) and 100 (inclusive) for PERCENT gift certificates");
+                        "value must be between 0 (exclusive) and 100 (inclusive) and means payable percent of total");
             }
             gc.getItems().add(GiftCertificateItems.builder()
                     .giftCertificates(gc)
@@ -386,15 +386,16 @@ public class GiftCertificateService {
         GiftCertificateItems item = requireGiftCertificateItems(gc.getId()).get(0);
 
         BigDecimal percent = item.getValue();
-        // Example: payment 100 with 90% GC => discount 90, final paid 10
-        BigDecimal discount = grandTotal
+        // value 80 => customer pays 80% of total (100 -> 80, 200 -> 160)
+        BigDecimal payableAmount = grandTotal
                 .multiply(percent)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        if (discount.compareTo(grandTotal) > 0) {
-            discount = grandTotal;
-        }
+        BigDecimal discount = grandTotal.subtract(payableAmount);
         if (discount.compareTo(BigDecimal.ZERO) < 0) {
             discount = BigDecimal.ZERO;
+        }
+        if (discount.compareTo(grandTotal) > 0) {
+            discount = grandTotal;
         }
         return new GiftCertificateApplicationResult(gc, List.of(), discount);
     }
