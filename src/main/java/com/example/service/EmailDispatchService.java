@@ -71,7 +71,8 @@ public class EmailDispatchService {
         try {
             Bookings resolved = requireBooking(booking);
             if (bookingEventDTOs == null || bookingEventDTOs.isEmpty()) {
-                log.warn("No booking events for payment confirmation resend on booking {}", resolved.getRefNo());
+                emailService.recordEmailNotSent(
+                        resolved, "PAYMENT_CONFIRMATION", null, "No booking events for payment confirmation");
                 return;
             }
             GiftCertificateApplicationResult giftResult =
@@ -95,12 +96,22 @@ public class EmailDispatchService {
         try {
             Bookings resolved = requireBooking(booking);
             if (payloads == null || payloads.isEmpty()) {
-                log.warn("No booking confirmation email payloads for booking {}", resolved.getRefNo());
+                emailService.recordEmailNotSent(
+                        resolved,
+                        "BOOKING_CONFIRMATION",
+                        null,
+                        "No booking confirmation payloads (no attendees on booking events)");
                 return;
             }
 
             for (EmailService.BookingEmailPayload payload : payloads) {
+                String recipient = payload.attendee() != null ? payload.attendee().getEmail() : null;
                 try {
+                    if (recipient == null || recipient.isBlank()) {
+                        emailService.recordEmailNotSent(
+                                resolved, "BOOKING_CONFIRMATION", recipient, "Attendee email is blank");
+                        continue;
+                    }
                     BookingEvents bookingEvent = loadBookingEvent(payload.bookingEvent());
                     emailService.sendCustomOrBookingConfirmationEmail(
                             payload.attendee(),
@@ -110,10 +121,9 @@ public class EmailDispatchService {
                             payload.allAttendees(),
                             emailTemplateRefNo);
                 } catch (Exception e) {
+                    // sendEmail already persists FAILED + failure_reason; keep app log for context
                     log.error("Failed to send booking confirmation email to {} for booking {}",
-                            payload.attendee() != null ? payload.attendee().getEmail() : null,
-                            resolved.getRefNo(),
-                            e);
+                            recipient, resolved.getRefNo(), e);
                 }
             }
         } catch (Exception e) {
@@ -196,26 +206,47 @@ public class EmailDispatchService {
                 : null;
 
         if (user != null && user.getRole() == AGENT) {
-            emailService.sendPaymentConfirmationEmail(user, booking, bookingEventDTOs, resolvedPromoCode, resolvedTickets);
+            if (user.getEmail() == null || user.getEmail().isBlank()) {
+                emailService.recordEmailNotSent(
+                        booking, "PAYMENT_CONFIRMATION", user.getEmail(), "Agent user email is blank");
+                return;
+            }
+            try {
+                emailService.sendPaymentConfirmationEmail(
+                        user, booking, bookingEventDTOs, resolvedPromoCode, resolvedTickets);
+            } catch (Exception e) {
+                log.error("Failed to send payment confirmation email to agent {} for booking {}",
+                        user.getEmail(), booking.getRefNo(), e);
+            }
             return;
         }
 
         List<CreateBookingRequestDTO.AttendeeDTO> primaryAttendees = findPrimaryAttendees(bookingEventDTOs);
         if (primaryAttendees.isEmpty()) {
-            log.warn("No primary attendee found for payment confirmation email on booking {}", booking.getRefNo());
+            emailService.recordEmailNotSent(
+                    booking,
+                    "PAYMENT_CONFIRMATION",
+                    null,
+                    "No primary attendee (sequence=1) found on booking events");
             return;
         }
 
         Map<String, CreateBookingRequestDTO.AttendeeDTO> recipientsByEmail = new LinkedHashMap<>();
         for (CreateBookingRequestDTO.AttendeeDTO attendee : primaryAttendees) {
             if (attendee.getEmail() == null || attendee.getEmail().isBlank()) {
+                emailService.recordEmailNotSent(
+                        booking, "PAYMENT_CONFIRMATION", attendee.getEmail(), "Primary attendee email is blank");
                 continue;
             }
             recipientsByEmail.putIfAbsent(attendee.getEmail().trim().toLowerCase(), attendee);
         }
 
         if (recipientsByEmail.isEmpty()) {
-            log.warn("No primary attendee email found for payment confirmation email on booking {}", booking.getRefNo());
+            emailService.recordEmailNotSent(
+                    booking,
+                    "PAYMENT_CONFIRMATION",
+                    null,
+                    "No primary attendee email found for payment confirmation");
             return;
         }
 

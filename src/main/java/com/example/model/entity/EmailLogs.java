@@ -34,6 +34,9 @@ public class EmailLogs {
     @Column(name = "status")
     private Enums.EmailStatus status;
 
+    @Column(name = "failure_reason")
+    private String failureReason;
+
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;

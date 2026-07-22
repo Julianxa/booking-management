@@ -19,7 +19,6 @@ import com.example.utils.ReferenceNoGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -500,6 +499,10 @@ public class EmailService {
 
     private void sendEmail(Long userId, Long templateId, String emailParametersJson, String to, String subject, String htmlContent, Map<String, String> inlineImages) {
         try {
+            if (to == null || to.isBlank()) {
+                throw new EmailProcessException("Recipient email is blank");
+            }
+
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -511,45 +514,83 @@ public class EmailService {
                 if (entry.getKey().equals("qr")) {
                     byte[] qrBytes = qrCodeGenerator.generateQrCode(entry.getValue());
                     ByteArrayResource qrResource = new ByteArrayResource(qrBytes);
-
                     helper.addInline(entry.getKey(), qrResource, "image/png");
-                } else
+                } else {
                     helper.addInline(entry.getKey(), new ClassPathResource(entry.getValue()));
+                }
             }
             javaMailSender.send(message);
 
-            EmailLogs logs = EmailLogs.builder()
-                    .userId(userId)
-                    .emailParameters(emailParametersJson)
-                    .templateId(templateId)
-                    .status(Enums.EmailStatus.SUCCESS)
-                    .build();
-
-            emailLogsRepository.save(logs);
-
-            auditService.record("SEND_EMAIL",
-                    Bookings.class.getName(),
-                    null,
-                    null,
-                    "Email sent successfully"
-            );
-        } catch (MessagingException e) {
-            EmailLogs logs = EmailLogs.builder()
-                    .userId(userId)
-                    .emailParameters(emailParametersJson)
-                    .templateId(templateId)
-                    .status(Enums.EmailStatus.FAILED)
-                    .build();
-
-            emailLogsRepository.save(logs);
-
-            auditService.record("SEND_EMAIL",
-                    Bookings.class.getName(),
-                    null,
-                    null,
-                    "Failed to send email"
-            );
+            saveEmailLog(userId, templateId, emailParametersJson, Enums.EmailStatus.SUCCESS, null);
+            auditService.record("SEND_EMAIL", Bookings.class.getName(), null, null, "Email sent successfully");
+        } catch (Exception e) {
+            saveEmailLog(userId, templateId, emailParametersJson, Enums.EmailStatus.FAILED, e.getMessage());
+            auditService.record("SEND_EMAIL", Bookings.class.getName(), null, null, "Failed to send email");
+            log.error("Failed to send email to {}", to, e);
+            if (e instanceof EmailProcessException emailProcessException) {
+                throw emailProcessException;
+            }
             throw new EmailProcessException("Failed to create and populate the email messages");
+        }
+    }
+
+    /**
+     * Writes a FAILED email_logs row when an email is skipped or cannot be dispatched
+     * (e.g. missing recipient after booking creation).
+     */
+    public void recordEmailNotSent(Bookings booking, String emailType, String recipientEmail, String reason) {
+        Long templateId = resolveTemplateId(emailType);
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("bookingRefNo", booking != null ? booking.getRefNo() : null);
+        params.put("emailType", emailType);
+        params.put("recipientEmail", recipientEmail);
+
+        saveEmailLog(
+                booking != null ? booking.getUserId() : null,
+                templateId,
+                toJson(params),
+                Enums.EmailStatus.FAILED,
+                reason);
+        log.warn("Email not sent [{}] booking={} recipient={} reason={}",
+                emailType,
+                booking != null ? booking.getRefNo() : null,
+                recipientEmail,
+                reason);
+    }
+
+    private void saveEmailLog(Long userId, Long templateId, String emailParametersJson,
+                              Enums.EmailStatus status, String failureReason) {
+        emailLogsRepository.save(EmailLogs.builder()
+                .userId(userId)
+                .templateId(templateId)
+                .emailParameters(emailParametersJson)
+                .status(status)
+                .failureReason(failureReason)
+                .build());
+    }
+
+    private Long resolveTemplateId(String emailType) {
+        if (emailType == null) {
+            return null;
+        }
+        EmailTemplates template = switch (emailType) {
+            case "PAYMENT_CONFIRMATION" -> emailTemplatesRepository.findBookingOrderSummaryEmailTemplate();
+            case "BOOKING_CONFIRMATION" -> emailTemplatesRepository.findBookingConfirmationEmailTemplate();
+            case "BOOKING_CANCELLATION" -> emailTemplatesRepository.findBookingCancellationEmailTemplate();
+            case "BOOKING_REMINDER" -> emailTemplatesRepository.findBookingReminderEmailTemplate();
+            default -> null;
+        };
+        return template != null ? template.getId() : null;
+    }
+
+    private String toJson(Map<String, Object> params) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
+            objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            return objectMapper.writeValueAsString(params);
+        } catch (Exception e) {
+            return "{}";
         }
     }
 
