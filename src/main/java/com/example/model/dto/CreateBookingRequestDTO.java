@@ -1,6 +1,7 @@
 package com.example.model.dto;
 
 import com.example.constant.Enums;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -116,6 +117,9 @@ public class CreateBookingRequestDTO {
         @FutureOrPresent(message = "Event date must be today or in the future")
         @JsonProperty("event_date")
         private LocalDate eventDate;
+
+        @JsonIgnore
+        private String formattedEventDate;
 
         @Schema(
                 requiredMode = Schema.RequiredMode.REQUIRED,

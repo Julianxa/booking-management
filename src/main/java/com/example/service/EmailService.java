@@ -35,7 +35,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,6 +46,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EmailService {
     private static final String CUSTOM_EMAIL_TEMPLATE_HTML_FILE = "booking-confirmation-email-template";
+    private static final DateTimeFormatter EVENT_DATE_EN =
+            DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter EVENT_DATE_ZH =
+            DateTimeFormatter.ofPattern("yyyy年M月d日");
 
     private final TemplateEngine templateEngine;
     private final EmailTemplatesRepository emailTemplatesRepository;
@@ -216,6 +222,14 @@ public class EmailService {
 
         context.setVariable("firstName", user.getFirstName());
 
+        if (eventList != null) {
+            for (CreateBookingRequestDTO.BookingEventDTO bookingEvent : eventList) {
+                if (bookingEvent != null && bookingEvent.getEvent() != null) {
+                    bookingEvent.getEvent().setFormattedEventDate(
+                            formatEventDate(bookingEvent.getEvent().getEventDate(), booking.getLanguage()));
+                }
+            }
+        }
         context.setVariable("bookingEvents", eventList);
         context.setVariable("redeemedTickets", redeemedTicketList);
         context.setVariable("activityDetailsUrlPrefix", buildActivityDetailsUrlPrefix(booking.getLanguage()));
@@ -224,6 +238,7 @@ public class EmailService {
         context.setVariable("giftCertificateDiscount", booking.getDiscount());
 
         if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.CN) {
+            context.setLocale(Locale.SIMPLIFIED_CHINESE);
             context.setVariable("lang", Enums.Language.CN.name());
             context.setVariable("title", template.getTitleZhCn());
             context.setVariable("subject", template.getSubjectZhCn());
@@ -232,6 +247,7 @@ public class EmailService {
             context.setVariable("importantInfoBody", template.getImportantInfoBodyZhCn());
             context.setVariable("contactBody", template.getContactBodyZhCn());
         } else if(booking.getLanguage() != null && booking.getLanguage() == Enums.Language.HK) {
+            context.setLocale(Locale.TRADITIONAL_CHINESE);
             context.setVariable("lang", Enums.Language.HK.name());
             context.setVariable("title", template.getTitleZhHk());
             context.setVariable("subject", template.getSubjectZhHk());
@@ -240,6 +256,7 @@ public class EmailService {
             context.setVariable("importantInfoBody", template.getImportantInfoBodyZhHk());
             context.setVariable("contactBody", template.getContactBodyZhHk());
         } else {
+            context.setLocale(Locale.ENGLISH);
             context.setVariable("lang", Enums.Language.EN.name());
             context.setVariable("title", template.getTitle());
             context.setVariable("subject", template.getSubject());
@@ -288,7 +305,7 @@ public class EmailService {
 
         context.setVariable("firstName", attendeeDTO.getFirstName());
 
-        context.setVariable("eventDate", bookingEvent.getEventDate());
+        context.setVariable("eventDate", formatEventDate(bookingEvent.getEventDate(), booking.getLanguage()));
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
         context.setVariable(
@@ -355,7 +372,7 @@ public class EmailService {
 
         context.setVariable("firstName", attendeeDTO.getFirstName());
 
-        context.setVariable("eventDate", bookingEvent.getEventDate());
+        context.setVariable("eventDate", formatEventDate(bookingEvent.getEventDate(), booking.getLanguage()));
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
         context.setVariable(
@@ -422,7 +439,7 @@ public class EmailService {
 
         context.setVariable("firstName", attendeeDTO.getFirstName());
 
-        context.setVariable("eventDate", bookingEvent.getEventDate());
+        context.setVariable("eventDate", formatEventDate(bookingEvent.getEventDate(), booking.getLanguage()));
         context.setVariable("eventTime", bookingEvent.getEventTime());
         context.setVariable("bookingEventTotal", bookingEvent.getTotal());
         context.setVariable(
@@ -586,6 +603,16 @@ public class EmailService {
             return "#";
         }
         return activityDetailsUrlPrefix + event.getRefNo();
+    }
+
+    private String formatEventDate(LocalDate eventDate, Enums.Language language) {
+        if (eventDate == null) {
+            return "";
+        }
+        if (language == Enums.Language.CN || language == Enums.Language.HK) {
+            return eventDate.format(EVENT_DATE_ZH);
+        }
+        return eventDate.format(EVENT_DATE_EN);
     }
 
     private String buildActivityDetailsUrlPrefix(Enums.Language language) {

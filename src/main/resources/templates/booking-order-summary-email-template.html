@@ -265,7 +265,9 @@
                         Order Summary
                       </h3>
 
-                      <div th:each="bookingEvent : ${bookingEvents}" style="margin-bottom: 20px;">
+                      <div th:each="bookingEvent : ${bookingEvents}"
+                           th:with="eventDate=${bookingEvent.event.formattedEventDate}"
+                           style="margin-bottom: 20px;">
                         <!-- Item Row -->
                         <table
                           role="presentation"
@@ -286,8 +288,7 @@
 
                               <!-- Event Date, Time + Ticket Summary -->
                               <p style="margin: 0; font-size: 12px; color: #666666; line-height: 1.7;">
-                                <span th:text="${bookingEvent.event.eventDate}"></span>
-                                <br />
+                                <span th:text="${eventDate}"/><br />
                                 <span th:text="${bookingEvent.event.eventTime}"></span><br />
 
                                 <!-- Ticket Summary -->
