@@ -46,9 +46,9 @@ import java.util.stream.Collectors;
 public class EmailService {
     private static final String CUSTOM_EMAIL_TEMPLATE_HTML_FILE = "booking-confirmation-email-template";
     private static final DateTimeFormatter EVENT_DATE_EN =
-            DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
+            DateTimeFormatter.ofPattern("d MMM yyyy (EEE)", Locale.ENGLISH);
     private static final DateTimeFormatter EVENT_DATE_ZH =
-            DateTimeFormatter.ofPattern("yyyy年M月d日");
+            DateTimeFormatter.ofPattern("yyyy年M月d日(EEEE)", Locale.CHINA);
 
     private final TemplateEngine templateEngine;
     private final EmailTemplatesRepository emailTemplatesRepository;
