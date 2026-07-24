@@ -3,6 +3,7 @@ package com.example.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
@@ -10,6 +11,7 @@ import org.springframework.web.context.request.WebRequest;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @ControllerAdvice
@@ -40,6 +42,19 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("code", "BT400");
         body.put("message", ex.getMessage());
+        body.put("timestamp", ZonedDateTime.now());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", ErrorCode.MISSING_REQUIRED_FIELD.getCode());
+        body.put("message", message);
         body.put("timestamp", ZonedDateTime.now());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
