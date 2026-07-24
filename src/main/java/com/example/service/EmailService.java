@@ -63,6 +63,9 @@ public class EmailService {
     @Value("${app.mail.from}")
     String senderEmail;
 
+    @Value("${app.mail.custom-template-cc:}")
+    String customTemplateCcEmail;
+
     public record BookingEmailPayload(
             CreateBookingRequestDTO.AttendeeDTO attendee,
             BookingEvents bookingEvent,
@@ -270,7 +273,7 @@ public class EmailService {
 
         String subject = getEmailSubject(template, booking.getLanguage());
 
-        sendEmail(user.getId(), template.getId(), emailParametersJson, user.getEmail(), subject, htmlContent, inlineImages);
+        sendEmail(user.getId(), template.getId(), emailParametersJson, user.getEmail(), subject, htmlContent, inlineImages, null);
     }
 
     public void sendCustomOrBookingConfirmationEmail(
@@ -347,7 +350,8 @@ public class EmailService {
 
         String subject = getEmailSubject(template, booking.getLanguage());
 
-        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages);
+        String cc = Boolean.FALSE.equals(template.getIsPerm()) ? customTemplateCcEmail : null;
+        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages, cc);
     }
 
     public void sendBookingCancellationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
@@ -414,7 +418,7 @@ public class EmailService {
 
         String subject = getEmailSubject(template, booking.getLanguage());
 
-        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages);
+        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages, null);
     }
 
     public void sendBookingReminderEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
@@ -481,7 +485,7 @@ public class EmailService {
 
         String subject = getEmailSubject(template, booking.getLanguage());
 
-        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages);
+        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages, null);
     }
 
 
@@ -497,7 +501,8 @@ public class EmailService {
                 .collect(Collectors.joining(", "));
     }
 
-    private void sendEmail(Long userId, Long templateId, String emailParametersJson, String to, String subject, String htmlContent, Map<String, String> inlineImages) {
+    private void sendEmail(Long userId, Long templateId, String emailParametersJson, String to, String subject,
+                           String htmlContent, Map<String, String> inlineImages, String cc) {
         try {
             if (to == null || to.isBlank()) {
                 throw new EmailProcessException("Recipient email is blank");
@@ -508,6 +513,9 @@ public class EmailService {
 
             helper.setText(htmlContent, true);
             helper.setTo(to);
+            if (cc != null && !cc.isBlank()) {
+                helper.setCc(cc);
+            }
             helper.setFrom(senderEmail);
             helper.setSubject(subject);
             for (Map.Entry<String, String> entry : inlineImages.entrySet()) {
