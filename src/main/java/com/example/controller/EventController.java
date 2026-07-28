@@ -520,9 +520,10 @@ public class EventController {
                     @ApiResponse(responseCode = "401", description = "Unauthorized")
             }
     )
-    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('EMPLOYEE', 'ADMIN')")
     @PostMapping("/events/admin-confirm")
-    public ResponseEntity<?> adminConfirmCheckIn(@Valid @RequestBody AdminConfirmCheckinRequestDTO request) {
+    public ResponseEntity<?> adminConfirmCheckIn(@RequestHeader(value = "X-Access-Token", required = false) String accessToken,
+                                                 @Valid @RequestBody AdminConfirmCheckinRequestDTO request) {
         AdminConfirmCheckinResponseDTO response = eventService.adminConfirmCheckIn(request);
         return ResponseEntity.ok(response);
     }

@@ -1,17 +1,21 @@
 package com.example.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -62,10 +66,23 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex) {
+    public ResponseEntity<Object> handleAccessDeniedException(
+            AccessDeniedException ex,
+            HttpServletRequest request) {
+        String requestPath = request != null ? request.getRequestURI() : null;
+        List<String> currentRoles = SecurityContextHolder.getContext().getAuthentication() == null
+                ? List.of()
+                : SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .map(authority -> authority.getAuthority().replaceFirst("^ROLE_", ""))
+                .toList();
+        List<String> requiredRoles = resolveRequiredRoles(requestPath);
+
         Map<String, Object> body = new HashMap<>();
         body.put("code", "BT403");
-        body.put("message", "Access denied");
+        body.put("message", String.format(
+                "Access denied. current_roles=%s, required_roles=%s",
+                currentRoles,
+                requiredRoles));
         body.put("timestamp", ZonedDateTime.now());
         return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
     }
@@ -91,5 +108,15 @@ public class GlobalExceptionHandler {
         body.put("timestamp", ZonedDateTime.now());
 
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private List<String> resolveRequiredRoles(String requestPath) {
+        if (requestPath == null || requestPath.isBlank()) {
+            return List.of();
+        }
+        if (requestPath.endsWith("/events/admin-confirm")) {
+            return Arrays.asList("EMPLOYEE", "ADMIN");
+        }
+        return List.of();
     }
 }
