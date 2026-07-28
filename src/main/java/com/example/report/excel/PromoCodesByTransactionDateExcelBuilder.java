@@ -113,6 +113,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
     for (int i = 0; i < HEADERS.length; i++) {
       row.createCell(i).setCellValue(HEADERS[i]);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, true);
   }
 
   private void writeDataRow(
@@ -148,6 +149,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
     row.createCell(0).setCellValue("Total");
     row.createCell(5).setCellValue(totals.totalPassengers);
     setMoneyCell(row, 11, totals.discount);
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, true);
   }
 
   private void createLabelValueRow(Sheet sheet, int rowIndex, String label, String value) {
@@ -156,6 +158,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
     if (value != null) {
       row.createCell(1).setCellValue(value);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, false);
   }
 
   private String formatActivityName(PromoCodesByTransactionDateReportRow row) {

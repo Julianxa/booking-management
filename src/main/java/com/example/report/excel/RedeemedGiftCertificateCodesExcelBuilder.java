@@ -148,6 +148,7 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
     for (int i = 0; i < HEADERS.length; i++) {
       row.createCell(i).setCellValue(HEADERS[i]);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, true);
   }
 
   private void writeDataRow(Sheet sheet, int rowIndex, RedeemedGiftCertificateCodesReportRow row) {
@@ -217,9 +218,13 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
           .setCellValue(
               "Avg: "
                   + BigDecimal.valueOf(average).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString());
+    }
+    ReportExcelStyles.applyGreyToEntireRow(totalRow, HEADERS.length, true);
 
+    if (!daysToRedeemedValues.isEmpty()) {
       Row medianRow = sheet.createRow(rowIndex++);
       medianRow.createCell(8).setCellValue("Median: " + median(daysToRedeemedValues));
+      ReportExcelStyles.applyGreyToEntireRow(medianRow, HEADERS.length, true);
     }
 
     return rowIndex;
@@ -236,7 +241,9 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
   }
 
   private void createValueRow(Sheet sheet, int rowIndex, String value) {
-    sheet.createRow(rowIndex).createCell(0).setCellValue(value);
+    Row row = sheet.createRow(rowIndex);
+    row.createCell(0).setCellValue(value);
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, false);
   }
 
   private void setNumericCell(Cell cell, BigDecimal value) {

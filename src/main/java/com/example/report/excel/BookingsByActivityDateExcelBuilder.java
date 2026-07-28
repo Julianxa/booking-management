@@ -116,11 +116,7 @@ public class BookingsByActivityDateExcelBuilder {
   }
 
   private CellStyle createSectionTitleStyle(Workbook workbook) {
-    CellStyle style = workbook.createCellStyle();
-    Font font = workbook.createFont();
-    font.setBold(true);
-    style.setFont(font);
-    return style;
+    return ReportExcelStyles.createGreyStyle(workbook, true);
   }
 
   private void createSectionTitleRow(
@@ -129,14 +125,15 @@ public class BookingsByActivityDateExcelBuilder {
     Cell cell = row.createCell(0);
     cell.setCellValue(title);
     cell.setCellStyle(sectionTitleStyle);
+    ReportExcelStyles.applyGreyToEntireRow(row, ACTIVITY_HEADERS.length, true);
   }
 
   private void writeActivityHeaderRow(Sheet sheet, int rowIndex) {
     Row row = sheet.createRow(rowIndex);
     for (int i = 0; i < ACTIVITY_HEADERS.length; i++) {
-      Cell cell = row.createCell(i);
-      cell.setCellValue(ACTIVITY_HEADERS[i]);
+      row.createCell(i).setCellValue(ACTIVITY_HEADERS[i]);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, ACTIVITY_HEADERS.length, true);
   }
 
   private void writeActivityDataRow(
@@ -184,9 +181,11 @@ public class BookingsByActivityDateExcelBuilder {
     setMoneyCell(row, 15, totals.discount);
     setMoneyCell(row, 16, totals.netSale);
     setMoneyCell(row, 17, totals.total);
+    ReportExcelStyles.applyGreyToEntireRow(row, ACTIVITY_HEADERS.length, true);
 
     Row medianRow = sheet.createRow(rowIndex + 1);
     medianRow.createCell(5).setCellValue("Median: " + totals.medianDaysToPurchase());
+    ReportExcelStyles.applyGreyToEntireRow(medianRow, ACTIVITY_HEADERS.length, true);
   }
 
   private void createLabelValueRow(Sheet sheet, int rowIndex, String label, String value) {
@@ -195,6 +194,7 @@ public class BookingsByActivityDateExcelBuilder {
     if (value != null) {
       row.createCell(1).setCellValue(value);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, ACTIVITY_HEADERS.length, false);
   }
 
   private String formatEventName(BookingsByActivityDateReportRow row) {

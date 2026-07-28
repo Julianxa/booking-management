@@ -5,7 +5,6 @@ import com.example.model.record.BookingsByActivityDateReportRow;
 import com.example.repository.ReportDataRepository;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -181,9 +180,11 @@ public class AllBookingsExcelBuilder {
     setMoneyCell(row, 16, totals.discount);
     setMoneyCell(row, 17, totals.netSale);
     setMoneyCell(row, 18, totals.total);
+    ReportExcelStyles.applyGreyToEntireRow(row, ACTIVITY_HEADERS.length, true);
 
     Row medianRow = sheet.createRow(rowIndex++);
     medianRow.createCell(6).setCellValue("Median: " + totals.medianDaysToPurchase());
+    ReportExcelStyles.applyGreyToEntireRow(medianRow, ACTIVITY_HEADERS.length, true);
     return rowIndex;
   }
 
@@ -307,14 +308,11 @@ public class AllBookingsExcelBuilder {
     for (int i = 0; i < headers.length; i++) {
       row.createCell(i).setCellValue(headers[i]);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, headers.length, true);
   }
 
   private CellStyle createSectionTitleStyle(Workbook workbook) {
-    CellStyle style = workbook.createCellStyle();
-    Font font = workbook.createFont();
-    font.setBold(true);
-    style.setFont(font);
-    return style;
+    return ReportExcelStyles.createGreyStyle(workbook, true);
   }
 
   private void createSectionTitleRow(
@@ -323,10 +321,13 @@ public class AllBookingsExcelBuilder {
     Cell cell = row.createCell(0);
     cell.setCellValue(title);
     cell.setCellStyle(sectionTitleStyle);
+    ReportExcelStyles.applyGreyToEntireRow(row, ACTIVITY_HEADERS.length, true);
   }
 
   private void createLabelRow(Sheet sheet, int rowIndex, String label) {
-    sheet.createRow(rowIndex).createCell(0).setCellValue(label);
+    Row row = sheet.createRow(rowIndex);
+    row.createCell(0).setCellValue(label);
+    ReportExcelStyles.applyGreyToEntireRow(row, ACTIVITY_HEADERS.length, false);
   }
 
   private void setTextCell(Row row, int columnIndex, String value) {

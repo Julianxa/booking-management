@@ -6,7 +6,6 @@ import com.example.model.record.GiftCertificateUsedInBookingReportRow;
 import com.example.repository.ReportDataRepository;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -66,6 +65,10 @@ public class BookingsByPurchaseDateExcelBuilder {
     "Total"
   };
 
+  /** All grey rows on this sheet span this many columns so they share the same length. */
+  private static final int SHEET_COLUMN_COUNT =
+      Math.max(ACTIVITY_HEADERS.length, GIFT_CERTIFICATE_HEADERS.length);
+
   public byte[] build(
       LocalDate startDate,
       LocalDate endDate,
@@ -97,8 +100,7 @@ public class BookingsByPurchaseDateExcelBuilder {
       rowIndex = writeActivityTotalRows(sheet, rowIndex, totals);
       writeGiftCertificateSummarySection(sheet, rowIndex, sectionTitleStyle, giftCertificateRows);
 
-      int maxColumns =
-          Math.max(ACTIVITY_HEADERS.length, GIFT_CERTIFICATE_HEADERS.length);
+      int maxColumns = SHEET_COLUMN_COUNT;
       for (int columnIndex = 0; columnIndex < maxColumns; columnIndex++) {
         sheet.autoSizeColumn(columnIndex);
       }
@@ -139,6 +141,7 @@ public class BookingsByPurchaseDateExcelBuilder {
     for (int i = 0; i < headers.length; i++) {
       row.createCell(i).setCellValue(headers[i]);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, SHEET_COLUMN_COUNT, true);
   }
 
   private void writeActivityDataRow(
@@ -181,9 +184,11 @@ public class BookingsByPurchaseDateExcelBuilder {
     setMoneyCell(row, 11, totals.discount);
     setMoneyCell(row, 12, totals.total);
     setMoneyCell(row, 13, totals.total);
+    ReportExcelStyles.applyGreyToEntireRow(row, SHEET_COLUMN_COUNT, true);
 
     Row medianRow = sheet.createRow(rowIndex++);
     medianRow.createCell(5).setCellValue("Median: " + totals.medianDaysToPurchase());
+    ReportExcelStyles.applyGreyToEntireRow(medianRow, SHEET_COLUMN_COUNT, true);
     return rowIndex;
   }
 
@@ -207,6 +212,7 @@ public class BookingsByPurchaseDateExcelBuilder {
       Row totalRow = sheet.createRow(rowIndex);
       totalRow.createCell(0).setCellValue("Total");
       setMoneyCell(totalRow, 5, totalDiscount);
+      ReportExcelStyles.applyGreyToEntireRow(totalRow, SHEET_COLUMN_COUNT, true);
     }
   }
 
@@ -228,11 +234,7 @@ public class BookingsByPurchaseDateExcelBuilder {
   }
 
   private CellStyle createSectionTitleStyle(Workbook workbook) {
-    CellStyle style = workbook.createCellStyle();
-    Font font = workbook.createFont();
-    font.setBold(true);
-    style.setFont(font);
-    return style;
+    return ReportExcelStyles.createGreyStyle(workbook, true);
   }
 
   private void createSectionTitleRow(
@@ -241,6 +243,7 @@ public class BookingsByPurchaseDateExcelBuilder {
     Cell cell = row.createCell(0);
     cell.setCellValue(title);
     cell.setCellStyle(sectionTitleStyle);
+    ReportExcelStyles.applyGreyToEntireRow(row, SHEET_COLUMN_COUNT, true);
   }
 
   private void createLabelValueRow(Sheet sheet, int rowIndex, String label, String value) {
@@ -249,6 +252,7 @@ public class BookingsByPurchaseDateExcelBuilder {
     if (value != null) {
       row.createCell(1).setCellValue(value);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, SHEET_COLUMN_COUNT, false);
   }
 
   private String formatGuestName(BookingsByActivityDateReportRow row) {

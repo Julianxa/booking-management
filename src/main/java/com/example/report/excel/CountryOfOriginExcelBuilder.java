@@ -93,6 +93,7 @@ public class CountryOfOriginExcelBuilder {
     for (int i = 0; i < HEADERS.length; i++) {
       row.createCell(i).setCellValue(HEADERS[i]);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, true);
   }
 
   private void writeDataRow(Sheet sheet, int rowIndex, CountryOfOriginReportRow row) {
@@ -107,10 +108,13 @@ public class CountryOfOriginExcelBuilder {
     Row row = sheet.createRow(rowIndex);
     row.createCell(1).setCellValue(totalPassengers);
     row.createCell(2).setCellValue(totalBookings);
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, true);
   }
 
   private void createValueRow(Sheet sheet, int rowIndex, String value) {
-    sheet.createRow(rowIndex).createCell(0).setCellValue(value);
+    Row row = sheet.createRow(rowIndex);
+    row.createCell(0).setCellValue(value);
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, false);
   }
 
   static String formatCountryName(String countryCode) {

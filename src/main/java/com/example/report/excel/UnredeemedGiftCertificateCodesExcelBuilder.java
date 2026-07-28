@@ -136,6 +136,7 @@ public class UnredeemedGiftCertificateCodesExcelBuilder {
     for (int i = 0; i < HEADERS.length; i++) {
       row.createCell(i).setCellValue(HEADERS[i]);
     }
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, true);
   }
 
   private void writeDataRow(Sheet sheet, int rowIndex, UnredeemedGiftCertificateCodesReportRow row) {
@@ -187,10 +188,13 @@ public class UnredeemedGiftCertificateCodesExcelBuilder {
     setNumericCell(row.createCell(13), totalDiscounts);
     setNumericCell(row.createCell(14), totalNetTotal);
     setNumericCell(row.createCell(15), totalBalance);
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, true);
   }
 
   private void createValueRow(Sheet sheet, int rowIndex, String value) {
-    sheet.createRow(rowIndex).createCell(0).setCellValue(value);
+    Row row = sheet.createRow(rowIndex);
+    row.createCell(0).setCellValue(value);
+    ReportExcelStyles.applyGreyToEntireRow(row, HEADERS.length, false);
   }
 
   private void setNumericCell(Cell cell, BigDecimal value) {
