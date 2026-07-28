@@ -1,0 +1,46 @@
+package com.example.model.dto;
+
+import com.example.constant.Enums;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+
+@Getter
+@Setter
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class AdminConfirmCheckinResponseDTO {
+    @JsonProperty("booking_id")
+    private String bookingId;
+
+    @JsonProperty("booking_event_id")
+    private String bookingEventId;
+
+    @JsonProperty("event_id")
+    private String eventId;
+
+    @JsonProperty("event_date")
+    private LocalDate eventDate;
+
+    @JsonProperty("event_time")
+    private String eventTime;
+
+    @JsonProperty("status")
+    private Enums.BookingEventStatus status;
+
+    @JsonProperty("verified_at")
+    private ZonedDateTime verifiedAt;
+
+    @JsonProperty("message")
+    private String message;
+
+    @JsonProperty("timestamp")
+    private ZonedDateTime timestamp;
+}

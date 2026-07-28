@@ -19,6 +19,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
@@ -500,6 +501,29 @@ public class EventController {
     @PostMapping("/events/confirm")
     public ResponseEntity<?> confirmCheckIn(@Valid @RequestBody ConfirmCheckinRequestDTO request) {
         ConfirmCheckinResponseDTO response = eventService.confirmCheckIn(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Admin Confirm Check-in",
+            description = "Admin Confirms check-in without the verification token.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Check-in confirmed successfully",
+                            content = @Content(
+                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = AdminConfirmCheckinResponseDTO.class)
+                            )
+                    ),
+                    @ApiResponse(responseCode = "400", description = "Invalid token or already checked in"),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized")
+            }
+    )
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    @PostMapping("/events/admin-confirm")
+    public ResponseEntity<?> adminConfirmCheckIn(@Valid @RequestBody AdminConfirmCheckinRequestDTO request) {
+        AdminConfirmCheckinResponseDTO response = eventService.adminConfirmCheckIn(request);
         return ResponseEntity.ok(response);
     }
 }

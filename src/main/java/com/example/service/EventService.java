@@ -701,6 +701,42 @@ public class EventService {
                 .timestamp(ZonedDateTime.now()).build();
     }
 
+    @Transactional
+    public AdminConfirmCheckinResponseDTO adminConfirmCheckIn(AdminConfirmCheckinRequestDTO request) {
+        BookingEvents bookingEvent = bookingEventsRepository.findByRefNoAndEventDateAndEventTime(request.getBookingEventId(), request.getEventDate(), request.getEventTime())
+                .orElseThrow(() -> new BookingEventNotFoundException("Booked Event not found"));
+
+        if (bookingEvent.getCancelledAt() != null) {
+            throw new InvalidVerificationTokenException("Ticket has already been cancelled");
+        }
+
+        validateCheckIn(bookingEvent);
+
+        bookingEvent.setVerifiedAt(ZonedDateTime.now());
+        bookingEvent.setUpdatedAt(ZonedDateTime.now());
+        bookingEvent.setStatus(CHECKED_IN);
+
+        bookingEvent = bookingEventsRepository.save(bookingEvent);
+
+        auditService.record("CONFIRM_CHECK_IN",
+                BookingEvents.class.getName(),
+                bookingEvent.getId(),
+                null,
+                "Check-in confirmed successfully"
+        );
+
+        return AdminConfirmCheckinResponseDTO.builder()
+                .bookingId(bookingEvent.getBooking().getRefNo())
+                .bookingEventId(bookingEvent.getRefNo())
+                .eventId(bookingEvent.getEvent().getRefNo())
+                .eventDate(bookingEvent.getEventDate())
+                .eventTime(bookingEvent.getEventTime())
+                .status(bookingEvent.getStatus())
+                .verifiedAt(bookingEvent.getVerifiedAt())
+                .message("Confirm Check-in successfully")
+                .timestamp(ZonedDateTime.now()).build();
+    }
+
     // ====================== Private Helper Methods ======================
     private List<EventBookingStats> getBookingPercentageByDate(LocalDate filterDate, String dayValue) {
         List<EventDailySlot> slots = eventsRepository.getAllEventsScheduleSlots(true, filterDate, dayValue);
