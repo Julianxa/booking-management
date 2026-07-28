@@ -11,7 +11,6 @@ public record PromoCodesByTransactionDateReportRow(
     LocalDate eventDate,
     String eventTime,
     String eventName,
-    String eventNameZhHk,
     String guestFirstName,
     String guestLastName,
     BigDecimal eventSubtotal,

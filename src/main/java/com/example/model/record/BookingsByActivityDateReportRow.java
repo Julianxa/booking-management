@@ -19,7 +19,6 @@ public record BookingsByActivityDateReportRow(
         Long giftCertificateId,
         String eventType,
         String eventName,
-        String eventNameZhHk,
         String eventCategory,
         String guestFirstName,
         String guestLastName,

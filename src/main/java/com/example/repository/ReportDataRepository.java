@@ -166,7 +166,6 @@ public class ReportDataRepository {
             b.gift_certificate_id,
             e.type,
             e.name,
-            e.name_zh_hk,
             e.category,
             ba.first_name,
             ba.last_name,
@@ -673,7 +672,6 @@ public class ReportDataRepository {
             be.event_date,
             be.event_time,
             e.name,
-            e.name_zh_hk,
             ba.first_name,
             ba.last_name,
             be.total,
@@ -797,13 +795,12 @@ public class ReportDataRepository {
         asString(row[5]),
         asString(row[6]),
         asString(row[7]),
-        asString(row[8]),
-        asBigDecimal(row[9]),
+        asBigDecimal(row[8]),
+        asString(row[9]),
         asString(row[10]),
-        asString(row[11]),
+        asBigDecimal(row[11]),
         asBigDecimal(row[12]),
-        asBigDecimal(row[13]),
-        asBigDecimal(row[14]));
+        asBigDecimal(row[13]));
   }
 
   private void bindDateRange(Query query, LocalDate startDate, LocalDate endDate) {
@@ -836,8 +833,7 @@ public class ReportDataRepository {
         asString(row[20]),
         asString(row[21]),
         asString(row[22]),
-        asString(row[23]),
-        asString(row[24]));
+        asString(row[23]));
   }
 
   private Long asLong(Object value) {

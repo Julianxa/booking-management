@@ -159,9 +159,9 @@ public class PromoCodesByTransactionDateExcelBuilder {
   }
 
   private String formatActivityName(PromoCodesByTransactionDateReportRow row) {
-    String localizedName = nullToBlank(row.eventNameZhHk(), row.eventName());
-    if (!localizedName.isBlank()) {
-      return localizedName;
+    String englishName = nullToBlank(row.eventName());
+    if (!englishName.isBlank()) {
+      return englishName;
     }
     if (row.eventTime() == null || row.eventTime().isBlank()) {
       return "";

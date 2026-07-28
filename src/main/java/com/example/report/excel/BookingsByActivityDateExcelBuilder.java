@@ -200,7 +200,7 @@ public class BookingsByActivityDateExcelBuilder {
   }
 
   private String formatEventName(BookingsByActivityDateReportRow row) {
-    return nullToBlank(row.eventNameZhHk(), row.eventName());
+    return nullToBlank(row.eventName());
   }
 
   private String formatGuestName(BookingsByActivityDateReportRow row) {
