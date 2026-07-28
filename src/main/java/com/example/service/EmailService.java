@@ -63,8 +63,8 @@ public class EmailService {
     @Value("${app.mail.from}")
     String senderEmail;
 
-    @Value("${app.mail.custom-template-cc:}")
-    String customTemplateCcEmail;
+    @Value("${app.mail.custom-template-bcc:}")
+    String customTemplateBccEmail;
 
     public record BookingEmailPayload(
             CreateBookingRequestDTO.AttendeeDTO attendee,
@@ -350,8 +350,8 @@ public class EmailService {
 
         String subject = getEmailSubject(template, booking.getLanguage());
 
-        String cc = Boolean.FALSE.equals(template.getIsPerm()) ? customTemplateCcEmail : null;
-        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages, cc);
+        String bcc = Boolean.FALSE.equals(template.getIsPerm()) ? customTemplateBccEmail : null;
+        sendEmail(null, template.getId(), emailParametersJson, attendeeDTO.getEmail(), subject, htmlContent, inlineImages, bcc);
     }
 
     public void sendBookingCancellationEmail(CreateBookingRequestDTO.AttendeeDTO attendeeDTO,
@@ -502,7 +502,7 @@ public class EmailService {
     }
 
     private void sendEmail(Long userId, Long templateId, String emailParametersJson, String to, String subject,
-                           String htmlContent, Map<String, String> inlineImages, String cc) {
+                           String htmlContent, Map<String, String> inlineImages, String bcc) {
         try {
             if (to == null || to.isBlank()) {
                 throw new EmailProcessException("Recipient email is blank");
@@ -513,8 +513,8 @@ public class EmailService {
 
             helper.setText(htmlContent, true);
             helper.setTo(to);
-            if (cc != null && !cc.isBlank()) {
-                helper.setCc(cc);
+            if (bcc != null && !bcc.isBlank()) {
+                helper.setBcc(bcc);
             }
             helper.setFrom(senderEmail);
             helper.setSubject(subject);
