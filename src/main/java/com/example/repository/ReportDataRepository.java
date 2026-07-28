@@ -166,7 +166,6 @@ public class ReportDataRepository {
             b.gift_certificate_id,
             e.type,
             e.name,
-            e.category,
             ba.first_name,
             ba.last_name,
             ba.country,
@@ -832,8 +831,7 @@ public class ReportDataRepository {
         asString(row[19]),
         asString(row[20]),
         asString(row[21]),
-        asString(row[22]),
-        asString(row[23]));
+        asString(row[22]));
   }
 
   private Long asLong(Object value) {

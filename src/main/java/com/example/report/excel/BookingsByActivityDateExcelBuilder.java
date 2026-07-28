@@ -33,7 +33,6 @@ public class BookingsByActivityDateExcelBuilder {
   private static final String[] ACTIVITY_HEADERS = {
     "Booking No.",
     "Activity",
-    "Category",
     "Date",
     "Time",
     "Purchase Date",
@@ -156,7 +155,6 @@ public class BookingsByActivityDateExcelBuilder {
     int column = 0;
     setTextCell(excelRow, column++, row.bookingRefNo());
     excelRow.createCell(column++).setCellValue(formatEventName(row));
-    excelRow.createCell(column++).setCellValue(nullToBlank(row.eventCategory()));
     setDateCell(excelRow, column++, row.eventDate());
     setTimeCell(excelRow, column++, row.eventTime());
     setPurchaseDateCell(excelRow, column++, row.purchaseDate());
@@ -180,15 +178,15 @@ public class BookingsByActivityDateExcelBuilder {
   private void writeActivityTotalRow(Sheet sheet, int rowIndex, ActivityTotals totals) {
     Row row = sheet.createRow(rowIndex);
     row.createCell(0).setCellValue("Total");
-    row.createCell(6).setCellValue("Avg: " + totals.averageDaysToPurchase());
-    row.createCell(14).setCellValue(totals.totalPassengers);
-    setMoneyCell(row, 15, totals.subtotal);
-    setMoneyCell(row, 16, totals.discount);
-    setMoneyCell(row, 17, totals.netSale);
-    setMoneyCell(row, 18, totals.total);
+    row.createCell(5).setCellValue("Avg: " + totals.averageDaysToPurchase());
+    row.createCell(13).setCellValue(totals.totalPassengers);
+    setMoneyCell(row, 14, totals.subtotal);
+    setMoneyCell(row, 15, totals.discount);
+    setMoneyCell(row, 16, totals.netSale);
+    setMoneyCell(row, 17, totals.total);
 
     Row medianRow = sheet.createRow(rowIndex + 1);
-    medianRow.createCell(6).setCellValue("Median: " + totals.medianDaysToPurchase());
+    medianRow.createCell(5).setCellValue("Median: " + totals.medianDaysToPurchase());
   }
 
   private void createLabelValueRow(Sheet sheet, int rowIndex, String label, String value) {
