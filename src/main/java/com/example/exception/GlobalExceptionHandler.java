@@ -3,6 +3,8 @@ package com.example.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -57,6 +59,25 @@ public class GlobalExceptionHandler {
         body.put("message", message);
         body.put("timestamp", ZonedDateTime.now());
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDeniedException(AccessDeniedException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", "BT403");
+        body.put("message", "Access denied");
+        body.put("timestamp", ZonedDateTime.now());
+        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<Object> handleAuthenticationCredentialsNotFound(
+            AuthenticationCredentialsNotFoundException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", "BT401");
+        body.put("message", "Unauthorized");
+        body.put("timestamp", ZonedDateTime.now());
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
     // Fallback for any other unexpected exceptions
