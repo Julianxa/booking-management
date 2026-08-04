@@ -42,7 +42,7 @@ public class ReportController {
           "Queues an Excel report for the requested report type and date range, stores "
               + "generation status in the database, and returns a report record immediately. "
               + "Supported report types: BOOKINGS_BY_ACTIVITY_DATE, BOOKINGS_BY_PURCHASE_DATE, "
-              + "GIFT_CERTIFICATE_BY_TRANSACTION_DATE, COUNTRY_OF_ORIGIN, EXPIRED_GIFT_CERTIFICATE_CODES, "
+              + "GIFT_CERTIFICATE_BY_TRANSACTION_DATE, COUNTRY_OF_ORIGIN, EXPIRED_UNIQUE_CODE, "
               + "REDEEMED_GIFT_CERTIFICATE_CODES, UNREDEEMED_GIFT_CERTIFICATE_CODES, ALL_BOOKINGS.",
       responses = {
         @ApiResponse(
