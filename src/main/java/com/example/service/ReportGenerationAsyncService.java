@@ -22,7 +22,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -112,14 +111,7 @@ public class ReportGenerationAsyncService {
             rows,
             ticketQuantities);
 
-    String s3Key =
-        "reports/bookings-by-activity-date/"
-            + report.getStartDate()
-            + "_to_"
-            + report.getEndDate()
-            + "_"
-            + UUID.randomUUID()
-            + ".xlsx";
+    String s3Key = buildReportS3Key(report);
 
     awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
 
@@ -159,14 +151,7 @@ public class ReportGenerationAsyncService {
             ticketQuantities,
             giftCertificateRows);
 
-    String s3Key =
-        "reports/bookings-by-purchase-date/"
-            + report.getStartDate()
-            + "_to_"
-            + report.getEndDate()
-            + "_"
-            + UUID.randomUUID()
-            + ".xlsx";
+    String s3Key = buildReportS3Key(report);
 
     awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
 
@@ -202,14 +187,7 @@ public class ReportGenerationAsyncService {
             rows,
             ticketQuantities);
 
-    String s3Key =
-        "reports/gift-certificate-codes-by-transaction-date/"
-            + report.getStartDate()
-            + "_to_"
-            + report.getEndDate()
-            + "_"
-            + UUID.randomUUID()
-            + ".xlsx";
+    String s3Key = buildReportS3Key(report);
 
     awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
 
@@ -241,14 +219,7 @@ public class ReportGenerationAsyncService {
             report.getGeneratedBy(),
             rows);
 
-    String s3Key =
-        "reports/country-of-origin/"
-            + report.getStartDate()
-            + "_to_"
-            + report.getEndDate()
-            + "_"
-            + UUID.randomUUID()
-            + ".xlsx";
+    String s3Key = buildReportS3Key(report);
 
     awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
 
@@ -280,14 +251,7 @@ public class ReportGenerationAsyncService {
             report.getGeneratedBy(),
             rows);
 
-    String s3Key =
-        "reports/expired-unique-codes/"
-            + report.getStartDate()
-            + "_to_"
-            + report.getEndDate()
-            + "_"
-            + UUID.randomUUID()
-            + ".xlsx";
+    String s3Key = buildReportS3Key(report);
 
     awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
 
@@ -319,14 +283,7 @@ public class ReportGenerationAsyncService {
             report.getGeneratedBy(),
             rows);
 
-    String s3Key =
-        "reports/redeemed-unique-codes/"
-            + report.getStartDate()
-            + "_to_"
-            + report.getEndDate()
-            + "_"
-            + UUID.randomUUID()
-            + ".xlsx";
+    String s3Key = buildReportS3Key(report);
 
     awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
 
@@ -358,14 +315,7 @@ public class ReportGenerationAsyncService {
             report.getGeneratedBy(),
             rows);
 
-    String s3Key =
-        "reports/unredeemed-unique-codes/"
-            + report.getStartDate()
-            + "_to_"
-            + report.getEndDate()
-            + "_"
-            + UUID.randomUUID()
-            + ".xlsx";
+    String s3Key = buildReportS3Key(report);
 
     awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
 
@@ -399,14 +349,7 @@ public class ReportGenerationAsyncService {
             rows,
             ticketQuantities);
 
-    String s3Key =
-        "reports/all-bookings/"
-            + report.getStartDate()
-            + "_to_"
-            + report.getEndDate()
-            + "_"
-            + UUID.randomUUID()
-            + ".xlsx";
+    String s3Key = buildReportS3Key(report);
 
     awsService.uploadBytes(s3Key, workbookBytes, REPORT_CONTENT_TYPE);
 
@@ -418,6 +361,18 @@ public class ReportGenerationAsyncService {
     report.setCompletedAt(ZonedDateTime.now());
     report.setErrorMessage(null);
     reportsRepository.save(report);
+  }
+
+  private String buildReportS3Key(Reports report) {
+    return "reports/"
+        + report.getReportType()
+        + "_"
+        + report.getStartDate()
+        + "_"
+        + report.getEndDate()
+        + "_"
+        + report.getId()
+        + ".xlsx";
   }
 
   private String truncate(String errorMessage) {
