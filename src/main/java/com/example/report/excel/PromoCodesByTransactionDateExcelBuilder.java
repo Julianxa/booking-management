@@ -83,7 +83,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
       workbook.write(outputStream);
       return outputStream.toByteArray();
     } catch (IOException e) {
-      throw new FileOperationException("Failed to generate gift certificate by transaction date report");
+      throw new FileOperationException("Failed to generate gift certificate codes by transaction date report");
     }
   }
 
@@ -94,7 +94,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
       String generatedBy,
       ZonedDateTime generatedAt) {
     int row = 2;
-    createLabelValueRow(sheet, row++, "GIFT CERTIFICATE BY TRANSACTION DATE", null);
+    createLabelValueRow(sheet, row++, "GIFT CERTIFICATE CODES BY TRANSACTION DATE", null);
     row++;
     createLabelValueRow(sheet, row++, "Report Start Date:", startDate.format(REPORT_DATE_FORMAT));
     createLabelValueRow(sheet, row++, "Report End Date:", endDate.format(REPORT_DATE_FORMAT));
