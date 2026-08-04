@@ -117,7 +117,7 @@ public class RedeemedGiftCertificateCodesExcelBuilder {
       workbook.write(outputStream);
       return outputStream.toByteArray();
     } catch (IOException e) {
-      throw new FileOperationException("Failed to generate redeemed unique code report");
+      throw new FileOperationException("Failed to generate redeemed unique codes report");
     }
   }
 

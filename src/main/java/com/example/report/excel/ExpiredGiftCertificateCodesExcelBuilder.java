@@ -80,7 +80,7 @@ public class ExpiredGiftCertificateCodesExcelBuilder {
       workbook.write(outputStream);
       return outputStream.toByteArray();
     } catch (IOException e) {
-      throw new FileOperationException("Failed to generate expired unique code report");
+      throw new FileOperationException("Failed to generate expired unique codes report");
     }
   }
 
