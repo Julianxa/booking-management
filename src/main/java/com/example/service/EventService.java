@@ -38,9 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -823,15 +821,6 @@ public class EventService {
     private void validateCheckIn(BookingEvents bookingEvent) {
         if (bookingEvent.getVerifiedAt() != null) {
             throw new InvalidVerificationTokenException("Ticket has already been checked in");
-        }
-
-        LocalDate date = bookingEvent.getEventDate();
-        LocalTime time = LocalTime.parse(bookingEvent.getEventTime());
-
-        ZonedDateTime eventStartTime = ZonedDateTime.of(date, time, ZoneId.systemDefault());
-
-        if (eventStartTime.isBefore(ZonedDateTime.now())) {
-            throw new InvalidVerificationTokenException("Ticket has expired");
         }
     }
 
