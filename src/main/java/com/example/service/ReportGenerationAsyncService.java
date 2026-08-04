@@ -58,7 +58,7 @@ public class ReportGenerationAsyncService {
       switch (report.getReportType()) {
         case BOOKINGS_BY_ACTIVITY_DATE -> generateBookingsByActivityDateReport(reportId);
         case BOOKINGS_BY_PURCHASE_DATE -> generateBookingsByPurchaseDateReport(reportId);
-        case PROMO_CODES_BY_TRANSACTION_DATE -> generatePromoCodesByTransactionDateReport(reportId);
+        case GIFT_CERTIFICATE_BY_TRANSACTION_DATE -> generatePromoCodesByTransactionDateReport(reportId);
         case COUNTRY_OF_ORIGIN -> generateCountryOfOriginReport(reportId);
         case EXPIRED_GIFT_CERTIFICATE_CODES -> generateExpiredGiftCertificateCodesReport(reportId);
         case REDEEMED_GIFT_CERTIFICATE_CODES -> generateRedeemedGiftCertificateCodesReport(reportId);
@@ -203,7 +203,7 @@ public class ReportGenerationAsyncService {
             ticketQuantities);
 
     String s3Key =
-        "reports/promo-codes-by-transaction-date/"
+        "reports/gift-certificate-by-transaction-date/"
             + report.getStartDate()
             + "_to_"
             + report.getEndDate()
