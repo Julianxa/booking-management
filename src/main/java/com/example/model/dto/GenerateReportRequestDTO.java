@@ -21,16 +21,7 @@ public class GenerateReportRequestDTO {
   @JsonProperty("report_type")
   @Schema(
       description = "Report type to generate",
-      example = "BOOKINGS_BY_ACTIVITY_DATE",
-      allowableValues = {
-        "BOOKINGS_BY_ACTIVITY_DATE",
-        "BOOKINGS_BY_PURCHASE_DATE",
-        "PROMO_CODES_BY_TRANSACTION_DATE",
-        "COUNTRY_OF_ORIGIN",
-        "EXPIRED_GIFT_CERTIFICATE_CODES",
-        "REDEEMED_GIFT_CERTIFICATE_CODES",
-        "UNREDEEMED_GIFT_CERTIFICATE_CODES"
-      })
+      example = "BOOKINGS_BY_ACTIVITY_DATE")
   private Enums.ReportType reportType;
 
   @NotNull
