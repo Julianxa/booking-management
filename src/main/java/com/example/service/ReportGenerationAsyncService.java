@@ -62,7 +62,7 @@ public class ReportGenerationAsyncService {
         case COUNTRY_OF_ORIGIN -> generateCountryOfOriginReport(reportId);
         case EXPIRED_UNIQUE_CODE -> generateExpiredGiftCertificateCodesReport(reportId);
         case REDEEMED_UNIQUE_CODE -> generateRedeemedGiftCertificateCodesReport(reportId);
-        case UNREDEEMED_GIFT_CERTIFICATE_CODES -> generateUnredeemedGiftCertificateCodesReport(reportId);
+        case UNREDEEMED_UNIQUE_CODES -> generateUnredeemedGiftCertificateCodesReport(reportId);
         case ALL_BOOKINGS -> generateAllBookingsReport(reportId);
       }
     } catch (Exception e) {
@@ -359,7 +359,7 @@ public class ReportGenerationAsyncService {
             rows);
 
     String s3Key =
-        "reports/unredeemed-gift-certificate-codes/"
+        "reports/unredeemed-unique-codes/"
             + report.getStartDate()
             + "_to_"
             + report.getEndDate()

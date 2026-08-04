@@ -105,7 +105,7 @@ public class UnredeemedGiftCertificateCodesExcelBuilder {
       workbook.write(outputStream);
       return outputStream.toByteArray();
     } catch (IOException e) {
-      throw new FileOperationException("Failed to generate unredeemed gift certificate codes report");
+      throw new FileOperationException("Failed to generate unredeemed unique codes report");
     }
   }
 
@@ -116,7 +116,7 @@ public class UnredeemedGiftCertificateCodesExcelBuilder {
       String generatedBy,
       ZonedDateTime generatedAt) {
     int row = 2;
-    createValueRow(sheet, row++, "ALL UNREDEEMED GIFT CERTIFICATES");
+    createValueRow(sheet, row++, "ALL UNREDEEMED UNIQUE CODES");
     row++;
     createValueRow(sheet, row++, "Report Start Date:");
     createValueRow(sheet, row++, startDate.format(REPORT_DATE_FORMAT));

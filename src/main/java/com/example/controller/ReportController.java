@@ -43,7 +43,7 @@ public class ReportController {
               + "generation status in the database, and returns a report record immediately. "
               + "Supported report types: BOOKINGS_BY_ACTIVITY_DATE, BOOKINGS_BY_PURCHASE_DATE, "
               + "GIFT_CERTIFICATE_BY_TRANSACTION_DATE, COUNTRY_OF_ORIGIN, EXPIRED_UNIQUE_CODE, "
-              + "REDEEMED_UNIQUE_CODE, UNREDEEMED_GIFT_CERTIFICATE_CODES, ALL_BOOKINGS.",
+              + "REDEEMED_UNIQUE_CODE, UNREDEEMED_UNIQUE_CODES, ALL_BOOKINGS.",
       responses = {
         @ApiResponse(
             responseCode = "202",
