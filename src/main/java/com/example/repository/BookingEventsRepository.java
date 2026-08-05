@@ -27,7 +27,7 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
     Optional<Long> findIdByRefNo(String refNo);
 
     @Query(value = "SELECT id FROM booking_events WHERE booking_id = :bookingId AND event_id = :eventId", nativeQuery = true)
-    Optional<Long> findIdByBookingIdAndEventId(Long bookingId, Long eventId);
+    List<Long> findIdsByBookingIdAndEventId(@Param("bookingId") Long bookingId, @Param("eventId") Long eventId);
 
     List<BookingEvents> findByBookingId(Long bookingId);
 

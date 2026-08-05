@@ -29,6 +29,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -203,14 +204,23 @@ public class GiftCertificateService {
                     : BigDecimal.ZERO;
             return new GiftCertificateApplicationResult(giftCertificate, List.of(), appliedDiscount);
         } else if (giftCertificate.getType() == EVENT || giftCertificate.getType() == PERSONAL_EVENT) {
-            Long bookingEventId = bookingEventsRepository.findIdByBookingIdAndEventId(booking.getId(), giftCertificate.getEventId())
-                    .orElseThrow(() -> new BookingEventNotFoundException("Booking event not found"));
+            List<Long> bookingEventIds =
+                    bookingEventsRepository.findIdsByBookingIdAndEventId(
+                            booking.getId(), giftCertificate.getEventId());
+            if (bookingEventIds.isEmpty()) {
+                throw new BookingEventNotFoundException("Booking event not found");
+            }
 
-            List<BookingItems> bookingItems = bookingItemsRepository.findByBookingEventId(bookingEventId);
+            List<BookingItems> bookingItems = bookingEventIds.stream()
+                    .flatMap(bookingEventId -> bookingItemsRepository.findByBookingEventId(bookingEventId).stream())
+                    .toList();
 
-            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTicketDTOs = bookingItemsConverter.toTicketTypeDTOs(bookingItems);
+            List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTicketDTOs =
+                    bookingItemsConverter.toTicketTypeDTOs(bookingItems);
 
-            BigDecimal discount = getGiftCertificateDiscount(redeemedTicketDTOs);
+            BigDecimal discount = booking.getDiscount() != null
+                    ? booking.getDiscount()
+                    : getGiftCertificateDiscount(redeemedTicketDTOs);
             return new GiftCertificateApplicationResult(giftCertificate, redeemedTicketDTOs, discount);
 
         } else {
@@ -406,6 +416,19 @@ public class GiftCertificateService {
             List<CreateBookingRequestDTO.BookingEventDTO> bookingEventDTOs,
             BigDecimal grandTotal) {
         List<CreateBookingRequestDTO.TicketTypeDTO> redeemedTickets = new ArrayList<>();
+        List<GiftCertificateItems> gcItems = requireGiftCertificateItems(gc.getId());
+
+        // Shared free-seat pool across the whole booking, keyed by ticket type.
+        Map<Long, Integer> remainingFreeByTicketType = new HashMap<>();
+        for (GiftCertificateItems gcItem : gcItems) {
+            if (gcItem.getTicketTypeId() == null || gcItem.getQuantity() == null) {
+                continue;
+            }
+            remainingFreeByTicketType.merge(
+                    gcItem.getTicketTypeId(),
+                    Math.max(gcItem.getQuantity(), 0),
+                    Integer::sum);
+        }
 
         for (CreateBookingRequestDTO.BookingEventDTO bookingEventDTO : bookingEventDTOs) {
             Long eventId = eventsRepository.findIdByRefNo(bookingEventDTO.getEvent().getId())
@@ -415,23 +438,27 @@ public class GiftCertificateService {
                 continue;
             }
 
-            List<GiftCertificateItems> gcItems = requireGiftCertificateItems(gc.getId());
+            if (bookingEventDTO.getTickets() == null) {
+                continue;
+            }
 
             for (CreateBookingRequestDTO.TicketTypeDTO ticketDTO : bookingEventDTO.getTickets()) {
-                for (GiftCertificateItems gcItem : gcItems) {
-                    Long ticketTypeId = ticketTypesRepository.findIdByRefNo(ticketDTO.getId())
-                            .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticketDTO.getId())));
+                Long ticketTypeId = ticketTypesRepository.findIdByRefNo(ticketDTO.getId())
+                        .orElseThrow(() -> new TicketTypeNotFoundException(String.format("Ticket Type %s not found", ticketDTO.getId())));
 
-                    if (ticketTypeId.equals(gcItem.getTicketTypeId())) {
-                        int redeemedQty = min(ticketDTO.getQuantity(), gcItem.getQuantity());
-
-                        redeemedTickets.add(CreateBookingRequestDTO.TicketTypeDTO.builder()
-                                .id(ticketDTO.getId())
-                                .name(ticketDTO.getName())
-                                .quantity(redeemedQty)
-                                .build());
-                    }
+                int remainingFree = remainingFreeByTicketType.getOrDefault(ticketTypeId, 0);
+                if (remainingFree <= 0 || ticketDTO.getQuantity() == null || ticketDTO.getQuantity() <= 0) {
+                    continue;
                 }
+
+                int redeemedQty = min(ticketDTO.getQuantity(), remainingFree);
+                remainingFreeByTicketType.put(ticketTypeId, remainingFree - redeemedQty);
+
+                redeemedTickets.add(CreateBookingRequestDTO.TicketTypeDTO.builder()
+                        .id(ticketDTO.getId())
+                        .name(ticketDTO.getName())
+                        .quantity(redeemedQty)
+                        .build());
             }
         }
 
