@@ -240,7 +240,7 @@ public class PromoCodesByTransactionDateExcelBuilder {
 
     BigDecimal percentageDiscount =
         activityTotal
-            .multiply(BigDecimal.valueOf(100).subtract(promoValue))
+            .multiply(promoValue)
             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     if (percentageDiscount.subtract(discount).abs().compareTo(new BigDecimal("0.01")) <= 0) {
       return true;
