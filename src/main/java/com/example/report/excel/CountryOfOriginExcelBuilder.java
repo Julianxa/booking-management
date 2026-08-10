@@ -121,11 +121,14 @@ public class CountryOfOriginExcelBuilder {
     if (countryCode == null || countryCode.isBlank()) {
       return "Unknown";
     }
-    String normalized = countryCode.trim().toUpperCase(Locale.ROOT);
-    if (normalized.length() != 2) {
-      return countryCode.trim();
+    String normalized = countryCode.trim();
+    if (normalized.length() == 2) {
+      String displayName =
+          new Locale("", normalized.toUpperCase(Locale.ROOT)).getDisplayCountry(Locale.ENGLISH);
+      if (displayName != null && !displayName.isBlank()) {
+        return displayName;
+      }
     }
-    String displayName = new Locale("", normalized).getDisplayCountry(Locale.ENGLISH);
-    return displayName == null || displayName.isBlank() ? countryCode.trim() : displayName;
+    return normalized;
   }
 }

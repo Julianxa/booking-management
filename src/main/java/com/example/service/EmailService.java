@@ -13,6 +13,7 @@ import com.example.model.dto.*;
 import com.example.model.entity.*;
 import com.example.repository.EmailLogsRepository;
 import com.example.repository.EmailTemplatesRepository;
+import com.example.utils.CountryNameResolver;
 import com.example.utils.PartialUpdateUtil;
 import com.example.utils.QRCodeGenerator;
 import com.example.utils.ReferenceNoGenerator;
@@ -59,6 +60,7 @@ public class EmailService {
     private final ReferenceNoGenerator referenceNoGenerator;
     private final EmailLogsRepository emailLogsRepository;
     private final AppProperties appProperties;
+    private final CountryNameResolver countryNameResolver;
 
     @Value("${app.mail.from}")
     String senderEmail;
@@ -299,7 +301,9 @@ public class EmailService {
 
         String ticketSummary = buildTicketSummary(ticketsDTOs, booking.getLanguage());
 
-        context.setVariable("attendees", attendeeDTOs);
+        context.setVariable(
+                "attendees",
+                countryNameResolver.localizeAttendees(attendeeDTOs, booking.getLanguage()));
 
         context.setVariable("ticketSummary", ticketSummary);
 
@@ -367,7 +371,9 @@ public class EmailService {
 
         String ticketSummary = buildTicketSummary(ticketsDTOs, booking.getLanguage());
 
-        context.setVariable("attendees", attendeeDTOs);
+        context.setVariable(
+                "attendees",
+                countryNameResolver.localizeAttendees(attendeeDTOs, booking.getLanguage()));
 
         context.setVariable("ticketSummary", ticketSummary);
 
@@ -434,7 +440,9 @@ public class EmailService {
 
         String ticketSummary = buildTicketSummary(ticketsDTOs, booking.getLanguage());
 
-        context.setVariable("attendees", attendeeDTOs);
+        context.setVariable(
+                "attendees",
+                countryNameResolver.localizeAttendees(attendeeDTOs, booking.getLanguage()));
 
         context.setVariable("ticketSummary", ticketSummary);
 
