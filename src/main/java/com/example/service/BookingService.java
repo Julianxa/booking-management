@@ -46,8 +46,8 @@ import java.util.function.Supplier;
 
 import static com.example.constant.Enums.BookingEmailType.*;
 import static com.example.constant.Enums.BookingEventStatus.*;
+import static com.example.constant.Enums.BookingStatus.CONFIRMED;
 import static com.example.constant.Enums.BookingStatus.PAID;
-import static com.example.constant.Enums.BookingStatus.SUCCESS;
 
 @Service
 @RequiredArgsConstructor
@@ -130,11 +130,29 @@ public class BookingService {
         }
     }
 
+    public Bookings createExternalHold(CreateBookingRequestDTO request) {
+        validateTicketQuantityMatchesAttendees(request);
+        validateEventThreshold(request);
+        BookingReservation reservation = reserveBooking(null, request);
+        Bookings booking = reservation.booking();
+        booking.setType(Enums.BookingType.OFFLINE_PAYMENT);
+        booking.setPlatform(Enums.BookingPlatform.KLOOK);
+        return bookingsRepository.save(booking);
+    }
+
+    public void confirmExternalHold(Bookings booking) {
+        webhookService.confirmOfflinePayment(null, booking);
+    }
+
+    public void releaseExternalHold(Bookings booking) {
+        failReservedBooking(booking);
+    }
+
     private BookingReservation reserveBooking(String userSub, CreateBookingRequestDTO request) {
         return executeInBookingTransaction(() -> {
             Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
-            Bookings booking = createEmptyBooking(loggedInUser, request); // PENDING
+            Bookings booking = createEmptyBooking(loggedInUser, request); // ON_HOLD
 
             BigDecimal grandTotal = processBookingEvents(booking, request.getBookingEvents());
 
@@ -328,6 +346,7 @@ public class BookingService {
         return CreateBookingResponseDTO.builder()
                 .id(booking.getRefNo())
                 .type(booking.getType())
+                .platform(booking.getPlatform())
                 .totalPaidAmount(booking.getTotalPaidPrice())
                 .discount(booking.getDiscount())
                 .finalPaidAmount(booking.getFinalPaidAmount())
@@ -454,15 +473,16 @@ public class BookingService {
         Bookings booking = Bookings.builder()
                 .refNo(referenceNoGenerator.generateBookingReference())
                 .type(loggedInUser != null ? Enums.BookingType.OFFLINE_PAYMENT : Enums.BookingType.ONLINE_PAYMENT)
+                .platform(Enums.BookingPlatform.WEB)
                 .userId(loggedInUser != null ? loggedInUser.getId() : null)
                 .totalPaidPrice(BigDecimal.ZERO)
                 .currency("HKD")
-                .status(Enums.BookingStatus.PENDING)
+                .status(Enums.BookingStatus.ON_HOLD)
                 .language(request.getLanguage())
                 .build();
         booking = bookingsRepository.save(booking);
 
-        auditService.record("PENDING_BOOKING",
+        auditService.record("ON_HOLD_BOOKING",
                 Bookings.class.getName(),
                 booking.getId(),
                 loggedInUser != null ? loggedInUser.getId() : null,
@@ -700,7 +720,7 @@ public class BookingService {
     }
 
     private boolean isPaidBooking(Enums.BookingStatus bookingStatus) {
-        return bookingStatus == PAID || bookingStatus == SUCCESS;
+        return bookingStatus == PAID || bookingStatus == CONFIRMED;
     }
 
     private boolean isResendableBookingEventForConfirmation(

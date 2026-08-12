@@ -3,6 +3,7 @@ package com.example.scheduler;
 import com.example.constant.Enums;
 import com.example.model.entity.Bookings;
 import com.example.model.entity.Payments;
+import com.example.repository.OctoBookingMappingsRepository;
 import com.example.repository.BookingsRepository;
 import com.example.repository.PaymentsRepository;
 import com.example.service.WebhookService;
@@ -24,8 +25,9 @@ public class BookingReservationCleanupScheduler {
     private final BookingsRepository bookingsRepository;
     private final PaymentsRepository paymentsRepository;
     private final WebhookService webhookService;
+    private final OctoBookingMappingsRepository octoBookingMappingsRepository;
 
-    @Value("${app.booking.cleanup.pending-timeout-minutes:5}")
+    @Value("${app.booking.cleanup.pending-timeout-minutes:10}")
     private long pendingTimeoutMinutes;
 
     @Value("${app.booking.cleanup.awaiting-payment-timeout-minutes:35}")
@@ -47,7 +49,7 @@ public class BookingReservationCleanupScheduler {
 
         int releasedCount = 0;
         releasedCount += releaseStaleBookings(
-                Enums.BookingStatus.PENDING,
+                Enums.BookingStatus.ON_HOLD,
                 now.minusMinutes(pendingTimeoutMinutes));
         releasedCount += releaseStaleBookings(
                 Enums.BookingStatus.AWAITING_PAYMENT,
@@ -67,12 +69,28 @@ public class BookingReservationCleanupScheduler {
                 cutoff,
                 PageRequest.of(0, batchSize));
 
+        int released = 0;
         for (Bookings booking : staleBookings) {
             Payments payment = paymentsRepository.findByBookingId(booking.getId()).orElse(null);
             webhookService.finalizeUnpaidBooking(booking, payment, "scheduler:" + staleStatus);
+            markOctoMappingExpiredIfPresent(booking.getId());
             log.warn("Released stale {} booking reservation {}", staleStatus, booking.getRefNo());
+            released++;
         }
 
-        return staleBookings.size();
+        return released;
+    }
+
+    private void markOctoMappingExpiredIfPresent(Long bookingId) {
+        octoBookingMappingsRepository
+                .findByBookingId(bookingId)
+                .ifPresent(
+                        mapping -> {
+                            if ("ON_HOLD".equals(mapping.getOctoStatus())) {
+                                mapping.setOctoStatus("EXPIRED");
+                                mapping.setHoldExpiresAt(null);
+                                octoBookingMappingsRepository.save(mapping);
+                            }
+                        });
     }
 }

@@ -49,11 +49,11 @@ public class Enums {
     }
 
     public enum BookingStatus {
-        PENDING,
+        ON_HOLD,
         AWAITING_PAYMENT,
         PAYMENT_IN_PROGRESS,
         PAID,
-        SUCCESS,
+        CONFIRMED,
         FAILED,
         CANCELLED,
         EXPIRED,
@@ -127,6 +127,10 @@ public class Enums {
 
     public enum BookingType {
         OFFLINE_PAYMENT, ONLINE_PAYMENT
+    }
+
+    public enum BookingPlatform {
+        WEB, KLOOK
     }
 
     public enum RefundType {

@@ -17,6 +17,7 @@ public interface BookingMapper {
         CreateBookingResponseDTO createBookingResponseDTO = new CreateBookingResponseDTO();
         createBookingResponseDTO.setId(booking.getRefNo());
         createBookingResponseDTO.setType(booking.getType());
+        createBookingResponseDTO.setPlatform(booking.getPlatform());
         createBookingResponseDTO.setStatus(booking.getStatus());
         createBookingResponseDTO.setBookingEvents(bookingEventDTOs);
         createBookingResponseDTO.setTotalPaidAmount(booking.getTotalPaidPrice());

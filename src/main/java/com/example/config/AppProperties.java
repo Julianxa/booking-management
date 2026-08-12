@@ -18,6 +18,8 @@ public class AppProperties {
 
     private CheckIn checkin = new CheckIn();
 
+    private Octo octo = new Octo();
+
     @Getter
     @Setter
     public static class Frontend {
@@ -28,5 +30,21 @@ public class AppProperties {
     @Setter
     public static class CheckIn {
         private String path;
+    }
+
+    @Getter
+    @Setter
+    public static class Octo {
+        private String apiKey = "";
+        private String supplierId = "tramway";
+        private String supplierName = "Hong Kong Tramways";
+        private String currency = "HKD";
+        private String timeZone = "Asia/Hong_Kong";
+        private String defaultOptionId = "DEFAULT";
+        private long holdTimeoutMinutes = 10;
+        private String contactName = "";
+        private String contactEmail = "";
+        private String contactTelephone = "";
+        private String contactWebsite = "";
     }
 }

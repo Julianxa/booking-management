@@ -29,6 +29,11 @@ public class Bookings {
     @Column(name = "type")
     private Enums.BookingType type;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "platform", nullable = false, length = 20)
+    private Enums.BookingPlatform platform = Enums.BookingPlatform.WEB;
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -49,7 +54,7 @@ public class Bookings {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private Enums.BookingStatus status; // e.g., PENDING, CONFIRMED, CANCELLED, COMPLETED
+    private Enums.BookingStatus status; // e.g., ON_HOLD, CONFIRMED, CANCELLED, REFUNDED
 
     @Builder.Default
     @Column(name = "slot_capacity_held", nullable = false)

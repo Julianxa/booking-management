@@ -279,7 +279,7 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException("Booking " + bookingRefNo + " not found"));
 
-        if (booking.getStatus() == Enums.BookingStatus.SUCCESS
+        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED
                 || booking.getStatus() == Enums.BookingStatus.PAID) {
             return;
         }
@@ -312,7 +312,7 @@ public class WebhookService {
     // Utility functions
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void confirmOnlinePayment(Users user, Bookings booking, Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
-        if (booking.getStatus() == Enums.BookingStatus.SUCCESS
+        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED
                 || booking.getStatus() == Enums.BookingStatus.PAID) {
             return;
         }
@@ -334,7 +334,7 @@ public class WebhookService {
 
         List<EmailService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
 
-        updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
+        updateBookingStatus(booking, Enums.BookingStatus.CONFIRMED);
 
         publishBookingConfirmedEvent(user, booking, bookingEvents, result, emailPayloads);
     }
@@ -354,7 +354,7 @@ public class WebhookService {
 
         List<EmailService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
 
-        updateBookingStatus(booking, Enums.BookingStatus.SUCCESS);
+        updateBookingStatus(booking, Enums.BookingStatus.CONFIRMED);
 
         publishBookingConfirmedEvent(user, booking, bookingEvents, result, emailPayloads);
     }
@@ -505,7 +505,7 @@ public class WebhookService {
             return false;
         }
         return switch (status) {
-            case SUCCESS, PAID, REFUNDED, CANCELLED, FAILED, EXPIRED -> true;
+            case CONFIRMED, PAID, REFUNDED, CANCELLED, FAILED, EXPIRED -> true;
             default -> false;
         };
     }
@@ -519,7 +519,7 @@ public class WebhookService {
     }
 
     private boolean isRetryableCheckoutFailure(Bookings booking) {
-        return booking.getStatus() == Enums.BookingStatus.PENDING
+        return booking.getStatus() == Enums.BookingStatus.ON_HOLD
                 || booking.getStatus() == Enums.BookingStatus.AWAITING_PAYMENT
                 || booking.getStatus() == Enums.BookingStatus.PAYMENT_IN_PROGRESS;
     }

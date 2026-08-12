@@ -1,7 +1,6 @@
 package com.example.model.dto;
 
 import com.example.constant.Enums;
-import com.example.model.entity.EmailTemplates;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -22,6 +21,8 @@ import java.util.List;
 public class CreateBookingResponseDTO {
     private String id;
     private Enums.BookingType type;
+    @JsonProperty("platform")
+    private Enums.BookingPlatform platform;
     @Schema(description = "List of all bookings created in this operation")
     @JsonProperty("booking_events")
     private List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents;

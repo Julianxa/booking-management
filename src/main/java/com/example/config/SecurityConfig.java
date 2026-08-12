@@ -1,5 +1,6 @@
 package com.example.config;
 
+import com.example.utils.OctoApiKeyFilter;
 import com.example.utils.CognitoTokenFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,9 +21,11 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final CognitoTokenFilter cognitoTokenFilter;
+    private final OctoApiKeyFilter octoApiKeyFilter;
 
-    public SecurityConfig(CognitoTokenFilter cognitoTokenFilter) {
+    public SecurityConfig(CognitoTokenFilter cognitoTokenFilter, OctoApiKeyFilter octoApiKeyFilter) {
         this.cognitoTokenFilter = cognitoTokenFilter;
+        this.octoApiKeyFilter = octoApiKeyFilter;
     }
 
     @Bean
@@ -55,6 +58,7 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(corsFilter(), org.springframework.security.web.header.HeaderWriterFilter.class)
+                .addFilterBefore(octoApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(cognitoTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll());

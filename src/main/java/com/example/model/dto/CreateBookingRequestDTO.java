@@ -18,6 +18,8 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CreateBookingRequestDTO {
@@ -42,6 +44,8 @@ public class CreateBookingRequestDTO {
     @Builder
     @Getter
     @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class BookingEventDTO {
         @JsonProperty("id")
@@ -91,6 +95,8 @@ public class CreateBookingRequestDTO {
 
     @Data
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class EventDTO {
         @JsonProperty("id")

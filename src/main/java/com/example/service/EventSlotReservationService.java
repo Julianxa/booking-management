@@ -86,11 +86,11 @@ public class EventSlotReservationService {
     }
 
     public boolean countsTowardCapacity(Enums.BookingStatus status) {
-        return status == Enums.BookingStatus.PENDING
+        return status == Enums.BookingStatus.ON_HOLD
                 || status == Enums.BookingStatus.AWAITING_PAYMENT
                 || status == Enums.BookingStatus.PAYMENT_IN_PROGRESS
                 || status == Enums.BookingStatus.PAID
-                || status == Enums.BookingStatus.SUCCESS;
+                || status == Enums.BookingStatus.CONFIRMED;
     }
 
     @Transactional

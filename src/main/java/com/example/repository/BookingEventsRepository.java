@@ -184,7 +184,7 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
               AND be.eventDate = :eventDate
               AND be.eventTime = :eventTime
               AND be.status = :status
-              AND b.status IN ('PENDING', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
+              AND b.status IN ('ON_HOLD', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'CONFIRMED')
             """)
     List<BookingEvents> findForBulkStatusUpdateByTimeSlot(
             @Param("eventId") Long eventId,
@@ -198,7 +198,7 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
             JOIN FETCH be.event e
             WHERE be.event.id = :eventId
               AND be.status = :status
-              AND b.status IN ('PENDING', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'SUCCESS')
+              AND b.status IN ('ON_HOLD', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'CONFIRMED')
             """)
     List<BookingEvents> findForBulkStatusUpdateByEventId(
             @Param("eventId") Long eventId,

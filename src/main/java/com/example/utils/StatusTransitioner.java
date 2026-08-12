@@ -63,13 +63,13 @@ public class StatusTransitioner {
             case EXPIRED, FAILED ->
                     newStatus == Enums.BookingStatus.PAYMENT_IN_PROGRESS
                             || newStatus == Enums.BookingStatus.PAID
-                            || newStatus == Enums.BookingStatus.SUCCESS;
+                            || newStatus == Enums.BookingStatus.CONFIRMED;
 
-            case PENDING ->
+            case ON_HOLD ->
                     newStatus == Enums.BookingStatus.AWAITING_PAYMENT ||
                             newStatus == Enums.BookingStatus.PAYMENT_IN_PROGRESS ||
                             newStatus == Enums.BookingStatus.PAID ||
-                            newStatus == Enums.BookingStatus.SUCCESS ||
+                            newStatus == Enums.BookingStatus.CONFIRMED ||
                             newStatus == Enums.BookingStatus.FAILED ||
                             newStatus == Enums.BookingStatus.CANCELLED ||
                             newStatus == Enums.BookingStatus.EXPIRED;
@@ -77,25 +77,25 @@ public class StatusTransitioner {
             case AWAITING_PAYMENT ->
                     newStatus == Enums.BookingStatus.PAYMENT_IN_PROGRESS ||
                             newStatus == Enums.BookingStatus.PAID ||
-                            newStatus == Enums.BookingStatus.SUCCESS ||
+                            newStatus == Enums.BookingStatus.CONFIRMED ||
                             newStatus == Enums.BookingStatus.FAILED ||
                             newStatus == Enums.BookingStatus.CANCELLED ||
                             newStatus == Enums.BookingStatus.EXPIRED;
 
             case PAYMENT_IN_PROGRESS ->
                     newStatus == Enums.BookingStatus.PAID ||
-                            newStatus == Enums.BookingStatus.SUCCESS ||
+                            newStatus == Enums.BookingStatus.CONFIRMED ||
                             newStatus == Enums.BookingStatus.FAILED ||
                             newStatus == Enums.BookingStatus.CANCELLED ||
                             newStatus == Enums.BookingStatus.EXPIRED;
 
             case PAID ->
-                    newStatus == Enums.BookingStatus.SUCCESS ||
+                    newStatus == Enums.BookingStatus.CONFIRMED ||
                             newStatus == Enums.BookingStatus.FAILED ||
                             newStatus == Enums.BookingStatus.CANCELLED ||
                             newStatus == Enums.BookingStatus.EXPIRED;
 
-            case SUCCESS ->
+            case CONFIRMED ->
                     newStatus == Enums.BookingStatus.CANCELLED ||
                             newStatus == Enums.BookingStatus.REFUNDED;
 
