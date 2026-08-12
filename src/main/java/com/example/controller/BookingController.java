@@ -128,6 +128,40 @@ public class BookingController {
     }
 
     @Operation(
+            summary = "Search bookings by attendee",
+            description = "Search bookings by attendee name, email, or phone. "
+                    + "Use field=name|email|phone and provide the search value.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "List of matching bookings",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = GetListBookingResponseDTO.class))),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request data",
+                            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                    schema = @Schema(implementation = ErrorResponseDTO.class))),
+                    @ApiResponse(
+                            responseCode = "401",
+                            description = "Unauthorized",
+                            content = @Content(schema = @Schema(implementation = ErrorResponseDTO.class)))
+            }
+    )
+    @GetMapping("/bookings/search")
+    public ResponseEntity<?> searchBookingsByAttendee(
+            @RequestParam("field") String field,
+            @RequestParam("value") String value,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
+            @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        return ResponseEntity.ok(bookingService.searchBookingsByAttendee(field, value, pageable));
+    }
+
+    @Operation(
             summary = "Create a new booking",
             description = "Creates a new booking record.",
             responses = {

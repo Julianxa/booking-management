@@ -327,6 +327,64 @@ public class BookingService {
         return response;
     }
 
+    public GetListBookingResponseDTO searchBookingsByAttendee(String field, String value, Pageable pageable) {
+        String normalizedField = normalizeAttendeeSearchField(field);
+        String normalizedValue = normalizeAttendeeSearchValue(value);
+
+        Page<Bookings> bookingsPage =
+                bookingsRepository.searchByAttendeeField(normalizedField, normalizedValue, pageable);
+
+        List<Bookings> bookings = bookingsPage.getContent();
+        Map<Long, String> promoMap = loadPromoCodesByBookingIds(
+                bookings.stream().map(Bookings::getId).toList());
+
+        List<CreateBookingResponseDTO> content = bookings.stream()
+                .map(booking -> bookingsConverter.toCreateBookingResponseDTO(
+                        booking, null, promoMap.get(booking.getId())))
+                .toList();
+
+        GetListBookingResponseDTO response = bookingMapper.toGetListResponse(bookingsPage, content);
+        response.setMessage("Retrieve list of Booking successfully");
+        response.setTimestamp(ZonedDateTime.now());
+        return response;
+    }
+
+    private static String normalizeAttendeeSearchField(String field) {
+        if (field == null || field.isBlank()) {
+            throw new MissingRequiredFieldException("field is required");
+        }
+        return switch (field.trim().toLowerCase(Locale.ROOT)) {
+            case "name" -> "name";
+            case "email" -> "email";
+            case "phone" -> "phone";
+            default -> throw new IllegalArgumentException(
+                    "Invalid field. Allowed values: name, email, phone");
+        };
+    }
+
+    private static String normalizeAttendeeSearchValue(String value) {
+        if (value == null || value.isBlank()) {
+            throw new MissingRequiredFieldException("value is required");
+        }
+        return value.trim();
+    }
+
+    private Map<Long, String> loadPromoCodesByBookingIds(List<Long> bookingIds) {
+        Map<Long, String> promoMap = new HashMap<>();
+        if (bookingIds.isEmpty()) {
+            return promoMap;
+        }
+        List<Object[]> rows = giftCertificateRedemptionRepository.findPromoCodesByBookingIds(bookingIds);
+        for (Object[] row : rows) {
+            if (row != null && row.length >= 2 && row[0] != null) {
+                Long bookingId = ((Number) row[0]).longValue();
+                String promo = row[1] != null ? row[1].toString() : null;
+                promoMap.put(bookingId, promo);
+            }
+        }
+        return promoMap;
+    }
+
     public CreateBookingResponseDTO getBookingById(String bookingRefNo) {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
