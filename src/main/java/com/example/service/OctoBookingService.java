@@ -44,7 +44,7 @@ public class OctoBookingService {
     private final AppProperties appProperties;
     private final OctoCatalogService octoCatalogService;
     private final BookingService bookingService;
-    private final EventSlotReservationService eventSlotReservationService;
+    private final BookingCancellationService bookingCancellationService;
     private final BookingsRepository bookingsRepository;
     private final BookingEventsRepository bookingEventsRepository;
     private final BookingItemsRepository bookingItemsRepository;
@@ -179,16 +179,7 @@ public class OctoBookingService {
         }
 
         if ("CONFIRMED".equals(mapping.getOctoStatus())) {
-            List<BookingEvents> events = bookingEventsRepository.findByBookingId(booking.getId());
-            for (BookingEvents bookingEvent : events) {
-                if (bookingEvent.getStatus() != Enums.BookingEventStatus.CANCELLED) {
-                    bookingEvent.setStatus(Enums.BookingEventStatus.CANCELLED);
-                    bookingEvent.setCancelledAt(ZonedDateTime.now());
-                    bookingEventsRepository.save(bookingEvent);
-                    eventSlotReservationService.releaseCapacityForBookingEvent(bookingEvent);
-                }
-            }
-            booking.setSlotCapacityHeld(false);
+            bookingCancellationService.cancelActiveBookingEvents(booking, true);
             booking.setStatus(Enums.BookingStatus.CANCELLED);
             bookingsRepository.save(booking);
 

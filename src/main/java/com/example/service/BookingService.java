@@ -81,6 +81,7 @@ public class BookingService {
     private final com.example.service.AuditService auditService;
     private final PlatformTransactionManager transactionManager;
     private final EventSlotReservationService eventSlotReservationService;
+    private final BookingCancellationService bookingCancellationService;
 
     public record BookingEventProcessingResult(
             CreateBookingRequestDTO.BookingEventDTO responseEventDTO,
@@ -184,6 +185,7 @@ public class BookingService {
                     .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", booking.getId())));
 
             eventSlotReservationService.releaseCapacityForBooking(savedBooking);
+            bookingCancellationService.cancelActiveBookingEvents(savedBooking, false);
 
             giftCertificateService.cancelCertificateRedemption(savedBooking);
 
@@ -974,6 +976,7 @@ public class BookingService {
             }
             bookingEvent.setCancelledAt(null);
             bookingEventsRepository.save(bookingEvent);
+            bookingCancellationService.restoreBookingIfCancelled(booking);
             applicationEventPublisher.publishEvent(new EmailService.BookingRestoreEvent(user, booking, payloads));
         }
         else if (newStatus == CANCELLED) {
@@ -982,6 +985,7 @@ public class BookingService {
             }
             bookingEvent.setCancelledAt(ZonedDateTime.now());
             bookingEventsRepository.save(bookingEvent);
+            bookingCancellationService.markBookingCancelledIfNoActiveEvents(booking);
             applicationEventPublisher.publishEvent(new BookingCancelledEvent(user, booking, payloads));
         }
         else {

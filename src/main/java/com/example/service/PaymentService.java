@@ -45,6 +45,7 @@ public class PaymentService {
     private final RefundMapper refundMapper;
     private final EventSlotReservationService eventSlotReservationService;
     private final PaymentLogService paymentLogService;
+    private final BookingCancellationService bookingCancellationService;
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Session createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
@@ -275,6 +276,7 @@ public class PaymentService {
 
     private void finalizeOfflineRefund(Bookings booking, Refunds refund, Enums.RefundType refundType, Payments payment) {
         eventSlotReservationService.releaseCapacityForBooking(booking);
+        bookingCancellationService.cancelActiveBookingEvents(booking, false);
 
         booking.setStatus(Enums.BookingStatus.REFUNDED);
         bookingsRepository.save(booking);

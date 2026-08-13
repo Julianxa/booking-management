@@ -69,6 +69,7 @@ public class EventService {
     private final DataUtils dataUtils;
     private final BookingItemsConverter bookingItemsConverter;
     private final EventSlotReservationService eventSlotReservationService;
+    private final BookingCancellationService bookingCancellationService;
     private final ObjectMapper objectMapper;
 
     // ====================== Public API ======================
@@ -237,6 +238,7 @@ public class EventService {
                     AVAILABLE.toString(),
                     CANCELLED.toString(),
                     actionAt);
+            bookingCancellationService.syncBookingsAfterBulkEventCancel(toCancel);
 
             updateEventStatusResponseDTO.setStatus(CLOSE);
             updateEventStatusResponseDTO.setClosedAt(actionAt);
@@ -265,6 +267,7 @@ public class EventService {
                     CANCELLED.toString(),
                     AVAILABLE.toString(),
                     null);
+            bookingCancellationService.syncBookingsAfterBulkEventRestore(toRestore);
 
             updateEventStatusResponseDTO.setStatus(OPEN);
             updateEventStatusResponseDTO.setMessage("Event opened and related bookings are restored successfully");
@@ -323,6 +326,7 @@ public class EventService {
                     AVAILABLE.toString(),
                     CANCELLED.toString(),
                     actionAt);
+            bookingCancellationService.syncBookingsAfterBulkEventCancel(toCancel);
 
             updateEventStatusResponseDTO.setStatus(CLOSE);
             updateEventStatusResponseDTO.setClosedAt(actionAt);
@@ -349,6 +353,7 @@ public class EventService {
                     CANCELLED.toString(),
                     AVAILABLE.toString(),
                     null);
+            bookingCancellationService.syncBookingsAfterBulkEventRestore(toRestore);
 
             updateEventStatusResponseDTO.setStatus(OPEN);
             updateEventStatusResponseDTO.setMessage("Event opened and related bookings are restored successfully");
