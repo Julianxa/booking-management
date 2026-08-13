@@ -21,11 +21,6 @@ public final class ActivityThresholdUtil {
         return isConfigured(threshold) ? threshold : null;
     }
 
-    public static boolean hasConfiguredMinThreshold(Events event) {
-        return isConfigured(event.getMinActivityHourThreshold())
-                || isConfigured(event.getMinActivityDayThreshold());
-    }
-
     public static boolean isWithinMinActivityThreshold(
             Events event,
             LocalDate eventDate,
@@ -85,10 +80,14 @@ public final class ActivityThresholdUtil {
             return false;
         }
 
-        if (!hasConfiguredMinThreshold(event)) {
+        Integer reminderDayInterval = event.getEmailTemplate() != null
+                ? event.getEmailTemplate().getReminderDayInterval()
+                : null;
+        if (!isConfigured(reminderDayInterval)) {
             return true;
         }
 
-        return isWithinMinActivityThreshold(event, eventDate, parsedEventTime, now);
+        long daysUntilEvent = ChronoUnit.DAYS.between(now.toLocalDate(), eventDate);
+        return daysUntilEvent <= reminderDayInterval;
     }
 }

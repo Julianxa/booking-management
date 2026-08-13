@@ -746,7 +746,7 @@ public class BookingService {
             if (eligibleEvents.isEmpty()) {
                 if (emailType == BOOKING_REMINDER && hasReminderCandidatesWithoutAttainedThreshold(booking)) {
                     throw new ThresholdExceededException(
-                            "Activity booking threshold has not been attained yet; reminder email cannot be resent.");
+                            "Reminder day interval has not been reached yet; reminder email cannot be resent.");
                 }
                 throw new EmailProcessException(
                         String.format("No eligible booking events found to resend %s email for booking %s", emailType, bookingId));
