@@ -31,6 +31,18 @@ public class ErrorCode {
     public static final ErrorDefinition RANDOM_REF_NO_ERROR =
             new ErrorDefinition("BT009", HttpStatus.BAD_REQUEST, "Failed to generate Random Reference number generation");
 
+    public static final ErrorDefinition INVALID_ARGUMENT =
+            new ErrorDefinition("BT010", HttpStatus.BAD_REQUEST, "Invalid argument");
+
+    public static final ErrorDefinition UNAUTHORIZED =
+            new ErrorDefinition("BT011", HttpStatus.UNAUTHORIZED, "Unauthorized");
+
+    public static final ErrorDefinition ACCESS_DENIED =
+            new ErrorDefinition("BT012", HttpStatus.FORBIDDEN, "Access denied");
+
+    public static final ErrorDefinition UNHANDLED_ERROR =
+            new ErrorDefinition("BT999", HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
+
     // Booking
     public static final ErrorDefinition BOOKING_EVENT_NOT_FOUND =
             new ErrorDefinition("BT100", HttpStatus.NOT_FOUND, "Booking event not found");
@@ -49,6 +61,7 @@ public class ErrorCode {
 
     public static final ErrorDefinition THRESHOLD_EXCEEDED =
             new ErrorDefinition("BT105", HttpStatus.BAD_REQUEST, "Booking is not allowed. This event has a threshold.");
+
     // Email
     public static final ErrorDefinition EMAIL_PROCESSING_ERROR =
             new ErrorDefinition("BT200", HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process email content");
@@ -58,14 +71,16 @@ public class ErrorCode {
 
     public static final ErrorDefinition INTERVAL_NOT_FOUND =
             new ErrorDefinition("BT202", HttpStatus.NOT_FOUND, "Missing interval in Reminder email template");
-    public static final ErrorDefinition UNVERIFIED_EMAIL =
-            new ErrorDefinition("BT202", HttpStatus.NOT_FOUND, "Email is not verified");
 
     public static final ErrorDefinition OFFICIAL_TEMPLATE =
             new ErrorDefinition("BT203", HttpStatus.BAD_REQUEST, "Official template cannot be deleted");
 
     public static final ErrorDefinition EMAIL_TEMPLATE_NAME_EXISTS =
             new ErrorDefinition("BT204", HttpStatus.BAD_REQUEST, "Email template name already exists");
+
+    public static final ErrorDefinition UNVERIFIED_EMAIL =
+            new ErrorDefinition("BT205", HttpStatus.BAD_REQUEST, "Email is not verified");
+
     // Event
     public static final ErrorDefinition CAPACITY_EXCEEDED =
             new ErrorDefinition("BT300", HttpStatus.BAD_REQUEST, "Event capacity is exceeded");
@@ -117,6 +132,7 @@ public class ErrorCode {
 
     public static final ErrorDefinition REFUND_NOT_FOUND =
             new ErrorDefinition("BT606", HttpStatus.NOT_FOUND, "Refund not found");
+
     // Ticket
     public static final ErrorDefinition INVALID_VERIFICATION_TOKEN =
             new ErrorDefinition("BT700", HttpStatus.BAD_REQUEST, "Invalid verification token");

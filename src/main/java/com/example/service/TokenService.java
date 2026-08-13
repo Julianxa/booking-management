@@ -2,7 +2,6 @@ package com.example.service;
 
 import com.example.constant.Enums;
 import com.example.exception.user.InvalidEmailPasswordException;
-import com.example.exception.email.UnverifiedEmailException;
 import com.example.exception.user.UserNotFoundException;
 import com.example.model.dto.*;
 import com.example.model.entity.Users;

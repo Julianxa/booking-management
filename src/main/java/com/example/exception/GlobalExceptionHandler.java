@@ -2,7 +2,6 @@ package com.example.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -45,11 +44,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("code", "BT400");
-        body.put("message", ex.getMessage());
-        body.put("timestamp", ZonedDateTime.now());
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+        return toErrorResponse(ErrorCode.INVALID_ARGUMENT, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -58,11 +53,7 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining("; "));
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("code", ErrorCode.MISSING_REQUIRED_FIELD.getCode());
-        body.put("message", message);
-        body.put("timestamp", ZonedDateTime.now());
-        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+        return toErrorResponse(ErrorCode.MISSING_REQUIRED_FIELD, message);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -77,37 +68,32 @@ public class GlobalExceptionHandler {
                 .toList();
         List<String> requiredRoles = resolveRequiredRoles(requestPath);
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("code", "BT403");
-        body.put("message", String.format(
+        String message = String.format(
                 "Access denied. current_roles=%s, required_roles=%s",
                 currentRoles,
-                requiredRoles));
-        body.put("timestamp", ZonedDateTime.now());
-        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+                requiredRoles);
+        return toErrorResponse(ErrorCode.ACCESS_DENIED, message);
     }
 
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
     public ResponseEntity<Object> handleAuthenticationCredentialsNotFound(
             AuthenticationCredentialsNotFoundException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("code", "BT401");
-        body.put("message", "Unauthorized");
-        body.put("timestamp", ZonedDateTime.now());
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+        return toErrorResponse(ErrorCode.UNAUTHORIZED, ErrorCode.UNAUTHORIZED.getDefaultMessage());
     }
 
     // Fallback for any other unexpected exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
         log.error("Unhandled exception", ex);
+        return toErrorResponse(ErrorCode.UNHANDLED_ERROR, ErrorCode.UNHANDLED_ERROR.getDefaultMessage());
+    }
 
+    private static ResponseEntity<Object> toErrorResponse(ErrorDefinition error, String message) {
         Map<String, Object> body = new HashMap<>();
-        body.put("code", "BT999");
-        body.put("message", "Internal server error");
+        body.put("code", error.getCode());
+        body.put("message", message != null && !message.isBlank() ? message : error.getDefaultMessage());
         body.put("timestamp", ZonedDateTime.now());
-
-        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(body, error.getStatus());
     }
 
     private List<String> resolveRequiredRoles(String requestPath) {
