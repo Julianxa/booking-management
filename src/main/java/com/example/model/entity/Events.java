@@ -117,10 +117,10 @@ public class Events {
     private Boolean matchTicketQuantityWithAttendees;
     @Column(name = "is_publish")
     private Boolean isPublish;
-    @Column(name = "activity_day_threshold")
-    private Integer activityDayThreshold;
-    @Column(name = "activity_hour_threshold")
-    private Integer activityHourThreshold;
+    @Column(name = "min_activity_day_threshold")
+    private Integer minActivityDayThreshold;
+    @Column(name = "min_activity_hour_threshold")
+    private Integer minActivityHourThreshold;
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Enums.EventStatus status;

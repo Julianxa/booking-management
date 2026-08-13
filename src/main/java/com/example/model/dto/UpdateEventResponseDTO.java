@@ -182,13 +182,13 @@ public class UpdateEventResponseDTO {
     @JsonProperty("is_publish")
     private Boolean isPublish;
 
-    @Schema(description = "Activity duration threshold in days")
-    @JsonProperty("activity_day_threshold")
-    private Integer activityDayThreshold;
+    @Schema(description = "Minimum lead time in days before the event date when new bookings are blocked")
+    @JsonProperty("min_activity_day_threshold")
+    private Integer minActivityDayThreshold;
 
-    @Schema(description = "Activity duration threshold in hours")
-    @JsonProperty("activity_hour_threshold")
-    private Integer activityHourThreshold;
+    @Schema(description = "Minimum lead time in hours before the event start when new bookings are blocked")
+    @JsonProperty("min_activity_hour_threshold")
+    private Integer minActivityHourThreshold;
 
     @Schema(description = "Associated email template")
     @JsonProperty("email_template")

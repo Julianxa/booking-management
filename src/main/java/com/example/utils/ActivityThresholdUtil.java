@@ -22,8 +22,8 @@ public final class ActivityThresholdUtil {
     }
 
     public static boolean hasConfiguredThreshold(Events event) {
-        return isConfigured(event.getActivityHourThreshold())
-                || isConfigured(event.getActivityDayThreshold());
+        return isConfigured(event.getMinActivityHourThreshold())
+                || isConfigured(event.getMinActivityDayThreshold());
     }
 
     /**
@@ -40,15 +40,15 @@ public final class ActivityThresholdUtil {
             return false;
         }
 
-        if (isConfigured(event.getActivityHourThreshold())) {
+        if (isConfigured(event.getMinActivityHourThreshold())) {
             long minutesUntilEvent = ChronoUnit.MINUTES.between(now, eventStartTime);
-            long requiredMinutes = event.getActivityHourThreshold() * 60L;
+            long requiredMinutes = event.getMinActivityHourThreshold() * 60L;
             return minutesUntilEvent <= requiredMinutes;
         }
 
-        if (isConfigured(event.getActivityDayThreshold())) {
+        if (isConfigured(event.getMinActivityDayThreshold())) {
             long daysUntilEvent = ChronoUnit.DAYS.between(now.toLocalDate(), eventDate);
-            return daysUntilEvent <= event.getActivityDayThreshold();
+            return daysUntilEvent <= event.getMinActivityDayThreshold();
         }
 
         return false;

@@ -77,8 +77,8 @@ public interface EventMapper {
         dto.setCustomQuestionZhHk(entity.getCustomQuestionZhHk());
         dto.setMatchTicketQuantityWithAttendees(entity.getMatchTicketQuantityWithAttendees());
         dto.setIsPublish(entity.getIsPublish());
-        dto.setActivityDayThreshold(entity.getActivityDayThreshold());
-        dto.setActivityHourThreshold(entity.getActivityHourThreshold());
+        dto.setMinActivityDayThreshold(entity.getMinActivityDayThreshold());
+        dto.setMinActivityHourThreshold(entity.getMinActivityHourThreshold());
         dto.setEmailTemplate(mapEmailTemplate(entity.getEmailTemplate()));
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());

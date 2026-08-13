@@ -56,7 +56,7 @@ public class EmailController {
     }
 
     @Operation(summary = "Resend email(s) for a booking",
-            description = "Resend emails for BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION, BOOKING_REMINDER(after activity_day_threshold/activity_hour_threshold) and BOOKING_CANCELLATION(cancelled only) by booking ID.")
+            description = "Resend emails for BOOKING_CONFIRMATION, PAYMENT_CONFIRMATION, BOOKING_REMINDER(after min_activity_day_threshold/min_activity_hour_threshold) and BOOKING_CANCELLATION(cancelled only) by booking ID.")
     @PostMapping("/emails/booking/{bookingId}/resend")
     public ResponseEntity<?> resendBookingEmail(@PathVariable String bookingId,
                                          @Valid @RequestBody ResendBookingEmailRequestDTO dto) {

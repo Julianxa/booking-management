@@ -167,8 +167,8 @@ public class EventService {
             PartialUpdateUtil.apply(dto, "custom_question_zh_hk", dto::getCustomQuestionZhHk, event::setCustomQuestionZhHk);
             PartialUpdateUtil.apply(dto, "match_ticket_quantity_with_attendees", dto::getMatchTicketQuantityWithAttendees, event::setMatchTicketQuantityWithAttendees);
             PartialUpdateUtil.apply(dto, "is_publish", dto::getIsPublish, event::setIsPublish);
-            PartialUpdateUtil.apply(dto, "activity_day_threshold", dto::getActivityDayThreshold, event::setActivityDayThreshold);
-            PartialUpdateUtil.apply(dto, "activity_hour_threshold", dto::getActivityHourThreshold, event::setActivityHourThreshold);
+            PartialUpdateUtil.apply(dto, "min_activity_day_threshold", dto::getMinActivityDayThreshold, event::setMinActivityDayThreshold);
+            PartialUpdateUtil.apply(dto, "min_activity_hour_threshold", dto::getMinActivityHourThreshold, event::setMinActivityHourThreshold);
             PartialUpdateUtil.ifPresent(dto, "email_template_id", () ->
                     event.setEmailTemplate(emailService.resolveEmailTemplate(dto.getEmailTemplateId())));
             applyMutuallyExclusiveActivityThresholds(event);
@@ -813,13 +813,13 @@ public class EventService {
     }
 
     private void applyMutuallyExclusiveActivityThresholds(Events event) {
-        event.setActivityDayThreshold(ActivityThresholdUtil.normalize(event.getActivityDayThreshold()));
-        event.setActivityHourThreshold(ActivityThresholdUtil.normalize(event.getActivityHourThreshold()));
+        event.setMinActivityDayThreshold(ActivityThresholdUtil.normalize(event.getMinActivityDayThreshold()));
+        event.setMinActivityHourThreshold(ActivityThresholdUtil.normalize(event.getMinActivityHourThreshold()));
 
-        if (ActivityThresholdUtil.isConfigured(event.getActivityHourThreshold())) {
-            event.setActivityDayThreshold(null);
-        } else if (ActivityThresholdUtil.isConfigured(event.getActivityDayThreshold())) {
-            event.setActivityHourThreshold(null);
+        if (ActivityThresholdUtil.isConfigured(event.getMinActivityHourThreshold())) {
+            event.setMinActivityDayThreshold(null);
+        } else if (ActivityThresholdUtil.isConfigured(event.getMinActivityDayThreshold())) {
+            event.setMinActivityHourThreshold(null);
         }
     }
 

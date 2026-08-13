@@ -492,14 +492,14 @@ public class BookingService {
             ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
 
             if (ActivityThresholdUtil.isWithinActivityThreshold(event, eventDate, eventTime, now)) {
-                if (ActivityThresholdUtil.isConfigured(event.getActivityHourThreshold())) {
+                if (ActivityThresholdUtil.isConfigured(event.getMinActivityHourThreshold())) {
                     throw new ThresholdExceededException(
                             String.format("Booking is not available. " +
                                             "Event: %s | Hour Threshold: %d hour(s). " +
                                             "You must book at least %d hour(s) before the event starts.",
                                     bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
-                                    event.getActivityHourThreshold(),
-                                    event.getActivityHourThreshold())
+                                    event.getMinActivityHourThreshold(),
+                                    event.getMinActivityHourThreshold())
                     );
                 }
                 throw new ThresholdExceededException(
@@ -507,8 +507,8 @@ public class BookingService {
                                         "Event: %s | Day Threshold: %d. " +
                                         "You must book at least %d full day(s) before the event date.",
                                 bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
-                                event.getActivityDayThreshold(),
-                                event.getActivityDayThreshold())
+                                event.getMinActivityDayThreshold(),
+                                event.getMinActivityDayThreshold())
                 );
             }
         }
