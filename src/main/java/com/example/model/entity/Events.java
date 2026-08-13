@@ -121,6 +121,10 @@ public class Events {
     private Integer minActivityDayThreshold;
     @Column(name = "min_activity_hour_threshold")
     private Integer minActivityHourThreshold;
+    @Column(name = "max_activity_day_threshold")
+    private Integer maxActivityDayThreshold;
+    @Column(name = "max_activity_hour_threshold")
+    private Integer maxActivityHourThreshold;
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private Enums.EventStatus status;

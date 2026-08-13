@@ -169,6 +169,8 @@ public class EventService {
             PartialUpdateUtil.apply(dto, "is_publish", dto::getIsPublish, event::setIsPublish);
             PartialUpdateUtil.apply(dto, "min_activity_day_threshold", dto::getMinActivityDayThreshold, event::setMinActivityDayThreshold);
             PartialUpdateUtil.apply(dto, "min_activity_hour_threshold", dto::getMinActivityHourThreshold, event::setMinActivityHourThreshold);
+            PartialUpdateUtil.apply(dto, "wq", dto::getMaxActivityDayThreshold, event::setMaxActivityDayThreshold);
+            PartialUpdateUtil.apply(dto, "max_activity_hour_threshold", dto::getMaxActivityHourThreshold, event::setMaxActivityHourThreshold);
             PartialUpdateUtil.ifPresent(dto, "email_template_id", () ->
                     event.setEmailTemplate(emailService.resolveEmailTemplate(dto.getEmailTemplateId())));
             applyMutuallyExclusiveActivityThresholds(event);
@@ -815,11 +817,19 @@ public class EventService {
     private void applyMutuallyExclusiveActivityThresholds(Events event) {
         event.setMinActivityDayThreshold(ActivityThresholdUtil.normalize(event.getMinActivityDayThreshold()));
         event.setMinActivityHourThreshold(ActivityThresholdUtil.normalize(event.getMinActivityHourThreshold()));
+        event.setMaxActivityDayThreshold(ActivityThresholdUtil.normalize(event.getMaxActivityDayThreshold()));
+        event.setMaxActivityHourThreshold(ActivityThresholdUtil.normalize(event.getMaxActivityHourThreshold()));
 
         if (ActivityThresholdUtil.isConfigured(event.getMinActivityHourThreshold())) {
             event.setMinActivityDayThreshold(null);
         } else if (ActivityThresholdUtil.isConfigured(event.getMinActivityDayThreshold())) {
             event.setMinActivityHourThreshold(null);
+        }
+
+        if (ActivityThresholdUtil.isConfigured(event.getMaxActivityHourThreshold())) {
+            event.setMaxActivityDayThreshold(null);
+        } else if (ActivityThresholdUtil.isConfigured(event.getMaxActivityDayThreshold())) {
+            event.setMaxActivityHourThreshold(null);
         }
     }
 

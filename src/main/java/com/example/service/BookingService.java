@@ -469,15 +469,6 @@ public class BookingService {
         }
     }
 
-    /**
-     Hour threshold (preferred when set):
-     2 hours and event starts at 15:00:
-     12:59 → Allowed (121 mins left)
-     13:00 → Blocked (120 mins left)
-
-     Day threshold (used only when hour threshold is not set):
-     If threshold = 1 and event is on 7 May → Booking only allowed until 5 May
-     **/
     private void validateEventThreshold(CreateBookingRequestDTO request) {
         if (request.getBookingEvents() == null) {
             return;
@@ -490,23 +481,45 @@ public class BookingService {
             LocalDate eventDate = bookingEvent.getEvent().getEventDate();
             LocalTime eventTime = LocalTime.parse(bookingEvent.getEvent().getEventTime());
             ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+            String eventId = bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown";
 
-            if (ActivityThresholdUtil.isWithinActivityThreshold(event, eventDate, eventTime, now)) {
+            if (ActivityThresholdUtil.isBeyondMaxActivityThreshold(event, eventDate, eventTime, now)) {
+                if (ActivityThresholdUtil.isConfigured(event.getMaxActivityHourThreshold())) {
+                    throw new ThresholdExceededException(
+                            String.format("Booking is not available yet. " +
+                                            "Event: %s | Max Hour Threshold: %d hour(s). " +
+                                            "You can only book within %d hour(s) before the event starts.",
+                                    eventId,
+                                    event.getMaxActivityHourThreshold(),
+                                    event.getMaxActivityHourThreshold())
+                    );
+                }
+                throw new ThresholdExceededException(
+                        String.format("Booking is not available yet. " +
+                                        "Event: %s | Max Day Threshold: %d. " +
+                                        "You can only book within %d day(s) before the event date.",
+                                eventId,
+                                event.getMaxActivityDayThreshold(),
+                                event.getMaxActivityDayThreshold())
+                );
+            }
+
+            if (ActivityThresholdUtil.isWithinMinActivityThreshold(event, eventDate, eventTime, now)) {
                 if (ActivityThresholdUtil.isConfigured(event.getMinActivityHourThreshold())) {
                     throw new ThresholdExceededException(
                             String.format("Booking is not available. " +
-                                            "Event: %s | Hour Threshold: %d hour(s). " +
+                                            "Event: %s | Min Hour Threshold: %d hour(s). " +
                                             "You must book at least %d hour(s) before the event starts.",
-                                    bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
+                                    eventId,
                                     event.getMinActivityHourThreshold(),
                                     event.getMinActivityHourThreshold())
                     );
                 }
                 throw new ThresholdExceededException(
                         String.format("Booking is not allowed. " +
-                                        "Event: %s | Day Threshold: %d. " +
+                                        "Event: %s | Min Day Threshold: %d. " +
                                         "You must book at least %d full day(s) before the event date.",
-                                bookingEvent.getEvent().getId() != null ? bookingEvent.getEvent().getId() : "Unknown",
+                                eventId,
                                 event.getMinActivityDayThreshold(),
                                 event.getMinActivityDayThreshold())
                 );

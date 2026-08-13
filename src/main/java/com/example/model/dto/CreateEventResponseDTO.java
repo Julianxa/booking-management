@@ -196,6 +196,14 @@ public class CreateEventResponseDTO {
     @JsonProperty("min_activity_hour_threshold")
     private Integer minActivityHourThreshold;
 
+    @Schema(description = "Maximum lead time in days before the event date when new bookings become available")
+    @JsonProperty("max_activity_day_threshold")
+    private Integer maxActivityDayThreshold;
+
+    @Schema(description = "Maximum lead time in hours before the event start when new bookings become available")
+    @JsonProperty("max_activity_hour_threshold")
+    private Integer maxActivityHourThreshold;
+
     @Schema(description = "Status of the creation")
     @JsonProperty("status")
     private Enums.EventStatus status;

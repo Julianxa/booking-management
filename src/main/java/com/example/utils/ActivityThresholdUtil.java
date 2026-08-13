@@ -21,16 +21,12 @@ public final class ActivityThresholdUtil {
         return isConfigured(threshold) ? threshold : null;
     }
 
-    public static boolean hasConfiguredThreshold(Events event) {
+    public static boolean hasConfiguredMinThreshold(Events event) {
         return isConfigured(event.getMinActivityHourThreshold())
                 || isConfigured(event.getMinActivityDayThreshold());
     }
 
-    /**
-     * Returns true when the event is still upcoming and the current time is inside the
-     * activity booking cutoff window (the same window that blocks new online bookings).
-     */
-    public static boolean isWithinActivityThreshold(
+    public static boolean isWithinMinActivityThreshold(
             Events event,
             LocalDate eventDate,
             LocalTime eventTime,
@@ -54,10 +50,30 @@ public final class ActivityThresholdUtil {
         return false;
     }
 
-    /**
-     * Reminder resend is allowed once the activity threshold window is reached, or immediately
-     * when no activity threshold is configured on the event.
-     */
+    public static boolean isBeyondMaxActivityThreshold(
+            Events event,
+            LocalDate eventDate,
+            LocalTime eventTime,
+            ZonedDateTime now) {
+        ZonedDateTime eventStartTime = ZonedDateTime.of(eventDate, eventTime, ZoneId.systemDefault());
+        if (!eventStartTime.isAfter(now)) {
+            return false;
+        }
+
+        if (isConfigured(event.getMaxActivityHourThreshold())) {
+            long minutesUntilEvent = ChronoUnit.MINUTES.between(now, eventStartTime);
+            long allowedMinutes = event.getMaxActivityHourThreshold() * 60L;
+            return minutesUntilEvent > allowedMinutes;
+        }
+
+        if (isConfigured(event.getMaxActivityDayThreshold())) {
+            long daysUntilEvent = ChronoUnit.DAYS.between(now.toLocalDate(), eventDate);
+            return daysUntilEvent > event.getMaxActivityDayThreshold();
+        }
+
+        return false;
+    }
+
     public static boolean isActivityThresholdAttainedForReminder(
             Events event,
             LocalDate eventDate,
@@ -69,10 +85,10 @@ public final class ActivityThresholdUtil {
             return false;
         }
 
-        if (!hasConfiguredThreshold(event)) {
+        if (!hasConfiguredMinThreshold(event)) {
             return true;
         }
 
-        return isWithinActivityThreshold(event, eventDate, parsedEventTime, now);
+        return isWithinMinActivityThreshold(event, eventDate, parsedEventTime, now);
     }
 }

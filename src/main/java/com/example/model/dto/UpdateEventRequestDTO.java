@@ -186,6 +186,14 @@ public class UpdateEventRequestDTO extends AbstractPartialUpdateDto {
     @JsonProperty("min_activity_hour_threshold")
     private Integer minActivityHourThreshold;
 
+    @Schema(description = "Maximum lead time in days before the event date when new bookings become available")
+    @JsonProperty("max_activity_day_threshold")
+    private Integer maxActivityDayThreshold;
+
+    @Schema(description = "Maximum lead time in hours before the event start when new bookings become available")
+    @JsonProperty("max_activity_hour_threshold")
+    private Integer maxActivityHourThreshold;
+
     @Schema(description = "Email template reference number")
     @JsonProperty("email_template_id")
     private String emailTemplateId;
