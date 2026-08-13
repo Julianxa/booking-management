@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -31,10 +32,12 @@ public interface BookingsRepository extends JpaRepository<Bookings, Long> {
     Optional<Bookings> findByRefNo(String refNo);
     
     @Query(value = """
-            SELECT b.*
+            SELECT DISTINCT b.*
             FROM bookings b
             JOIN booking_events be ON be.booking_id = b.id
             WHERE be.event_id = :eventId
+              AND (:eventDate IS NULL OR be.event_date = :eventDate)
+              AND (:eventTime IS NULL OR be.event_time = :eventTime)
             ORDER BY b.created_at DESC
             """,
             countQuery = """
@@ -42,8 +45,14 @@ public interface BookingsRepository extends JpaRepository<Bookings, Long> {
                     FROM bookings b
                     JOIN booking_events be ON be.booking_id = b.id
                     WHERE be.event_id = :eventId
+                      AND (:eventDate IS NULL OR be.event_date = :eventDate)
+                      AND (:eventTime IS NULL OR be.event_time = :eventTime)
                     """, nativeQuery = true)
-    Page<Bookings> findBookingsByEventId(@Param("eventId") Long eventId, Pageable pageable);
+    Page<Bookings> findBookingsByEventId(
+            @Param("eventId") Long eventId,
+            @Param("eventDate") LocalDate eventDate,
+            @Param("eventTime") String eventTime,
+            Pageable pageable);
 
     @Query(
             value = """

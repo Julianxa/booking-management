@@ -296,11 +296,14 @@ public class BookingService {
         return response;
     }
 
-    public GetListBookingResponseDTO getEventBookings(String eventRefNo, Pageable pageable) {
+    public GetListBookingResponseDTO getEventBookings(
+            String eventRefNo, LocalDate eventDate, String eventTime, Pageable pageable) {
         Long eventId = eventsRepository.findIdByRefNo(eventRefNo)
                 .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
 
-        Page<Bookings> bookingsPage = bookingsRepository.findBookingsByEventId(eventId, pageable);
+        String normalizedEventTime = (eventTime == null || eventTime.isBlank()) ? null : eventTime.trim();
+        Page<Bookings> bookingsPage =
+                bookingsRepository.findBookingsByEventId(eventId, eventDate, normalizedEventTime, pageable);
 
         List<Bookings> eventBookings = bookingsPage.getContent();
 

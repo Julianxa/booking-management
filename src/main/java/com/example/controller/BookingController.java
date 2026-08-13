@@ -66,7 +66,7 @@ public class BookingController {
 
     @Operation(
             summary = "List all bookings by event ID",
-            description = "Returns a list of all bookings.",
+            description = "Returns bookings for an event. Optionally filter by eventDate and/or eventTime.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -87,12 +87,14 @@ public class BookingController {
     @GetMapping("/bookings/event/{eventId}")
     public ResponseEntity<?> getBookingsByEventId(
             @PathVariable("eventId") String eventId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate eventDate,
+            @RequestParam(required = false) String eventTime,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(value = "sort_by", defaultValue = "id") String sortBy,
             @RequestParam(value = "direction", defaultValue = "ASC") Sort.Direction direction) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        return ResponseEntity.ok(bookingService.getEventBookings(eventId, pageable));
+        return ResponseEntity.ok(bookingService.getEventBookings(eventId, eventDate, eventTime, pageable));
     }
 
     @Operation(
