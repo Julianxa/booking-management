@@ -134,8 +134,6 @@ public class WebhookService {
         }
 
         updateRefundStatus(r, Enums.RefundStatus.SUCCESS);
-        eventSlotReservationService.releaseCapacityForBooking(booking);
-        bookingCancellationService.cancelActiveBookingEvents(booking, false);
         updateBookingStatus(booking, Enums.BookingStatus.REFUNDED);
         updatePaymentStatus(payment, Enums.PaymentStatus.REFUNDED);
         auditService.record("REFUND_UPDATED_WEBHOOK", Refunds.class.getName(), r.getId(), booking.getUserId(), "refund:" + r.getId() + ", paymentIntent:" + paymentIntentId);

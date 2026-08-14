@@ -43,9 +43,7 @@ public class PaymentService {
     private final RefundsRepository refundsRepository;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final RefundMapper refundMapper;
-    private final EventSlotReservationService eventSlotReservationService;
     private final PaymentLogService paymentLogService;
-    private final BookingCancellationService bookingCancellationService;
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public Session createCheckoutSession(String userSub, CreateBookingRequestDTO request, Bookings booking) {
@@ -129,6 +127,11 @@ public class PaymentService {
     public RefundResponseDTO refundBooking(RefundRequestDTO requestDTO) {
         Bookings booking = bookingsRepository.findByRefNo(requestDTO.getBookingId())
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", requestDTO.getBookingId())));
+
+        if (booking.getStatus() != Enums.BookingStatus.CANCELLED) {
+            throw new IllegalArgumentException(
+                    "Booking must be cancelled before a refund can be processed");
+        }
 
         if (refundsRepository.findActiveByBookingId(booking.getId()).isPresent()) {
             throw new AlreadyRefundedException("This payment has already been fully refunded or a refund is in progress");
@@ -275,9 +278,6 @@ public class PaymentService {
     }
 
     private void finalizeOfflineRefund(Bookings booking, Refunds refund, Enums.RefundType refundType, Payments payment) {
-        eventSlotReservationService.releaseCapacityForBooking(booking);
-        bookingCancellationService.cancelActiveBookingEvents(booking, false);
-
         booking.setStatus(Enums.BookingStatus.REFUNDED);
         bookingsRepository.save(booking);
 
