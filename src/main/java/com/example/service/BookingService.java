@@ -212,6 +212,10 @@ public class BookingService {
                 .orElseThrow(() -> new BookingEventNotFoundException(
                         String.format("Booking event %s not found", bookingEventId)));
 
+        if (isBookingEventCancelled(bookingEvent)) {
+            throw new BookingEventAlreadyCancelledException();
+        }
+
         PartialUpdateUtil.ifPresent(request, "attendees", () -> {
             bookingAttendeesRepository.deleteByBookingEventId(bookingEvent.getId());
             if (request.getAttendees() != null) {
@@ -247,6 +251,10 @@ public class BookingService {
 
         if (bookingEvent.getStatus() == CHECKED_IN) {
             throw new IllegalStateException("Booking is already in CHECKED_IN status.");
+        }
+
+        if (isBookingEventCancelled(bookingEvent) && dto.getStatus() != AVAILABLE) {
+            throw new BookingEventAlreadyCancelledException();
         }
 
         Bookings booking = bookingsRepository.findById(bookingEvent.getBooking().getId())
@@ -1005,5 +1013,9 @@ public class BookingService {
             throw new IllegalArgumentException("Invalid status: " + newStatus +
                     ". Allowed: CHECKED_IN, AVAILABLE, NO_SHOW, CANCELLED");
         }
+    }
+
+    private static boolean isBookingEventCancelled(BookingEvents bookingEvent) {
+        return bookingEvent.getStatus() == CANCELLED || bookingEvent.getCancelledAt() != null;
     }
 }

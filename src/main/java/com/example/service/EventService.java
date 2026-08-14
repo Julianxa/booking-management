@@ -3,6 +3,7 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.converter.BookingItemsConverter;
 import com.example.exception.ticket.InvalidVerificationTokenException;
+import com.example.exception.booking.BookingEventAlreadyCancelledException;
 import com.example.exception.booking.BookingEventNotFoundException;
 import com.example.exception.event.EventNotFoundException;
 import com.example.exception.general.InvalidJsonFormatException;
@@ -676,7 +677,7 @@ public class EventService {
         }
 
         if (bookingEvent.getCancelledAt() != null) {
-            throw new InvalidVerificationTokenException("Ticket has already been cancelled");
+            throw new BookingEventAlreadyCancelledException();
         }
 
         validateCheckIn(bookingEvent);
@@ -712,7 +713,7 @@ public class EventService {
                 .orElseThrow(() -> new BookingEventNotFoundException("Booked Event not found"));
 
         if (bookingEvent.getCancelledAt() != null) {
-            throw new InvalidVerificationTokenException("Ticket has already been cancelled");
+            throw new BookingEventAlreadyCancelledException();
         }
 
         validateCheckIn(bookingEvent);
@@ -834,6 +835,9 @@ public class EventService {
     }
 
     private void validateCheckIn(BookingEvents bookingEvent) {
+        if (bookingEvent.getStatus() == CANCELLED || bookingEvent.getCancelledAt() != null) {
+            throw new BookingEventAlreadyCancelledException();
+        }
         if (bookingEvent.getVerifiedAt() != null) {
             throw new InvalidVerificationTokenException("Ticket has already been checked in");
         }

@@ -62,6 +62,9 @@ public class ErrorCode {
     public static final ErrorDefinition THRESHOLD_EXCEEDED =
             new ErrorDefinition("BT105", HttpStatus.BAD_REQUEST, "Booking is not allowed. This event has a threshold.");
 
+    public static final ErrorDefinition BOOKING_EVENT_ALREADY_CANCELLED =
+            new ErrorDefinition("BT106", HttpStatus.CONFLICT, "Booked event has already been cancelled");
+
     // Email
     public static final ErrorDefinition EMAIL_PROCESSING_ERROR =
             new ErrorDefinition("BT200", HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process email content");
