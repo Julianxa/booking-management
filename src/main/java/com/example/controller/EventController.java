@@ -93,7 +93,9 @@ public class EventController {
 
     @Operation(
             summary = "Get event's availability",
-            description = "Returns availability of a event (changes when booking is made).",
+            description = "Returns availability of an event (changes when booking is made). "
+                    + "Closed timeslots return occupancy status CANCELLED. "
+                    + "Each occupancy entry also includes total_cancelled for cancelled booked events.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -123,7 +125,9 @@ public class EventController {
 
     @Operation(
             summary = "List all events' availability",
-            description = "Returns availabilities of all events (changes when bookings are made).",
+            description = "Returns availabilities of all events (changes when bookings are made). "
+                    + "Closed timeslots return occupancy status CANCELLED. "
+                    + "Each occupancy entry also includes total_cancelled for cancelled booked events.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",

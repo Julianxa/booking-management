@@ -94,15 +94,34 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
 
     @Query(value = """
         SELECT
-            COALESCE(SUM(bi.quantity), 0) AS total_booked,
-            COALESCE(SUM(CASE WHEN be.status = 'CHECKED_IN' THEN bi.quantity ELSE 0 END), 0) AS total_used
+            COALESCE(SUM(CASE
+                WHEN be.cancelled_at IS NULL
+                 AND be.status <> 'CANCELLED'
+                 AND b.status IN (
+                     'ON_HOLD', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS',
+                     'PAID', 'CONFIRMED'
+                 )
+                THEN bi.quantity
+                ELSE 0
+            END), 0) AS total_booked,
+            COALESCE(SUM(CASE
+                WHEN be.status = 'CHECKED_IN'
+                 AND be.cancelled_at IS NULL
+                 AND b.status IN ('PAID', 'CONFIRMED')
+                THEN bi.quantity
+                ELSE 0
+            END), 0) AS total_checked_in,
+            COALESCE(SUM(CASE
+                WHEN be.status = 'CANCELLED' OR be.cancelled_at IS NOT NULL
+                THEN bi.quantity
+                ELSE 0
+            END), 0) AS total_cancelled
         FROM booking_events be
         INNER JOIN bookings b ON be.booking_id = b.id
         LEFT JOIN booking_items bi ON be.id = bi.booking_event_id
         WHERE be.event_id = :eventId
           AND be.event_date = :filterDate
           AND be.event_time = :eventTime
-          AND b.status IN ('ON_HOLD', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'CONFIRMED')
         """, nativeQuery = true)
     EventBookingSummary getBookingSummary(
             @Param("eventId") Long eventId,

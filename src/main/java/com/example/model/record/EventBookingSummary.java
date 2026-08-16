@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 public record EventBookingSummary(
         BigDecimal totalBooked,
-        BigDecimal totalCheckedIn
+        BigDecimal totalCheckedIn,
+        BigDecimal totalCancelled
 ) {
 }

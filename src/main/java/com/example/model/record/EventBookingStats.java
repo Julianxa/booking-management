@@ -12,6 +12,7 @@ public record EventBookingStats(
         Integer maxCapacity,
         Integer totalBooked,
         Integer totalCheckedIn,
+        Integer totalCancelled,
         BigDecimal bookingPercentage,
         BigDecimal checkInPercentage
 ) {

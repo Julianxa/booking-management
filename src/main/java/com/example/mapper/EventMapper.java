@@ -336,12 +336,12 @@ public interface EventMapper {
 
         Optional<EventBookingStats> bookingOpt = bookingData.stream()
                 .filter(b -> Objects.equals(eventId, b.eventId()) &&
-                        Objects.equals(eventTime, b.eventTime()))
+                        Objects.equals(normalizeTime(eventTime), normalizeTime(b.eventTime())))
                 .findFirst();
 
         boolean isCancelled = exceptionsByDate.stream()
                 .anyMatch(ex -> Objects.equals(eventId, ex.eventId()) &&
-                        Objects.equals(eventTime, ex.eventTime()));
+                        Objects.equals(normalizeTime(eventTime), normalizeTime(ex.eventTime())));
 
         BigDecimal bookingPercentage = bookingOpt
                 .map(EventBookingStats::bookingPercentage)
@@ -355,6 +355,10 @@ public interface EventMapper {
                 .map(EventBookingStats::totalCheckedIn)
                 .orElse(0);
 
+        int totalCancelled = bookingOpt
+                .map(EventBookingStats::totalCancelled)
+                .orElse(0);
+
         Enums.OccupancyStatus status = determineOccupancyStatus(isCancelled, bookingPercentage);
 
         CreateEventResponseDTO.OccupancyDTO dto = new CreateEventResponseDTO.OccupancyDTO();
@@ -363,6 +367,7 @@ public interface EventMapper {
         dto.setBookingPercentage(bookingPercentage);
         dto.setTotalBooked(totalBooked);
         dto.setTotalCheckedIn(totalCheckedIn);
+        dto.setTotalCancelled(totalCancelled);
         dto.setStatus(status);
 
         return dto;
@@ -375,5 +380,17 @@ public interface EventMapper {
         return percentage.compareTo(BigDecimal.valueOf(100)) >= 0
                 ? Enums.OccupancyStatus.FULL
                 : Enums.OccupancyStatus.AVAILABLE;
+    }
+
+    private static String normalizeTime(String time) {
+        if (time == null) {
+            return null;
+        }
+        String trimmed = time.trim();
+        // Treat "09:00:00" and "09:00" as the same slot key.
+        if (trimmed.length() >= 5) {
+            return trimmed.substring(0, 5);
+        }
+        return trimmed;
     }
 }

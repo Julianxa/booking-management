@@ -249,6 +249,8 @@ public class CreateEventResponseDTO {
         private BigDecimal bookingPercentage;
         @JsonProperty("total_checked_in")
         private int totalCheckedIn;
+        @JsonProperty("total_cancelled")
+        private int totalCancelled;
         @JsonProperty("status")
         private Enums.OccupancyStatus status;
     }

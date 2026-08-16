@@ -462,6 +462,7 @@ public class EventService {
             GetListEventAvailabilityResponseDTO getListEventAvailabilityResponseDTO = eventMapper.toGetListAvailabilitiesResponse(eventsPage, Collections.emptyMap());
             getListEventAvailabilityResponseDTO.setMessage("Retrieve empty list of Availability of event.");
             getListEventAvailabilityResponseDTO.setTimestamp(ZonedDateTime.now());
+            return getListEventAvailabilityResponseDTO;
         }
 
         List<EventDailySlot> allSlots = eventsRepository.getAllEventsScheduleSlots(isPublishedOnly, filterDate, dayValue);
@@ -755,9 +756,11 @@ public class EventService {
             );
 
             int maxCap = slot.maxCapacity() != null ? slot.maxCapacity().intValue() : 0;
+            int totalCheckedIn = summary.totalCheckedIn() != null ? summary.totalCheckedIn().intValue() : 0;
+            int totalCancelled = summary.totalCancelled() != null ? summary.totalCancelled().intValue() : 0;
 
             BigDecimal bookingPct = dataUtils.calculatePercentage(totalBooked, maxCap);
-            BigDecimal checkInPct = dataUtils.calculatePercentage(summary.totalCheckedIn().intValue(), maxCap);
+            BigDecimal checkInPct = dataUtils.calculatePercentage(totalCheckedIn, maxCap);
 
             return new EventBookingStats(
                     slot.eventRef(),
@@ -767,7 +770,8 @@ public class EventService {
                     slot.eventTime(),
                     maxCap,
                     totalBooked,
-                    summary.totalCheckedIn().intValue(),
+                    totalCheckedIn,
+                    totalCancelled,
                     bookingPct,
                     checkInPct
             );
@@ -790,9 +794,11 @@ public class EventService {
             );
 
             int maxCap = slot.maxCapacity() != null ? slot.maxCapacity().intValue() : 0;
+            int totalCheckedIn = summary.totalCheckedIn() != null ? summary.totalCheckedIn().intValue() : 0;
+            int totalCancelled = summary.totalCancelled() != null ? summary.totalCancelled().intValue() : 0;
 
             BigDecimal bookingPct = dataUtils.calculatePercentage(totalBooked, maxCap);
-            BigDecimal checkInPct = dataUtils.calculatePercentage(summary.totalCheckedIn().intValue(), maxCap);
+            BigDecimal checkInPct = dataUtils.calculatePercentage(totalCheckedIn, maxCap);
 
             return new EventBookingStats(
                     slot.eventRef(),
@@ -802,7 +808,8 @@ public class EventService {
                     slot.eventTime(),
                     maxCap,
                     totalBooked,
-                    summary.totalCheckedIn().intValue(),
+                    totalCheckedIn,
+                    totalCancelled,
                     bookingPct,
                     checkInPct
             );
