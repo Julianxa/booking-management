@@ -66,6 +66,11 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(null, intent.getId(), STRIPE, booking);
+        if (!isRetryableCheckoutFailure(booking) || isPaymentAlreadySucceeded(payment)) {
+            log.info("Ignoring payment_intent.created for booking {} (status={}, payment={})",
+                    booking.getRefNo(), booking.getStatus(), payment.getPaymentStatus());
+            return;
+        }
         syncPaymentStripeIds(payment, null, intent.getId());
         updatePaymentStatus(payment, INITIATED);
 
@@ -166,6 +171,11 @@ public class WebhookService {
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingRefNo)));
         String sessionId = intent.getPaymentDetails().getOrderReference();
         Payments payment = paymentService.findOrCreatePaymentByPaymentIntentId(sessionId, intent.getId(), STRIPE, booking);
+        if (!isRetryableCheckoutFailure(booking) || isPaymentAlreadySucceeded(payment)) {
+            log.info("Ignoring payment_intent.requires_action for booking {} (status={}, payment={})",
+                    booking.getRefNo(), booking.getStatus(), payment.getPaymentStatus());
+            return;
+        }
         syncPaymentStripeIds(payment, sessionId, intent.getId());
 
         updatePaymentStatus(payment, Enums.PaymentStatus.REQUIRES_ACTION);
@@ -526,13 +536,7 @@ public class WebhookService {
     }
 
     public boolean hasFailedPaymentAttempt(Payments payment) {
-        return payment != null && payment.getPaymentStatus() == Enums.PaymentStatus.FAILED;
-    }
-
-    public Enums.BookingStatus resolveUnpaidTerminalBookingStatus(Payments payment) {
-        return hasFailedPaymentAttempt(payment)
-                ? Enums.BookingStatus.FAILED
-                : Enums.BookingStatus.EXPIRED;
+        return paymentLogService.hasFailedAttempt(payment);
     }
 
     public void finalizeUnpaidBooking(Bookings booking, Payments payment, String auditDetail) {

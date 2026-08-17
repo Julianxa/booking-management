@@ -45,6 +45,17 @@ public class PaymentLogService {
                 logEntry.getRefNo(), payment.getRefNo(), paymentStatus);
     }
 
+    public boolean hasFailedAttempt(Payments payment) {
+        if (payment == null) {
+            return false;
+        }
+        if (payment.getPaymentStatus() == Enums.PaymentStatus.FAILED) {
+            return true;
+        }
+        return payment.getId() != null
+                && paymentLogRepository.existsByPaymentIdAndPaymentStatus(payment.getId(), Enums.PaymentStatus.FAILED);
+    }
+
     private String resolvePaymentMethod(Payments payment, String paymentMethod) {
         if (paymentMethod != null && !paymentMethod.isBlank()) {
             return paymentMethod;

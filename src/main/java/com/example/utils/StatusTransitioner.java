@@ -18,34 +18,16 @@ public class StatusTransitioner {
 
         return switch (current) {
             case CANCELLED, EXPIRED, REFUNDED -> false;
-            case FAILED -> newStatus == Enums.PaymentStatus.SUCCEEDED;
-
-            case PENDING ->
+            case SUCCEEDED ->
+                    newStatus == Enums.PaymentStatus.REFUNDED ||
+                            newStatus == Enums.PaymentStatus.CANCELLED;
+            case PENDING, INITIATED, REQUIRES_ACTION, FAILED ->
                     newStatus == Enums.PaymentStatus.INITIATED ||
                             newStatus == Enums.PaymentStatus.REQUIRES_ACTION ||
                             newStatus == Enums.PaymentStatus.SUCCEEDED ||
                             newStatus == Enums.PaymentStatus.FAILED ||
                             newStatus == Enums.PaymentStatus.CANCELLED ||
                             newStatus == Enums.PaymentStatus.EXPIRED;
-
-            case INITIATED ->
-                    newStatus == Enums.PaymentStatus.REQUIRES_ACTION ||
-                            newStatus == Enums.PaymentStatus.SUCCEEDED ||
-                            newStatus == Enums.PaymentStatus.FAILED ||
-                            newStatus == Enums.PaymentStatus.CANCELLED ||
-                            newStatus == Enums.PaymentStatus.EXPIRED;
-
-            case REQUIRES_ACTION ->
-                    newStatus == Enums.PaymentStatus.SUCCEEDED ||
-                            newStatus == Enums.PaymentStatus.FAILED ||
-                            newStatus == Enums.PaymentStatus.CANCELLED ||
-                            newStatus == Enums.PaymentStatus.EXPIRED;
-
-            case SUCCEEDED ->
-                    newStatus == Enums.PaymentStatus.REFUNDED ||
-                            newStatus == Enums.PaymentStatus.CANCELLED;
-
-            default -> true;
         };
     }
 
