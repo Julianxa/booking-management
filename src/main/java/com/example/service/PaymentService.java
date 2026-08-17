@@ -128,9 +128,11 @@ public class PaymentService {
         Bookings booking = bookingsRepository.findByRefNo(requestDTO.getBookingId())
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", requestDTO.getBookingId())));
 
-        if (booking.getStatus() != Enums.BookingStatus.CANCELLED) {
+        if (booking.getStatus() != Enums.BookingStatus.CANCELLED
+                && booking.getStatus() != Enums.BookingStatus.EXPIRED
+                && booking.getStatus() != Enums.BookingStatus.FAILED) {
             throw new IllegalArgumentException(
-                    "Booking must be cancelled before a refund can be processed");
+                    "Booking must be cancelled, expired, or failed before a refund can be processed");
         }
 
         if (refundsRepository.findActiveByBookingId(booking.getId()).isPresent()) {

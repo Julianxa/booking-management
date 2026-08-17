@@ -327,9 +327,21 @@ public class WebhookService {
             return;
         }
 
-        ensureBookingCapacityForSuccessfulPayment(booking);
-
         updateSuccessPaymentRecord(payment, paymentIntent, paymentMethod, Enums.PaymentStatus.SUCCEEDED, paidAt);
+
+        if (booking.getStatus() == Enums.BookingStatus.EXPIRED
+                || booking.getStatus() == Enums.BookingStatus.FAILED
+                || booking.getStatus() == Enums.BookingStatus.CANCELLED
+                || booking.getStatus() == Enums.BookingStatus.REFUNDED) {
+            log.info("Recording SUCCEEDED payment for {} booking {} without confirming — refund required",
+                    booking.getStatus(), booking.getRefNo());
+            auditService.record("PAYMENT_SUCCEEDED_WITHOUT_CONFIRM",
+                    Payments.class.getName(),
+                    booking.getId(),
+                    booking.getUserId(),
+                    "paymentIntent:" + paymentIntent);
+            return;
+        }
 
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
         markSlotCapacityHeld(booking);
@@ -561,21 +573,6 @@ public class WebhookService {
         updateBookingStatus(booking, Enums.BookingStatus.EXPIRED);
         auditService.record("PAYMENT_EXPIRED_WEBHOOK", Payments.class.getName(), booking.getId(), booking.getUserId(), auditDetail);
         log.info("Finalized unpaid booking {} as EXPIRED without failed payment attempt", booking.getRefNo());
-    }
-
-    private void ensureBookingCapacityForSuccessfulPayment(Bookings booking) {
-        if (booking.getStatus() == Enums.BookingStatus.FAILED
-                || booking.getStatus() == Enums.BookingStatus.EXPIRED) {
-            recoverBookingForSuccessfulPayment(booking);
-        }
-    }
-
-    private void recoverBookingForSuccessfulPayment(Bookings booking) {
-        log.info("Recovering booking {} after successful payment following prior failure/expiry", booking.getRefNo());
-
-        eventSlotReservationService.reserveCapacityForBooking(booking);
-        giftCertificateService.reopenCancelledRedemption(booking);
-        updateBookingStatus(booking, Enums.BookingStatus.PAYMENT_IN_PROGRESS);
     }
 
     private void markSlotCapacityHeld(Bookings booking) {
