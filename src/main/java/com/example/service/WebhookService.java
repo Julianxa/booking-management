@@ -289,8 +289,7 @@ public class WebhookService {
         Bookings booking = bookingsRepository.findByRefNo(bookingRefNo)
                 .orElseThrow(() -> new BookingNotFoundException("Booking " + bookingRefNo + " not found"));
 
-        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED
-                || booking.getStatus() == Enums.BookingStatus.PAID) {
+        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED) {
             return;
         }
         String paymentIntentId = session.getPaymentIntent();
@@ -322,8 +321,7 @@ public class WebhookService {
     // Utility functions
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void confirmOnlinePayment(Users user, Bookings booking, Payments payment, String paymentIntent, String paymentMethod, ZonedDateTime paidAt) {
-        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED
-                || booking.getStatus() == Enums.BookingStatus.PAID) {
+        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED) {
             return;
         }
 
@@ -343,26 +341,23 @@ public class WebhookService {
             return;
         }
 
-        updateBookingStatus(booking, Enums.BookingStatus.PAID);
-        markSlotCapacityHeld(booking);
-
-        GiftCertificates giftCertificate = Optional.ofNullable(booking.getGiftCertificateId())
-                .map(giftCertificatesRepository::findById)
-                .map(opt -> opt.orElse(null))
-                .orElse(null);
-        List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
-
-        GiftCertificateApplicationResult result = giftCertificateService.confirmCertificateRedemption(booking, giftCertificate, user != null ? user.getId() : null);
-
-        List<EmailService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
-
-        updateBookingStatus(booking, Enums.BookingStatus.CONFIRMED);
-
-        publishBookingConfirmedEvent(user, booking, bookingEvents, result, emailPayloads);
+        completePaidBookingConfirmation(user, booking);
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public void confirmOfflinePayment(Users user, Bookings booking) {
+        if (booking.getStatus() == Enums.BookingStatus.CONFIRMED) {
+            return;
+        }
+
+        completePaidBookingConfirmation(user, booking);
+    }
+
+    private void completePaidBookingConfirmation(Users user, Bookings booking) {
+        if (booking.getStatus() == Enums.BookingStatus.PAID) {
+            log.info("Resuming confirmation for PAID booking {}", booking.getRefNo());
+        }
+
         updateBookingStatus(booking, Enums.BookingStatus.PAID);
         markSlotCapacityHeld(booking);
 
@@ -372,7 +367,8 @@ public class WebhookService {
                 .orElse(null);
         List<CreateBookingRequestDTO.BookingEventDTO> bookingEvents = bookingsConverter.toBookingEventDTOs(booking, null);
 
-        GiftCertificateApplicationResult result = giftCertificateService.confirmCertificateRedemption(booking, giftCertificate, user != null ? user.getId() : null);
+        GiftCertificateApplicationResult result = giftCertificateService.confirmCertificateRedemption(
+                booking, giftCertificate, user != null ? user.getId() : null);
 
         List<EmailService.BookingEmailPayload> emailPayloads = activateBookingEvents(bookingEvents);
 
