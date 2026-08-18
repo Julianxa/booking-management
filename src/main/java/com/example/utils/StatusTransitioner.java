@@ -17,17 +17,14 @@ public class StatusTransitioner {
         }
 
         return switch (current) {
-            case CANCELLED, REFUNDED -> false;
+            case REFUNDED -> false;
             case EXPIRED -> newStatus == Enums.PaymentStatus.SUCCEEDED;
-            case SUCCEEDED ->
-                    newStatus == Enums.PaymentStatus.REFUNDED ||
-                            newStatus == Enums.PaymentStatus.CANCELLED;
+            case SUCCEEDED -> newStatus == Enums.PaymentStatus.REFUNDED;
             case PENDING, INITIATED, REQUIRES_ACTION, FAILED ->
                     newStatus == Enums.PaymentStatus.INITIATED ||
                             newStatus == Enums.PaymentStatus.REQUIRES_ACTION ||
                             newStatus == Enums.PaymentStatus.SUCCEEDED ||
                             newStatus == Enums.PaymentStatus.FAILED ||
-                            newStatus == Enums.PaymentStatus.CANCELLED ||
                             newStatus == Enums.PaymentStatus.EXPIRED;
         };
     }

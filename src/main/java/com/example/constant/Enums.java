@@ -66,7 +66,6 @@ public class Enums {
         REQUIRES_ACTION,
         SUCCEEDED,
         FAILED,
-        CANCELLED,
         REFUNDED,
         EXPIRED
     }
