@@ -994,7 +994,7 @@ public class BookingService {
             if (previousStatus == CANCELLED) {
                 if (!bookingCancellationService.isRestorable(booking)) {
                     throw new IllegalStateException(
-                            "Cannot restore a booked event when the booking is expired, failed, or refunded.");
+                            "Cannot restore a booked event when the booking was never paid, or is expired, failed, or refunded.");
                 }
                 eventSlotReservationService.reserveCapacityForBookingEvent(
                         bookingEvent, parentEvent.getMaxCapacity(), parentEvent.getName());

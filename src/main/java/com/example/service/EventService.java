@@ -252,12 +252,13 @@ public class EventService {
                     updateEventStatusRequestDTO.getEventDate(),
                     updateEventStatusRequestDTO.getEventTime());
 
-            List<BookingEvents> toRestore = bookingEventsRepository.findForBulkStatusUpdateByTimeSlot(
+            List<BookingEvents> toRestore = bookingCancellationService.keepRestorable(
+                    bookingEventsRepository.findForBulkStatusUpdateByTimeSlot(
                     event.getId(),
                     updateEventStatusRequestDTO.getEventDate(),
                     updateEventStatusRequestDTO.getEventTime(),
                     CANCELLED,
-                    BookingCancellationService.RESTORABLE_PARENT_STATUSES);
+                    BookingCancellationService.RESTORABLE_PARENT_STATUSES));
             eventSlotReservationService.reserveCapacityForBookingEvents(toRestore);
             updateBookingEventsStatusByIds(toRestore, AVAILABLE, null);
             bookingCancellationService.syncBookingsAfterBulkEventRestore(toRestore);
@@ -334,8 +335,9 @@ public class EventService {
             event.setUpdatedAt(actionAt);
             eventsRepository.save(event);
 
-            List<BookingEvents> toRestore = bookingEventsRepository.findForBulkStatusUpdateByEventId(
-                    event.getId(), CANCELLED, BookingCancellationService.RESTORABLE_PARENT_STATUSES);
+            List<BookingEvents> toRestore = bookingCancellationService.keepRestorable(
+                    bookingEventsRepository.findForBulkStatusUpdateByEventId(
+                    event.getId(), CANCELLED, BookingCancellationService.RESTORABLE_PARENT_STATUSES));
             eventSlotReservationService.reserveCapacityForBookingEvents(toRestore);
             updateBookingEventsStatusByIds(toRestore, AVAILABLE, null);
             bookingCancellationService.syncBookingsAfterBulkEventRestore(toRestore);

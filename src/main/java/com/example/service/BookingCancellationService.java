@@ -3,8 +3,10 @@ package com.example.service;
 import com.example.constant.Enums;
 import com.example.model.entity.BookingEvents;
 import com.example.model.entity.Bookings;
+import com.example.model.entity.Payments;
 import com.example.repository.BookingEventsRepository;
 import com.example.repository.BookingsRepository;
+import com.example.repository.PaymentsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,9 @@ public class BookingCancellationService {
 
     private final BookingEventsRepository bookingEventsRepository;
     private final BookingsRepository bookingsRepository;
+    private final PaymentsRepository paymentsRepository;
+    private final PaymentLogService paymentLogService;
+    private final GiftCertificateService giftCertificateService;
     private final EventSlotReservationService eventSlotReservationService;
 
     @Transactional
@@ -79,6 +84,11 @@ public class BookingCancellationService {
             return;
         }
 
+        if (isUnpaidInProgress(status)) {
+            finalizeUnpaidParent(booking);
+            return;
+        }
+
         booking.setStatus(Enums.BookingStatus.CANCELLED);
         booking.setSlotCapacityHeld(false);
         booking.setUpdatedAt(ZonedDateTime.now());
@@ -87,12 +97,27 @@ public class BookingCancellationService {
     }
 
     public boolean isRestorable(Bookings booking) {
-        return booking != null && RESTORABLE_PARENT_STATUSES.contains(booking.getStatus());
+        if (booking == null || booking.getStatus() == null) {
+            return false;
+        }
+        if (booking.getStatus() == PAID || booking.getStatus() == CONFIRMED) {
+            return true;
+        }
+        return booking.getStatus() == Enums.BookingStatus.CANCELLED && wasPaid(booking);
+    }
+
+    public List<BookingEvents> keepRestorable(List<BookingEvents> bookingEvents) {
+        if (bookingEvents == null || bookingEvents.isEmpty()) {
+            return List.of();
+        }
+        return bookingEvents.stream()
+                .filter(event -> isRestorable(event.getBooking()))
+                .toList();
     }
 
     @Transactional
     public void restoreBookingIfCancelled(Bookings booking) {
-        if (booking == null || booking.getStatus() != Enums.BookingStatus.CANCELLED) {
+        if (booking == null || booking.getStatus() != Enums.BookingStatus.CANCELLED || !wasPaid(booking)) {
             return;
         }
         booking.setStatus(CONFIRMED);
@@ -130,5 +155,45 @@ public class BookingCancellationService {
 
     private static boolean isCancelled(BookingEvents bookingEvent) {
         return bookingEvent.getStatus() == CANCELLED || bookingEvent.getCancelledAt() != null;
+    }
+
+    private static boolean isUnpaidInProgress(Enums.BookingStatus status) {
+        return status == ON_HOLD
+                || status == AWAITING_PAYMENT
+                || status == PAYMENT_IN_PROGRESS;
+    }
+
+    private void finalizeUnpaidParent(Bookings booking) {
+        giftCertificateService.cancelCertificateRedemption(booking);
+
+        Payments payment = paymentsRepository.findByBookingId(booking.getId()).orElse(null);
+        if (paymentLogService.hasFailedAttempt(payment)) {
+            booking.setStatus(Enums.BookingStatus.FAILED);
+            log.info("Marked unpaid booking {} as FAILED after admin close with no remaining events", booking.getRefNo());
+        } else {
+            booking.setStatus(Enums.BookingStatus.EXPIRED);
+            if (payment != null && payment.getPaymentStatus() != Enums.PaymentStatus.SUCCEEDED) {
+                payment.setPaymentStatus(Enums.PaymentStatus.EXPIRED);
+                paymentsRepository.save(payment);
+                paymentLogService.recordStatusChange(payment, Enums.PaymentStatus.EXPIRED, null, null);
+            }
+            log.info("Marked unpaid booking {} as EXPIRED after admin close with no remaining events", booking.getRefNo());
+        }
+
+        booking.setSlotCapacityHeld(false);
+        booking.setUpdatedAt(ZonedDateTime.now());
+        bookingsRepository.save(booking);
+    }
+
+    private boolean wasPaid(Bookings booking) {
+        if (booking.getType() == Enums.BookingType.OFFLINE_PAYMENT) {
+            return true;
+        }
+        if (booking.getId() == null) {
+            return false;
+        }
+        return paymentsRepository
+                .findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
+                .isPresent();
     }
 }
