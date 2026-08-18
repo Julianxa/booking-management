@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -91,39 +92,47 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
 
     @Modifying
     @Transactional
-    @Query(value = """
-            UPDATE booking_events
-            SET status = :status,
-                cancelled_at = :cancelledAt,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE event_id = :eventId
-              AND event_date = :eventDate
-              AND event_time = :eventTime
-              AND status = :currentStatus
-            """, nativeQuery = true)
-    void updateCancelStatusBookingsByEventTimeSlot(
+    @Query("""
+            UPDATE BookingEvents be
+            SET be.status = :status,
+                be.cancelledAt = :cancelledAt,
+                be.updatedAt = CURRENT_TIMESTAMP
+            WHERE be.id IN :ids
+            """)
+    int updateCancelStatusByIds(
+            @Param("ids") List<Long> ids,
+            @Param("status") Enums.BookingEventStatus status,
+            @Param("cancelledAt") ZonedDateTime cancelledAt);
+
+    @Query("""
+            SELECT be FROM BookingEvents be
+            JOIN FETCH be.booking b
+            JOIN FETCH be.event e
+            WHERE be.event.id = :eventId
+              AND be.eventDate = :eventDate
+              AND be.eventTime = :eventTime
+              AND be.status = :status
+              AND b.status IN :bookingStatuses
+            """)
+    List<BookingEvents> findForBulkStatusUpdateByTimeSlot(
             @Param("eventId") Long eventId,
             @Param("eventDate") LocalDate eventDate,
             @Param("eventTime") String eventTime,
-            @Param("currentStatus") String currentStatus,
-            @Param("status") String status,
-            @Param("cancelledAt") ZonedDateTime cancelledAt);
+            @Param("status") Enums.BookingEventStatus status,
+            @Param("bookingStatuses") Collection<Enums.BookingStatus> bookingStatuses);
 
-    @Modifying
-    @Transactional
-    @Query(value = """
-            UPDATE booking_events
-            SET status = :status,
-                cancelled_at = :cancelledAt,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE event_id = :eventId
-              AND status = :currentStatus
-            """, nativeQuery = true)
-    void updateCancelStatusBookingsByEventId(
+    @Query("""
+            SELECT be FROM BookingEvents be
+            JOIN FETCH be.booking b
+            JOIN FETCH be.event e
+            WHERE be.event.id = :eventId
+              AND be.status = :status
+              AND b.status IN :bookingStatuses
+            """)
+    List<BookingEvents> findForBulkStatusUpdateByEventId(
             @Param("eventId") Long eventId,
-            @Param("currentStatus") String currentStatus,
-            @Param("status") String status,
-            @Param("cancelledAt") ZonedDateTime cancelledAt);
+            @Param("status") Enums.BookingEventStatus status,
+            @Param("bookingStatuses") Collection<Enums.BookingStatus> bookingStatuses);
 
     @Query(value = """
             SELECT be.id
@@ -175,32 +184,4 @@ public interface BookingEventsRepository extends JpaRepository<BookingEvents, Lo
         WHERE be.id = :id
         """)
     Optional<BookingEvents> findByIdWithBookingAndEvent(@Param("id") Long id);
-
-    @Query("""
-            SELECT be FROM BookingEvents be
-            JOIN FETCH be.booking b
-            JOIN FETCH be.event e
-            WHERE be.event.id = :eventId
-              AND be.eventDate = :eventDate
-              AND be.eventTime = :eventTime
-              AND be.status = :status
-              AND b.status IN ('ON_HOLD', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'CONFIRMED')
-            """)
-    List<BookingEvents> findForBulkStatusUpdateByTimeSlot(
-            @Param("eventId") Long eventId,
-            @Param("eventDate") LocalDate eventDate,
-            @Param("eventTime") String eventTime,
-            @Param("status") Enums.BookingEventStatus status);
-
-    @Query("""
-            SELECT be FROM BookingEvents be
-            JOIN FETCH be.booking b
-            JOIN FETCH be.event e
-            WHERE be.event.id = :eventId
-              AND be.status = :status
-              AND b.status IN ('ON_HOLD', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS', 'PAID', 'CONFIRMED')
-            """)
-    List<BookingEvents> findForBulkStatusUpdateByEventId(
-            @Param("eventId") Long eventId,
-            @Param("status") Enums.BookingEventStatus status);
 }

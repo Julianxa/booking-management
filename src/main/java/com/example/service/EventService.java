@@ -232,15 +232,10 @@ public class EventService {
                     event.getId(),
                     updateEventStatusRequestDTO.getEventDate(),
                     updateEventStatusRequestDTO.getEventTime(),
-                    AVAILABLE);
+                    AVAILABLE,
+                    BookingCancellationService.ACTIVE_PARENT_STATUSES);
             eventSlotReservationService.releaseCapacityForBookingEvents(toCancel);
-
-            bookingEventsRepository.updateCancelStatusBookingsByEventTimeSlot(event.getId(),
-                    updateEventStatusRequestDTO.getEventDate(),
-                    updateEventStatusRequestDTO.getEventTime(),
-                    AVAILABLE.toString(),
-                    CANCELLED.toString(),
-                    actionAt);
+            updateBookingEventsStatusByIds(toCancel, CANCELLED, actionAt);
             bookingCancellationService.syncBookingsAfterBulkEventCancel(toCancel);
 
             updateEventStatusResponseDTO.setStatus(CLOSE);
@@ -261,15 +256,10 @@ public class EventService {
                     event.getId(),
                     updateEventStatusRequestDTO.getEventDate(),
                     updateEventStatusRequestDTO.getEventTime(),
-                    CANCELLED);
+                    CANCELLED,
+                    BookingCancellationService.RESTORABLE_PARENT_STATUSES);
             eventSlotReservationService.reserveCapacityForBookingEvents(toRestore);
-
-            bookingEventsRepository.updateCancelStatusBookingsByEventTimeSlot(event.getId(),
-                    updateEventStatusRequestDTO.getEventDate(),
-                    updateEventStatusRequestDTO.getEventTime(),
-                    CANCELLED.toString(),
-                    AVAILABLE.toString(),
-                    null);
+            updateBookingEventsStatusByIds(toRestore, AVAILABLE, null);
             bookingCancellationService.syncBookingsAfterBulkEventRestore(toRestore);
 
             updateEventStatusResponseDTO.setStatus(OPEN);
@@ -322,13 +312,9 @@ public class EventService {
             eventsRepository.save(event);
 
             List<BookingEvents> toCancel = bookingEventsRepository.findForBulkStatusUpdateByEventId(
-                    event.getId(), AVAILABLE);
+                    event.getId(), AVAILABLE, BookingCancellationService.ACTIVE_PARENT_STATUSES);
             eventSlotReservationService.releaseCapacityForBookingEvents(toCancel);
-
-            bookingEventsRepository.updateCancelStatusBookingsByEventId(event.getId(),
-                    AVAILABLE.toString(),
-                    CANCELLED.toString(),
-                    actionAt);
+            updateBookingEventsStatusByIds(toCancel, CANCELLED, actionAt);
             bookingCancellationService.syncBookingsAfterBulkEventCancel(toCancel);
 
             updateEventStatusResponseDTO.setStatus(CLOSE);
@@ -349,13 +335,9 @@ public class EventService {
             eventsRepository.save(event);
 
             List<BookingEvents> toRestore = bookingEventsRepository.findForBulkStatusUpdateByEventId(
-                    event.getId(), CANCELLED);
+                    event.getId(), CANCELLED, BookingCancellationService.RESTORABLE_PARENT_STATUSES);
             eventSlotReservationService.reserveCapacityForBookingEvents(toRestore);
-
-            bookingEventsRepository.updateCancelStatusBookingsByEventId(event.getId(),
-                    CANCELLED.toString(),
-                    AVAILABLE.toString(),
-                    null);
+            updateBookingEventsStatusByIds(toRestore, AVAILABLE, null);
             bookingCancellationService.syncBookingsAfterBulkEventRestore(toRestore);
 
             updateEventStatusResponseDTO.setStatus(OPEN);
@@ -839,6 +821,17 @@ public class EventService {
         } else if (ActivityThresholdUtil.isConfigured(event.getMaxActivityDayThreshold())) {
             event.setMaxActivityHourThreshold(null);
         }
+    }
+
+    private void updateBookingEventsStatusByIds(
+            List<BookingEvents> bookingEvents,
+            Enums.BookingEventStatus status,
+            ZonedDateTime cancelledAt) {
+        if (bookingEvents == null || bookingEvents.isEmpty()) {
+            return;
+        }
+        List<Long> ids = bookingEvents.stream().map(BookingEvents::getId).toList();
+        bookingEventsRepository.updateCancelStatusByIds(ids, status, cancelledAt);
     }
 
     private void validateCheckIn(BookingEvents bookingEvent) {

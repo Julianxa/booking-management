@@ -16,17 +16,22 @@ import java.util.List;
 import java.util.Set;
 
 import static com.example.constant.Enums.BookingEventStatus.CANCELLED;
+import static com.example.constant.Enums.BookingStatus.AWAITING_PAYMENT;
 import static com.example.constant.Enums.BookingStatus.CONFIRMED;
+import static com.example.constant.Enums.BookingStatus.ON_HOLD;
+import static com.example.constant.Enums.BookingStatus.PAID;
+import static com.example.constant.Enums.BookingStatus.PAYMENT_IN_PROGRESS;
 
-/**
- * Keeps booking-level and booking-event-level cancellation in sync.
- * - Cancelling the last active booked event marks the parent booking CANCELLED.
- * - Whole-booking terminal paths (refund / expire / fail) cancel all active booked events.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BookingCancellationService {
+    public static final List<Enums.BookingStatus> ACTIVE_PARENT_STATUSES = List.of(
+            ON_HOLD, AWAITING_PAYMENT, PAYMENT_IN_PROGRESS, PAID, CONFIRMED);
+
+    public static final List<Enums.BookingStatus> RESTORABLE_PARENT_STATUSES = List.of(
+            Enums.BookingStatus.CANCELLED, PAID, CONFIRMED);
+
     private final BookingEventsRepository bookingEventsRepository;
     private final BookingsRepository bookingsRepository;
     private final EventSlotReservationService eventSlotReservationService;
@@ -81,12 +86,17 @@ public class BookingCancellationService {
         log.info("Marked booking {} as CANCELLED because no active booked events remain", booking.getRefNo());
     }
 
+    public boolean isRestorable(Bookings booking) {
+        return booking != null && RESTORABLE_PARENT_STATUSES.contains(booking.getStatus());
+    }
+
     @Transactional
     public void restoreBookingIfCancelled(Bookings booking) {
         if (booking == null || booking.getStatus() != Enums.BookingStatus.CANCELLED) {
             return;
         }
         booking.setStatus(CONFIRMED);
+        booking.setSlotCapacityHeld(true);
         booking.setUpdatedAt(ZonedDateTime.now());
         bookingsRepository.save(booking);
         log.info("Restored booking {} from CANCELLED to CONFIRMED after booked event restore", booking.getRefNo());
