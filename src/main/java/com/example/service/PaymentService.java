@@ -144,6 +144,16 @@ public class PaymentService {
             throw new MismatchedCurrencyException("Invalid currency for this refund");
         }
 
+        Payments capturedPayment = null;
+        if (booking.getType().equals(Enums.BookingType.ONLINE_PAYMENT)) {
+            capturedPayment = paymentsRepository
+                    .findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
+                    .orElseThrow(() -> new PaymentNotFoundException(
+                            String.format(
+                                    "No captured payment to refund for booking %s. Expired or failed bookings can only be refunded if Stripe later succeeded.",
+                                    booking.getRefNo())));
+        }
+
         Refunds refund = new Refunds();
         refund.setRefNo(referenceNoGenerator.generateRefundReference());
         refund.setBookingId(booking.getId());
@@ -156,18 +166,16 @@ public class PaymentService {
             if (booking.getFinalPaidAmount().compareTo(requestDTO.getRefundAmount()) != 0) {
                 throw new RuntimeException("Invalid amount for full amount");
             }
-            Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
-                    .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
 
             refund.setType(Enums.RefundType.ONLINE_REFUND);
             refund.setStatus(Enums.RefundStatus.PENDING);
             refundsRepository.save(refund);
 
             RefundCreateParams.Builder refundParams = RefundCreateParams.builder()
-                    .setPaymentIntent(payment.getPaymentIntentId())
-                    .setAmount(payment.getAmount().multiply(BigDecimal.valueOf(100)).longValueExact())
+                    .setPaymentIntent(capturedPayment.getPaymentIntentId())
+                    .setAmount(capturedPayment.getAmount().multiply(BigDecimal.valueOf(100)).longValueExact())
                     .putMetadata("bookingRefNo", booking.getRefNo())
-                    .putMetadata("paymentIntentId", payment.getPaymentIntentId());
+                    .putMetadata("paymentIntentId", capturedPayment.getPaymentIntentId());
             try {
                 stripeClient.v1().refunds().create(refundParams.build());
             } catch (StripeException e) {
@@ -178,9 +186,7 @@ public class PaymentService {
         } else if (booking.getType().equals(Enums.BookingType.OFFLINE_PAYMENT)) { // Offline Payment with Offline Refund
             finalizeOfflineRefund(booking, refund, Enums.RefundType.OFFLINE_REFUND, null);
         } else { // Online Payment but Offline Refund
-            Payments payment = paymentsRepository.findByBookingIdAndPaymentStatus(booking.getId(), Enums.PaymentStatus.SUCCEEDED)
-                    .orElseThrow(() -> new PaymentNotFoundException(String.format("Payment not found with booking ID %s", booking.getId())));
-            finalizeOfflineRefund(booking, refund, Enums.RefundType.OFFLINE_REFUND, payment);
+            finalizeOfflineRefund(booking, refund, Enums.RefundType.OFFLINE_REFUND, capturedPayment);
         }
 
         auditService.record("REFUND_BOOKING",
