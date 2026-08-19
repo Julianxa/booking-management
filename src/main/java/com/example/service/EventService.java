@@ -624,6 +624,7 @@ public class EventService {
 
         BookingEvents bookingEvent = bookingEventsRepository.findByVerificationToken(token)
                 .orElseThrow(() -> new BookingEventNotFoundException(String.format("Booking Event not found with token %s", token)));
+        validateCheckIn(bookingEvent);
         Events event = eventsRepository.findById(bookingEvent.getEvent().getId())
                 .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", bookingEvent.getEvent().getId())));
 
@@ -637,8 +638,6 @@ public class EventService {
         if (bookingEvent.getBooking().getUserId() != null) {
             userRefNo = usersRepository.findActiveRefNoById(bookingEvent.getBooking().getUserId()).orElse(null);
         }
-
-        validateCheckIn(bookingEvent);
 
         CreateBookingRequestDTO.EventDTO eventDTO = eventMapper.toEventDTO(event, bookingEvent);
 
@@ -659,10 +658,6 @@ public class EventService {
                 || !bookingEvent.getEventDate().equals(request.getEventDate())
                 || !bookingEvent.getEventTime().equals(request.getEventTime())) {
             throw new InvalidVerificationTokenException("Check-in details do not match verification token");
-        }
-
-        if (bookingEvent.getCancelledAt() != null) {
-            throw new BookingEventAlreadyCancelledException();
         }
 
         validateCheckIn(bookingEvent);
@@ -696,10 +691,6 @@ public class EventService {
     public AdminConfirmCheckinResponseDTO adminConfirmCheckIn(AdminConfirmCheckinRequestDTO request) {
         BookingEvents bookingEvent = bookingEventsRepository.findByRefNoAndEventDateAndEventTime(request.getBookingEventId(), request.getEventDate(), request.getEventTime())
                 .orElseThrow(() -> new BookingEventNotFoundException("Booked Event not found"));
-
-        if (bookingEvent.getCancelledAt() != null) {
-            throw new BookingEventAlreadyCancelledException();
-        }
 
         validateCheckIn(bookingEvent);
 
@@ -840,8 +831,16 @@ public class EventService {
         if (bookingEvent.getStatus() == CANCELLED || bookingEvent.getCancelledAt() != null) {
             throw new BookingEventAlreadyCancelledException();
         }
-        if (bookingEvent.getVerifiedAt() != null) {
+        if (bookingEvent.getVerifiedAt() != null || bookingEvent.getStatus() == CHECKED_IN) {
             throw new InvalidVerificationTokenException("Ticket has already been checked in");
+        }
+        if (bookingEvent.getStatus() != AVAILABLE) {
+            throw new IllegalArgumentException("Check-in is only allowed for available booked events");
+        }
+
+        Bookings booking = bookingEvent.getBooking();
+        if (booking == null || booking.getStatus() != Enums.BookingStatus.CONFIRMED) {
+            throw new IllegalArgumentException("Check-in is only allowed for confirmed bookings");
         }
     }
 
