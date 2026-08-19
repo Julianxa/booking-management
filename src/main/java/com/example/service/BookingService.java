@@ -250,7 +250,7 @@ public class BookingService {
     public UpdateBookingEventStatusResponseDTO updateBookingEventStatus(String userSub, String bookingEventId, UpdateBookingEventStatusRequestDTO dto) {
         Users loggedInUser = userUtils.getLoggedInUser(userSub);
 
-        BookingEvents bookingEvent = bookingEventsRepository.findByRefNo(bookingEventId)
+        BookingEvents bookingEvent = bookingEventsRepository.findByRefNoWithBookingAndEvent(bookingEventId)
                 .orElseThrow(() -> new BookingEventNotFoundException(String.format("Booked event %s not found", bookingEventId)));
 
         if (bookingEvent.getStatus() == CHECKED_IN) {
@@ -261,8 +261,10 @@ public class BookingService {
             throw new BookingEventAlreadyCancelledException();
         }
 
-        Bookings booking = bookingsRepository.findById(bookingEvent.getBooking().getId())
-                .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", bookingEvent.getBooking().getId())));
+        Bookings booking = bookingEvent.getBooking();
+        if (booking == null) {
+            throw new BookingNotFoundException(String.format("Booking %s not found", bookingEventId));
+        }
 
         List<EmailService.BookingEmailPayload> emailPayloads = prepareEmailPayloads(bookingEvent);
 
