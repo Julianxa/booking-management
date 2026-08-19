@@ -146,7 +146,7 @@ public class BookingService {
     }
 
     public void releaseExternalHold(Bookings booking) {
-        failReservedBooking(booking);
+        releaseReservedBooking(booking, Enums.BookingStatus.EXPIRED);
     }
 
     private BookingReservation reserveBooking(String userSub, CreateBookingRequestDTO request) {
@@ -180,6 +180,10 @@ public class BookingService {
     }
 
     private void failReservedBooking(Bookings booking) {
+        releaseReservedBooking(booking, Enums.BookingStatus.FAILED);
+    }
+
+    private void releaseReservedBooking(Bookings booking, Enums.BookingStatus terminalStatus) {
         executeInBookingTransaction(() -> {
             Bookings savedBooking = bookingsRepository.findById(booking.getId())
                     .orElseThrow(() -> new BookingNotFoundException(String.format("Booking %s not found", booking.getId())));
@@ -189,7 +193,7 @@ public class BookingService {
 
             giftCertificateService.cancelCertificateRedemption(savedBooking);
 
-            savedBooking.setStatus(Enums.BookingStatus.FAILED);
+            savedBooking.setStatus(terminalStatus);
             bookingsRepository.save(savedBooking);
 
             return null;
