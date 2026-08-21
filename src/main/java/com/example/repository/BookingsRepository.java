@@ -58,34 +58,34 @@ public interface BookingsRepository extends JpaRepository<Bookings, Long> {
             value = """
             SELECT DISTINCT b.*
             FROM bookings b
-            JOIN booking_events be ON be.booking_id = b.id
-            JOIN booking_attendees ba ON ba.booking_event_id = be.id
-            WHERE ba.deleted_at IS NULL
-              AND (
-                (:field = 'name' AND (
+            LEFT JOIN booking_events be ON be.booking_id = b.id
+            LEFT JOIN booking_attendees ba ON ba.booking_event_id = be.id AND ba.deleted_at IS NULL
+            WHERE (
+                (:field = 'booking_id' AND LOWER(b.ref_no) LIKE LOWER(CONCAT('%', :value, '%')))
+                OR (:field = 'name' AND ba.id IS NOT NULL AND (
                     LOWER(ba.first_name) LIKE LOWER(CONCAT('%', :value, '%'))
                     OR LOWER(ba.last_name) LIKE LOWER(CONCAT('%', :value, '%'))
                     OR LOWER(CONCAT(ba.first_name, ' ', ba.last_name)) LIKE LOWER(CONCAT('%', :value, '%'))
                 ))
-                OR (:field = 'email' AND LOWER(ba.email) LIKE LOWER(CONCAT('%', :value, '%')))
-                OR (:field = 'phone' AND ba.phone LIKE CONCAT('%', :value, '%'))
+                OR (:field = 'email' AND ba.id IS NOT NULL AND LOWER(ba.email) LIKE LOWER(CONCAT('%', :value, '%')))
+                OR (:field = 'phone' AND ba.id IS NOT NULL AND ba.phone LIKE CONCAT('%', :value, '%'))
               )
             ORDER BY b.created_at DESC
             """,
             countQuery = """
             SELECT COUNT(DISTINCT b.id)
             FROM bookings b
-            JOIN booking_events be ON be.booking_id = b.id
-            JOIN booking_attendees ba ON ba.booking_event_id = be.id
-            WHERE ba.deleted_at IS NULL
-              AND (
-                (:field = 'name' AND (
+            LEFT JOIN booking_events be ON be.booking_id = b.id
+            LEFT JOIN booking_attendees ba ON ba.booking_event_id = be.id AND ba.deleted_at IS NULL
+            WHERE (
+                (:field = 'booking_id' AND LOWER(b.ref_no) LIKE LOWER(CONCAT('%', :value, '%')))
+                OR (:field = 'name' AND ba.id IS NOT NULL AND (
                     LOWER(ba.first_name) LIKE LOWER(CONCAT('%', :value, '%'))
                     OR LOWER(ba.last_name) LIKE LOWER(CONCAT('%', :value, '%'))
                     OR LOWER(CONCAT(ba.first_name, ' ', ba.last_name)) LIKE LOWER(CONCAT('%', :value, '%'))
                 ))
-                OR (:field = 'email' AND LOWER(ba.email) LIKE LOWER(CONCAT('%', :value, '%')))
-                OR (:field = 'phone' AND ba.phone LIKE CONCAT('%', :value, '%'))
+                OR (:field = 'email' AND ba.id IS NOT NULL AND LOWER(ba.email) LIKE LOWER(CONCAT('%', :value, '%')))
+                OR (:field = 'phone' AND ba.id IS NOT NULL AND ba.phone LIKE CONCAT('%', :value, '%'))
               )
             """,
             nativeQuery = true)

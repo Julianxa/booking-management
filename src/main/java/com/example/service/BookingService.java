@@ -373,11 +373,12 @@ public class BookingService {
             throw new MissingRequiredFieldException("field is required");
         }
         return switch (field.trim().toLowerCase(Locale.ROOT)) {
+            case "booking_id", "bookingid" -> "booking_id";
             case "name" -> "name";
             case "email" -> "email";
             case "phone" -> "phone";
             default -> throw new IllegalArgumentException(
-                    "Invalid field. Allowed values: name, email, phone");
+                    "Invalid field. Allowed values: booking_id, name, email, phone");
         };
     }
 

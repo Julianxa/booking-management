@@ -130,9 +130,9 @@ public class BookingController {
     }
 
     @Operation(
-            summary = "Search bookings by attendee",
-            description = "Search bookings by attendee name, email, or phone. "
-                    + "Use field=name|email|phone and provide the search value.",
+            summary = "Search bookings by booking_id, attendee name, email, or phone",
+            description = "Search bookings by booking_id, attendee name, email, or phone. "
+                    + "Use field=booking_id|name|email|phone and provide the search value.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
