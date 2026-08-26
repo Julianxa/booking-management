@@ -64,6 +64,16 @@ public class Bookings {
     @Column(name = "language")
     private Enums.Language language;
 
+    @Column(name = "octo_uuid", unique = true, length = 64)
+    private String octoUuid;
+
+    @Column(name = "reseller_reference", length = 255)
+    private String resellerReference;
+
+    @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
+    @Column(name = "hold_expires_at")
+    private ZonedDateTime holdExpiresAt;
+
     @TimeZoneStorage(TimeZoneStorageType.NORMALIZE)
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;

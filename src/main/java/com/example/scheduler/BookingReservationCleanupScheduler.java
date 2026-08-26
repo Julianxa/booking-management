@@ -3,7 +3,6 @@ package com.example.scheduler;
 import com.example.constant.Enums;
 import com.example.model.entity.Bookings;
 import com.example.model.entity.Payments;
-import com.example.repository.OctoBookingMappingsRepository;
 import com.example.repository.BookingsRepository;
 import com.example.repository.PaymentsRepository;
 import com.example.service.WebhookService;
@@ -25,7 +24,6 @@ public class BookingReservationCleanupScheduler {
     private final BookingsRepository bookingsRepository;
     private final PaymentsRepository paymentsRepository;
     private final WebhookService webhookService;
-    private final OctoBookingMappingsRepository octoBookingMappingsRepository;
 
     @Value("${app.booking.cleanup.pending-timeout-minutes:10}")
     private long pendingTimeoutMinutes;
@@ -73,24 +71,14 @@ public class BookingReservationCleanupScheduler {
         for (Bookings booking : staleBookings) {
             Payments payment = paymentsRepository.findByBookingId(booking.getId()).orElse(null);
             webhookService.finalizeUnpaidBooking(booking, payment, "scheduler:" + staleStatus);
-            markOctoMappingExpiredIfPresent(booking.getId());
+            if (booking.getHoldExpiresAt() != null) {
+                booking.setHoldExpiresAt(null);
+                bookingsRepository.save(booking);
+            }
             log.warn("Released stale {} booking reservation {}", staleStatus, booking.getRefNo());
             released++;
         }
 
         return released;
-    }
-
-    private void markOctoMappingExpiredIfPresent(Long bookingId) {
-        octoBookingMappingsRepository
-                .findByBookingId(bookingId)
-                .ifPresent(
-                        mapping -> {
-                            if ("ON_HOLD".equals(mapping.getOctoStatus())) {
-                                mapping.setOctoStatus("EXPIRED");
-                                mapping.setHoldExpiresAt(null);
-                                octoBookingMappingsRepository.save(mapping);
-                            }
-                        });
     }
 }

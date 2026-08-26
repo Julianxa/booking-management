@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -83,6 +85,67 @@ public class EventSlotReservationService {
                                 .build())
                 .map(EventSlotReservations::getReservedQty)
                 .orElse(0);
+    }
+
+    @Transactional(readOnly = true)
+    public int getReservedQtyForSlot(Long eventId, LocalDate eventDate, String eventTime) {
+        int exact = getReservedQty(eventId, eventDate, eventTime);
+        if (exact > 0 || eventTime == null) {
+            return exact;
+        }
+        String alternate =
+                eventTime.length() == 5
+                        ? eventTime + ":00"
+                        : (eventTime.length() >= 5 ? eventTime.substring(0, 5) : eventTime);
+        if (alternate.equals(eventTime)) {
+            return exact;
+        }
+        return getReservedQty(eventId, eventDate, alternate);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Integer> getReservedQtyBySlotKey(
+            Long eventId, LocalDate startDate, LocalDate endDate) {
+        Map<String, Integer> reservedBySlot = new HashMap<>();
+        for (Object[] row :
+                eventSlotReservationsRepository.findReservedSlotsByEventIdAndDateRange(
+                        eventId, startDate, endDate)) {
+            LocalDate date = toLocalDate(row[0]);
+            String timeKey = timeKey(row[1]);
+            int qty = row[2] instanceof Number number ? number.intValue() : 0;
+            if (date == null || timeKey == null) {
+                continue;
+            }
+            reservedBySlot.merge(date + "|" + timeKey, qty, Integer::sum);
+        }
+        return reservedBySlot;
+    }
+
+    public static String timeKey(Object time) {
+        if (time == null) {
+            return null;
+        }
+        String trimmed = time.toString().trim();
+        if (trimmed.length() >= 5) {
+            return trimmed.substring(0, 5);
+        }
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private static LocalDate toLocalDate(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof LocalDate localDate) {
+            return localDate;
+        }
+        if (value instanceof java.sql.Date sqlDate) {
+            return sqlDate.toLocalDate();
+        }
+        if (value instanceof java.util.Date utilDate) {
+            return new java.sql.Date(utilDate.getTime()).toLocalDate();
+        }
+        return LocalDate.parse(value.toString());
     }
 
     public boolean countsTowardCapacity(Enums.BookingStatus status) {

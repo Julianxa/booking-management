@@ -46,5 +46,6 @@ public class AppProperties {
         private String contactEmail = "";
         private String contactTelephone = "";
         private String contactWebsite = "";
+        private String contactAddress = "";
     }
 }

@@ -30,7 +30,33 @@ public interface BookingsRepository extends JpaRepository<Bookings, Long> {
     Page<Bookings> findByUserId(Long userId, Pageable pageable);
 
     Optional<Bookings> findByRefNo(String refNo);
-    
+
+    Optional<Bookings> findByOctoUuid(String octoUuid);
+
+    @Query("""
+            SELECT DISTINCT b FROM Bookings b
+            WHERE b.platform = :platform
+              AND b.octoUuid IS NOT NULL
+              AND (:resellerReference IS NULL OR b.resellerReference = :resellerReference)
+              AND (:supplierReference IS NULL OR b.refNo = :supplierReference)
+              AND (
+                    (:localDateStart IS NULL AND :localDateEnd IS NULL)
+                    OR EXISTS (
+                        SELECT 1 FROM BookingEvents be
+                        WHERE be.booking.id = b.id
+                          AND (:localDateStart IS NULL OR be.eventDate >= :localDateStart)
+                          AND (:localDateEnd IS NULL OR be.eventDate <= :localDateEnd)
+                    )
+                  )
+            ORDER BY b.createdAt DESC
+            """)
+    List<Bookings> findOctoBookingsFiltered(
+            @Param("platform") Enums.BookingPlatform platform,
+            @Param("resellerReference") String resellerReference,
+            @Param("supplierReference") String supplierReference,
+            @Param("localDateStart") LocalDate localDateStart,
+            @Param("localDateEnd") LocalDate localDateEnd);
+
     @Query(value = """
             SELECT DISTINCT b.*
             FROM bookings b

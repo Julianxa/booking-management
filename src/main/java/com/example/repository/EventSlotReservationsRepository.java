@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Repository
 public interface EventSlotReservationsRepository extends JpaRepository<EventSlotReservations, EventSlotReservationId> {
@@ -53,4 +54,15 @@ public interface EventSlotReservationsRepository extends JpaRepository<EventSlot
             @Param("eventDate") LocalDate eventDate,
             @Param("eventTime") String eventTime,
             @Param("qty") int qty);
+
+    @Query(value = """
+            SELECT event_date, event_time, reserved_qty
+            FROM event_slot_reservations
+            WHERE event_id = :eventId
+              AND event_date BETWEEN :startDate AND :endDate
+            """, nativeQuery = true)
+    List<Object[]> findReservedSlotsByEventIdAndDateRange(
+            @Param("eventId") Long eventId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 }

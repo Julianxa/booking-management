@@ -5,6 +5,7 @@ import com.example.model.record.EventTimeSlotException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,4 +62,15 @@ public interface EventTimeSlotExceptionsRepository extends JpaRepository<EventTi
               AND etse.exception_time = :exceptionTime
             """, nativeQuery = true)
     List<EventTimeSlotException> findByEventIdAndExceptionDateAndTime(Long eventId, LocalDate exceptionDate, String exceptionTime);
+
+    @Query(value = """
+            SELECT etse.exception_date, etse.exception_time
+            FROM event_time_slot_exceptions etse
+            WHERE etse.event_id = :eventId
+              AND etse.exception_date BETWEEN :startDate AND :endDate
+            """, nativeQuery = true)
+    List<Object[]> findExceptionSlotsByEventIdAndDateRange(
+            @Param("eventId") Long eventId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 }

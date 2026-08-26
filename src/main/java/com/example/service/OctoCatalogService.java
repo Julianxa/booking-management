@@ -35,12 +35,11 @@ public class OctoCatalogService {
                 .name(octo.getSupplierName())
                 .endpoint(trimSlash(appProperties.getBaseUrl()) + "/octo")
                 .contact(
-                        OctoDTO.Contact.builder()
-                                .name(blankToNull(octo.getContactName()))
-                                .emailAddress(blankToNull(octo.getContactEmail()))
-                                .phoneNumber(blankToNull(octo.getContactTelephone()))
-                                .locales(List.of("en", "zh-CN", "zh-HK"))
-                                .country("HK")
+                        OctoDTO.SupplierContact.builder()
+                                .website(blankToNull(octo.getContactWebsite()))
+                                .email(blankToNull(octo.getContactEmail()))
+                                .telephone(blankToNull(octo.getContactTelephone()))
+                                .address(blankToNull(octo.getContactAddress()))
                                 .build())
                 .build();
     }
@@ -111,7 +110,7 @@ public class OctoCatalogService {
                 .availabilityRequired(true)
                 .availabilityType("START_TIME")
                 .deliveryFormats(List.of("QRCODE"))
-                .deliveryMethods(List.of("VOUCHER", "TICKET"))
+                .deliveryMethods(List.of("TICKET"))
                 .redemptionMethod("DIGITAL")
                 .options(List.of(option))
                 .build();

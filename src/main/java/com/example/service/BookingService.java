@@ -149,6 +149,10 @@ public class BookingService {
         releaseReservedBooking(booking, Enums.BookingStatus.EXPIRED);
     }
 
+    public void cancelExternalHold(Bookings booking) {
+        releaseReservedBooking(booking, Enums.BookingStatus.CANCELLED);
+    }
+
     private BookingReservation reserveBooking(String userSub, CreateBookingRequestDTO request) {
         return executeInBookingTransaction(() -> {
             Users loggedInUser = userUtils.getLoggedInUser(userSub);

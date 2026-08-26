@@ -44,12 +44,6 @@ public class OctoController {
         return octoAvailabilityService.checkAvailability(request);
     }
 
-    @PostMapping("/availability/calendar")
-    public List<OctoDTO.AvailabilityCalendarDay> availabilityCalendar(
-            @RequestBody OctoDTO.AvailabilityCalendarRequest request) {
-        return octoAvailabilityService.calendar(request);
-    }
-
     @PostMapping("/bookings")
     public OctoDTO.Booking reserve(@RequestBody OctoDTO.BookingReservationRequest request) {
         return octoBookingService.reserve(request);
@@ -78,10 +72,11 @@ public class OctoController {
     public List<OctoDTO.Booking> getBookings(
             @RequestParam(value = "resellerReference", required = false) String resellerReference,
             @RequestParam(value = "supplierReference", required = false) String supplierReference,
+            @RequestParam(value = "localDate", required = false) String localDate,
             @RequestParam(value = "localDateStart", required = false) String localDateStart,
             @RequestParam(value = "localDateEnd", required = false) String localDateEnd) {
         return octoBookingService.getBookings(
-                resellerReference, supplierReference, localDateStart, localDateEnd);
+                resellerReference, supplierReference, localDate, localDateStart, localDateEnd);
     }
 
     @GetMapping("/health")
