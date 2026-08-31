@@ -54,7 +54,7 @@ public class EventController {
     )
     @PostMapping(value = "/events", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> create(
-            @RequestPart(value = "eventPic", required = false) MultipartFile eventPic,
+            @RequestParam(value = "eventPics", required = false) List<MultipartFile> eventPics,
             @RequestPart(value = "contactInfo")
             @Schema(
                     description = "Event information in JSON format",
@@ -63,7 +63,8 @@ public class EventController {
                     format = "textarea") String createEventRequestDTOJson) {
 
 
-        return ResponseEntity.ok(eventService.createEvent(createEventRequestDTOJson, eventPic));
+        return ResponseEntity.ok(
+                eventService.createEvent(createEventRequestDTOJson, nonEmptyPics(eventPics)));
     }
 
     @Operation(
@@ -216,16 +217,18 @@ public class EventController {
             }
     )
     @PatchMapping(value = "/events/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> update(@RequestPart(value = "eventPic", required = false) MultipartFile eventPic,
-                                    @PathVariable String id,
-                                    @RequestPart(value = "contactInfo")
-                                    @Schema(
-                                            description = "Event information in JSON format",
-                                            type = "string",
-                                            implementation = UpdateEventRequestDTO.class,
-                                            format = "textarea") String updateEventRequestDTOJson
+    public ResponseEntity<?> update(
+            @RequestParam(value = "eventPics", required = false) List<MultipartFile> eventPics,
+            @PathVariable String id,
+            @RequestPart(value = "contactInfo")
+            @Schema(
+                    description = "Event information in JSON format",
+                    type = "string",
+                    implementation = UpdateEventRequestDTO.class,
+                    format = "textarea") String updateEventRequestDTOJson
     ) {
-        UpdateEventResponseDTO updateEventResponseDTO = eventService.updateEvent(id, updateEventRequestDTOJson, eventPic);
+        UpdateEventResponseDTO updateEventResponseDTO =
+                eventService.updateEvent(id, updateEventRequestDTOJson, nonEmptyPics(eventPics));
         return ResponseEntity.ok(updateEventResponseDTO);
     }
 
@@ -530,5 +533,17 @@ public class EventController {
                                                  @Valid @RequestBody AdminConfirmCheckinRequestDTO request) {
         AdminConfirmCheckinResponseDTO response = eventService.adminConfirmCheckIn(request);
         return ResponseEntity.ok(response);
+    }
+
+    private static List<MultipartFile> nonEmptyPics(List<MultipartFile> eventPics) {
+        List<MultipartFile> merged = new java.util.ArrayList<>();
+        if (eventPics != null) {
+            for (MultipartFile file : eventPics) {
+                if (file != null && !file.isEmpty()) {
+                    merged.add(file);
+                }
+            }
+        }
+        return merged;
     }
 }

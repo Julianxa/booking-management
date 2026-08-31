@@ -415,7 +415,8 @@ public class AwsService {
         if (!fileUtils.isValidImageFile(file)) {
             throw new IllegalArgumentException("Invalid file format. Only JPEG, PNG, GIF, BMP and HEIC allowed.");
         }
-        String uniqueIdentifier = s3Key + "_" + file.getOriginalFilename();
+        String uniqueIdentifier =
+                s3Key + "_" + java.util.UUID.randomUUID() + "_" + file.getOriginalFilename();
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)

@@ -136,8 +136,9 @@ public class CreateEventResponseDTO {
     @JsonProperty("equipment_zh_hk")
     private String equipmentZhHk;
 
-    @JsonProperty("event_pic_url")
-    private String eventPicUrl;
+    @Schema(description = "All event picture URLs (ordered)")
+    @JsonProperty("event_pic_urls")
+    private List<String> eventPicUrls;
 
     @Schema(description = "Availability to employee/staff ratio")
     @JsonProperty("availability_to_employee_ratio")

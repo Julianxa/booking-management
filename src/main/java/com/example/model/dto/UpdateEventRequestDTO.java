@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -197,6 +198,12 @@ public class UpdateEventRequestDTO extends AbstractPartialUpdateDto {
     @Schema(description = "Email template reference number")
     @JsonProperty("email_template_id")
     private String emailTemplateId;
+
+    @Schema(
+            description =
+                    "Existing event picture keys to keep (from GET response). Omit = no change; [] = remove all; send full list to drop specific images.")
+    @JsonProperty("event_pic_keys")
+    private List<String> eventPicKeys;
 
     @Data
     @Builder

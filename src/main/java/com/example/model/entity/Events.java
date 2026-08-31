@@ -89,8 +89,10 @@ public class Events {
     private String equipmentZhHk;
     @Column(name = "availability_to_employee_ratio")
     private Integer availabilityToEmployeeRatio;
-    @Column(name = "event_pic_key")
-    private String eventPicKey;
+    @Column(name = "event_pic_key", columnDefinition = "TEXT")
+    @Convert(converter = com.example.converter.EventPicKeysConverter.class)
+    @Builder.Default
+    private List<String> eventPicKeys = new LinkedList<>();
     @Column(name = "max_capacity")
     private Integer maxCapacity;
     @Column(name = "private_bookings")

@@ -75,7 +75,8 @@ public class EventService {
 
     // ====================== Public API ======================
     @Transactional
-    public CreateEventResponseDTO createEvent(String createEventRequestDTOJson, MultipartFile eventPic) {
+    public CreateEventResponseDTO createEvent(
+            String createEventRequestDTOJson, List<MultipartFile> eventPics) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
@@ -96,14 +97,13 @@ public class EventService {
 
             Events savedEvent = eventsRepository.save(event);
 
-            String eventPicUrl = null;
-            if (eventPic != null && !eventPic.isEmpty()) {
-                eventPicUrl = uploadEventPicture(savedEvent, eventPic);
+            if (eventPics != null && !eventPics.isEmpty()) {
+                uploadEventPictures(savedEvent, eventPics);
             }
 
             CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(savedEvent);
             createEventResponseDTO.setStatus(Enums.EventStatus.OPEN);
-            createEventResponseDTO.setEventPicUrl(eventPicUrl);
+            applyEventPicUrls(createEventResponseDTO, savedEvent);
             createEventResponseDTO.setMessage("Create Event successfully");
             createEventResponseDTO.setTimestamp(ZonedDateTime.now());
 
@@ -120,7 +120,8 @@ public class EventService {
     }
 
     @Transactional
-    public UpdateEventResponseDTO updateEvent(String eventRefNo, String updateEventRequestDTOJson, MultipartFile eventPic) {
+    public UpdateEventResponseDTO updateEvent(
+            String eventRefNo, String updateEventRequestDTOJson, List<MultipartFile> eventPics) {
         try {
             UpdateEventRequestDTO dto = objectMapper.readValue(updateEventRequestDTOJson, UpdateEventRequestDTO.class);
 
@@ -183,17 +184,14 @@ public class EventService {
                 }
             });
 
-            handleEventPictureUpdate(event, eventPic);
+            PartialUpdateUtil.ifPresent(dto, "event_pic_keys", () ->
+                    retainEventPicKeys(event, dto.getEventPicKeys()));
+            appendEventPicturesIfAny(event, eventPics);
 
             Events updatedEvent = eventsRepository.save(event);
 
-            String eventPicUrl = null;
-            if (updatedEvent.getEventPicKey() != null) {
-                eventPicUrl = awsService.getFileFromS3(updatedEvent.getEventPicKey(), null);
-            }
-
             UpdateEventResponseDTO updateEventResponseDTO = eventMapper.toUpdateResponseDTO(updatedEvent);
-            updateEventResponseDTO.setEventPicUrl(eventPicUrl);
+            applyEventPicUrls(updateEventResponseDTO, updatedEvent);
             updateEventResponseDTO.setMessage("Event updated successfully");
             updateEventResponseDTO.setTimestamp(ZonedDateTime.now());
 
@@ -364,14 +362,10 @@ public class EventService {
     public CreateEventResponseDTO getEvent(String eventRefNo) {
         Events event = eventsRepository.findByRefNo(eventRefNo)
                 .orElseThrow(() -> new EventNotFoundException(String.format("Event %s not found", eventRefNo)));
-        String eventPicUrl = null;
-        if (event.getEventPicKey() != null) {
-            eventPicUrl = awsService.getFileFromS3(event.getEventPicKey(), null);
-        }
 
         CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(event);
         createEventResponseDTO.setStatus(event.getStatus());
-        createEventResponseDTO.setEventPicUrl(eventPicUrl);
+        applyEventPicUrls(createEventResponseDTO, event);
         createEventResponseDTO.setMessage("Retrieve an Event successfully");
         createEventResponseDTO.setTimestamp(ZonedDateTime.now());
         return createEventResponseDTO;
@@ -392,13 +386,9 @@ public class EventService {
 
         List<CreateEventResponseDTO> content = eventsPage.getContent().stream()
                 .map(event -> {
-                    String eventPicUrl = null;
-                    if (event.getEventPicKey() != null) {
-                        eventPicUrl = awsService.getFileFromS3(event.getEventPicKey(), null);
-                    }
                     CreateEventResponseDTO createEventResponseDTO = eventMapper.toCreateResponseDTO(event);
                     createEventResponseDTO.setStatus(event.getStatus());
-                    createEventResponseDTO.setEventPicUrl(eventPicUrl);
+                    applyEventPicUrls(createEventResponseDTO, event);
                     return createEventResponseDTO;
                 })
                 .toList();
@@ -868,29 +858,90 @@ public class EventService {
         }
     }
 
-    private String uploadEventPicture(Events savedEvent, MultipartFile eventPic) {
-        String eventPicKey = awsService.uploadFile(savedEvent.getRefNo(), eventPic);
-
-        savedEvent.setEventPicKey(eventPicKey);
-        eventsRepository.save(savedEvent);
-
-        return awsService.getFileFromS3(eventPicKey, null);
-    }
-
-    private void handleEventPictureUpdate(Events event, MultipartFile eventPic) {
-        if (eventPic != null && !eventPic.isEmpty()) {
-            if (event.getEventPicKey() != null) {
-                awsService.deleteFile(event.getEventPicKey());
+    private void uploadEventPictures(Events event, List<MultipartFile> eventPics) {
+        List<String> keys = new ArrayList<>();
+        for (MultipartFile file : eventPics) {
+            if (file == null || file.isEmpty()) {
+                continue;
             }
-            String eventPicKey = awsService.uploadFile(event.getRefNo(), eventPic);
-            if (eventPicKey != null) {
-                event.setEventPicKey(eventPicKey);
-            }
-        } else if (eventPic == null) {
-            if (event.getEventPicKey() != null) {
-                awsService.deleteFile(event.getEventPicKey());
-                event.setEventPicKey(null);
+            String key = awsService.uploadFile(event.getRefNo(), file);
+            if (key != null) {
+                keys.add(key);
             }
         }
+        event.setEventPicKeys(keys);
+        eventsRepository.save(event);
+    }
+
+    private void appendEventPictures(Events event, List<MultipartFile> eventPics) {
+        List<String> keys = new ArrayList<>(event.getEventPicKeys());
+        for (MultipartFile file : eventPics) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+            String key = awsService.uploadFile(event.getRefNo(), file);
+            if (key != null) {
+                keys.add(key);
+            }
+        }
+        event.setEventPicKeys(keys);
+    }
+
+    private void appendEventPicturesIfAny(Events event, List<MultipartFile> eventPics) {
+        if (eventPics == null || eventPics.isEmpty()) {
+            return;
+        }
+        appendEventPictures(event, eventPics);
+    }
+
+    private void retainEventPicKeys(Events event, List<String> keysToKeep) {
+        List<String> current = normalizedEventPicKeys(event);
+        List<String> requested = keysToKeep != null ? keysToKeep : List.of();
+
+        Set<String> currentKeys = new HashSet<>(current);
+        List<String> retained = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (String key : requested) {
+            if (key == null || key.isBlank() || !currentKeys.contains(key) || !seen.add(key)) {
+                continue;
+            }
+            retained.add(key);
+        }
+
+        for (String key : current) {
+            if (!seen.contains(key)) {
+                awsService.deleteFile(key);
+            }
+        }
+        event.setEventPicKeys(retained);
+    }
+
+    private void applyEventPicUrls(CreateEventResponseDTO dto, Events event) {
+        List<String> urls = resolveEventPicUrls(normalizedEventPicKeys(event));
+        dto.setEventPicUrls(urls.isEmpty() ? null : urls);
+    }
+
+    private void applyEventPicUrls(UpdateEventResponseDTO dto, Events event) {
+        List<String> urls = resolveEventPicUrls(normalizedEventPicKeys(event));
+        dto.setEventPicUrls(urls.isEmpty() ? null : urls);
+    }
+
+    private static List<String> normalizedEventPicKeys(Events event) {
+        List<String> keys = event.getEventPicKeys();
+        if (keys == null || keys.isEmpty()) {
+            return List.of();
+        }
+        return keys.stream().filter(k -> k != null && !k.isBlank()).toList();
+    }
+
+    private List<String> resolveEventPicUrls(List<String> keys) {
+        if (keys == null || keys.isEmpty()) {
+            return List.of();
+        }
+        List<String> urls = new ArrayList<>();
+        for (String key : keys) {
+            urls.add(awsService.getFileFromS3(key, null));
+        }
+        return urls;
     }
 }
