@@ -136,6 +136,10 @@ public class CreateEventResponseDTO {
     @JsonProperty("equipment_zh_hk")
     private String equipmentZhHk;
 
+    @Schema(description = "S3 object keys for event pictures (same order as event_pic_urls)")
+    @JsonProperty("event_pic_keys")
+    private List<String> eventPicKeys;
+
     @Schema(description = "All event picture URLs (ordered)")
     @JsonProperty("event_pic_urls")
     private List<String> eventPicUrls;

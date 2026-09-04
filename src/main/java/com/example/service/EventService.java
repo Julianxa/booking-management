@@ -184,9 +184,11 @@ public class EventService {
                 }
             });
 
-            PartialUpdateUtil.ifPresent(dto, "event_pic_keys", () ->
-                    retainEventPicKeys(event, dto.getEventPicKeys()));
-            appendEventPicturesIfAny(event, eventPics);
+            PartialUpdateUtil.ifPresent(dto, "event_pics", () ->
+                    applyEventPicsOrder(event, dto.getEventPicItems(), eventPics));
+            if (!dto.hasField("event_pics")) {
+                appendEventPicturesIfAny(event, eventPics);
+            }
 
             Events updatedEvent = eventsRepository.save(event);
 
@@ -873,7 +875,10 @@ public class EventService {
         eventsRepository.save(event);
     }
 
-    private void appendEventPictures(Events event, List<MultipartFile> eventPics) {
+    private void appendEventPicturesIfAny(Events event, List<MultipartFile> eventPics) {
+        if (eventPics == null || eventPics.isEmpty()) {
+            return;
+        }
         List<String> keys = new ArrayList<>(event.getEventPicKeys());
         for (MultipartFile file : eventPics) {
             if (file == null || file.isEmpty()) {
@@ -887,42 +892,73 @@ public class EventService {
         event.setEventPicKeys(keys);
     }
 
-    private void appendEventPicturesIfAny(Events event, List<MultipartFile> eventPics) {
-        if (eventPics == null || eventPics.isEmpty()) {
-            return;
-        }
-        appendEventPictures(event, eventPics);
-    }
-
-    private void retainEventPicKeys(Events event, List<String> keysToKeep) {
+    private void applyEventPicsOrder(
+            Events event, List<EventPicItemDTO> items, List<MultipartFile> uploads) {
         List<String> current = normalizedEventPicKeys(event);
-        List<String> requested = keysToKeep != null ? keysToKeep : List.of();
-
         Set<String> currentKeys = new HashSet<>(current);
-        List<String> retained = new ArrayList<>();
-        Set<String> seen = new HashSet<>();
-        for (String key : requested) {
-            if (key == null || key.isBlank() || !currentKeys.contains(key) || !seen.add(key)) {
-                continue;
+        List<MultipartFile> files = uploads != null ? uploads : List.of();
+
+        List<String> next = new ArrayList<>();
+        Set<String> usedKeys = new HashSet<>();
+        Set<Integer> usedUploads = new HashSet<>();
+
+        if (items != null) {
+            for (EventPicItemDTO item : items) {
+                if (item == null) {
+                    continue;
+                }
+                boolean hasKey = item.getKey() != null && !item.getKey().isBlank();
+                boolean hasUpload = item.getUploadIndex() != null;
+                if (hasKey == hasUpload) {
+                    throw new MissingRequiredFieldException(
+                            "Each event_pics item must set exactly one of key or upload_index");
+                }
+                if (hasKey) {
+                    String key = item.getKey().trim();
+                    if (!currentKeys.contains(key)) {
+                        throw new MissingRequiredFieldException("Unknown event pic key: " + key);
+                    }
+                    if (!usedKeys.add(key)) {
+                        throw new MissingRequiredFieldException("Duplicate event pic key: " + key);
+                    }
+                    next.add(key);
+                } else {
+                    int index = item.getUploadIndex();
+                    if (index < 0 || index >= files.size() || files.get(index) == null || files.get(index).isEmpty()) {
+                        throw new MissingRequiredFieldException(
+                                "upload_index " + index + " does not match a multipart eventPics file");
+                    }
+                    if (!usedUploads.add(index)) {
+                        throw new MissingRequiredFieldException("Duplicate upload_index: " + index);
+                    }
+                    String key = awsService.uploadFile(event.getRefNo(), files.get(index));
+                    if (key == null) {
+                        throw new MissingRequiredFieldException("Failed to upload event pic at upload_index " + index);
+                    }
+                    next.add(key);
+                }
             }
-            retained.add(key);
         }
 
         for (String key : current) {
-            if (!seen.contains(key)) {
+            if (!usedKeys.contains(key)) {
                 awsService.deleteFile(key);
             }
         }
-        event.setEventPicKeys(retained);
+        event.setEventPicKeys(next);
     }
 
     private void applyEventPicUrls(CreateEventResponseDTO dto, Events event) {
-        List<String> urls = resolveEventPicUrls(normalizedEventPicKeys(event));
+        List<String> keys = normalizedEventPicKeys(event);
+        List<String> urls = resolveEventPicUrls(keys);
+        dto.setEventPicKeys(keys.isEmpty() ? null : keys);
         dto.setEventPicUrls(urls.isEmpty() ? null : urls);
     }
 
     private void applyEventPicUrls(UpdateEventResponseDTO dto, Events event) {
-        List<String> urls = resolveEventPicUrls(normalizedEventPicKeys(event));
+        List<String> keys = normalizedEventPicKeys(event);
+        List<String> urls = resolveEventPicUrls(keys);
+        dto.setEventPicKeys(keys.isEmpty() ? null : keys);
         dto.setEventPicUrls(urls.isEmpty() ? null : urls);
     }
 

@@ -201,9 +201,11 @@ public class UpdateEventRequestDTO extends AbstractPartialUpdateDto {
 
     @Schema(
             description =
-                    "Existing event picture keys to keep (from GET response). Omit = no change; [] = remove all; send full list to drop specific images.")
-    @JsonProperty("event_pic_keys")
-    private List<String> eventPicKeys;
+                    "Desired event image order. Omit = no change; [] = remove all. "
+                            + "Each item is either {\"key\":\"...\"} for an existing image or {\"upload_index\":0} "
+                            + "referencing a file in multipart eventPics (0-based).")
+    @JsonProperty("event_pics")
+    private List<EventPicItemDTO> eventPicItems;
 
     @Data
     @Builder

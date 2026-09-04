@@ -187,6 +187,8 @@ public interface EventMapper {
     @Mapping(target = "id", source = "entity.refNo")
     @Mapping(target = "availableDays", expression = "java(mapAvailableDays(entity.getAvailableDays()))")
     @Mapping(target = "emailTemplate", expression = "java(mapEmailTemplate(entity.getEmailTemplate()))")
+    @Mapping(target = "eventPicKeys", ignore = true)
+    @Mapping(target = "eventPicUrls", ignore = true)
     UpdateEventResponseDTO toUpdateResponseDTO(Events entity);
 
     default CreateBookingRequestDTO.EventDTO toEventDTO(Events event,
