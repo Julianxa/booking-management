@@ -125,3 +125,12 @@ Current behavior:
 - `ONLINE_PAYMENT`:
   - full refunds (`is_full_refund=true`) create Stripe refunds
   - non-full requests (`is_full_refund=false`) do **not** reliably trigger Stripe partial refunds; the system finalizes like an offline finalization path and still marks `REFUNDED`.
+
+
+### Reorder the event images during adding new image(s)
+curl -X 'PATCH' \
+'http://127.0.0.1:8080/api/v1/events/EVT-TME8PVU4GA' \
+-H 'accept: application/json' \
+-H 'Content-Type: multipart/form-data' \
+-F 'eventPics=@cherry.jpeg;type=image/jpeg' \
+-F 'contactInfo={"event_pics":[{"upload_index":0},{"key":"eventImages/EVT-TME8PVU4GA_ec9e919b-184e-4c47-97d4-e5ba3062ff9e_apple.jpeg"},{"key":"eventImages/EVT-TME8PVU4GA_15440324-5235-4d9b-a55b-bd6b95d286e3_banana.jpeg"}]}'

@@ -26,4 +26,8 @@ public class ResetPasswordRequestDTO {
     @NotBlank(message = "Confirm password is required")
     @JsonProperty("confirm_password")
     private String confirmPassword;
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Session returned by /users/forgot-password-confirmation")
+    @NotBlank(message = "Session is required")
+    @JsonProperty("session")
+    private String session;
 }

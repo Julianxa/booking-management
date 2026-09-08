@@ -226,16 +226,17 @@ public class AwsService {
         cognitoClient.forgotPassword(request);
     }
 
-    public void confirmForgotPassword(ConfirmForgotPasswordRequestDTO confirmForgotPasswordRequestDTO) {
+    public ConfirmForgotPasswordResponse confirmForgotPassword(
+            String email, String confirmationCode, String newPassword) {
         ConfirmForgotPasswordRequest request = ConfirmForgotPasswordRequest.builder()
                 .clientId(clientId)
-                .username(confirmForgotPasswordRequestDTO.getEmail())
-                .confirmationCode(confirmForgotPasswordRequestDTO.getConfirmationCode())
-                .password(confirmForgotPasswordRequestDTO.getNewPassword())
-                .secretHash(hashGenerator.calculateSecretHash(clientId, confirmForgotPasswordRequestDTO.getEmail(), appSecretKey))
+                .username(email)
+                .confirmationCode(confirmationCode)
+                .password(newPassword)
+                .secretHash(hashGenerator.calculateSecretHash(clientId, email, appSecretKey))
                 .build();
 
-        cognitoClient.confirmForgotPassword(request);
+        return cognitoClient.confirmForgotPassword(request);
     }
 
     public AdminSetUserPasswordResponse setPassword(ResetPasswordRequestDTO resetPasswordRequestDTO) {

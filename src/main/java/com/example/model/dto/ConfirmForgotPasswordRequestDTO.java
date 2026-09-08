@@ -17,10 +17,10 @@ public class ConfirmForgotPasswordRequestDTO {
     @NotBlank(message = "Email is required")
     @JsonProperty("email")
     private String email;
-    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "New password is required")
-    @JsonProperty("new_password")
-    private String newPassword;
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, description = "Session returned by /users/forgot-password")
+    @NotBlank(message = "Session is required")
+    @JsonProperty("session")
+    private String session;
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Confirmation code is required")
     @JsonProperty("confirmation_code")

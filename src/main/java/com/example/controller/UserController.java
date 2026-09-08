@@ -94,7 +94,7 @@ public class UserController {
 
     @Operation(
             summary = "Confirm password reset with OTP",
-            description = "Confirm the initiation of password recovery.",
+            description = "Confirm the OTP using the session from /users/forgot-password. Returns a verified session for /users/reset-password.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Forgot password is confirmed successfully",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,

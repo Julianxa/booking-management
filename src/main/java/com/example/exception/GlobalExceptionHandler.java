@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -79,6 +80,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleAuthenticationCredentialsNotFound(
             AuthenticationCredentialsNotFoundException ex) {
         return toErrorResponse(ErrorCode.UNAUTHORIZED, ErrorCode.UNAUTHORIZED.getDefaultMessage());
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Object> handleNoResourceFound(NoResourceFoundException ex) {
+        log.debug("No resource: {}", ex.getResourcePath());
+        return toErrorResponse(ErrorCode.INVALID_ARGUMENT, "Resource not found");
     }
 
     // Fallback for any other unexpected exceptions

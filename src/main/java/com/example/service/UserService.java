@@ -19,9 +19,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ConfirmSignUpResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.SignUpResponse;
 
 import java.time.ZonedDateTime;
+import java.util.UUID;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,7 +38,7 @@ public class UserService {
     private final AuditService auditService;
     private final ReferenceNoGenerator referenceNoGenerator;
     private final OrganizationsRepository organizationsRepository;
-
+    private final PasswordResetSessionService passwordResetSessionService;
     public UserRegistrationResponseDTO register(UserRegistrationRequestDTO userRegistrationRequestDTO) {
         Users user;
         SignUpResponse res = awsService.signUp(userRegistrationRequestDTO);
@@ -139,14 +141,36 @@ public class UserService {
 
         ForgotPasswordResponseDTO forgotPasswordResponseDTO = new ForgotPasswordResponseDTO();
         forgotPasswordResponseDTO.setEmail(forgotPasswordRequestDTO.getEmail());
+        forgotPasswordResponseDTO.setSession(
+                passwordResetSessionService.startPending(forgotPasswordRequestDTO.getEmail()));
         forgotPasswordResponseDTO.setMessage("Forgot password initiated successfully");
         forgotPasswordResponseDTO.setTimestamp(ZonedDateTime.now());
         return forgotPasswordResponseDTO;
     }
 
     public ConfirmForgotPasswordResponseDTO confirmForgotPassword(ConfirmForgotPasswordRequestDTO confirmForgotPasswordRequestDTO) {
-        awsService.confirmForgotPassword(confirmForgotPasswordRequestDTO);
+        passwordResetSessionService.requirePending(
+                confirmForgotPasswordRequestDTO.getEmail(),
+                confirmForgotPasswordRequestDTO.getSession());
+
+        try {
+            awsService.confirmForgotPassword(
+                    confirmForgotPasswordRequestDTO.getEmail(),
+                    confirmForgotPasswordRequestDTO.getConfirmationCode(),
+                    generateTemporaryPassword());
+        } catch (CognitoIdentityProviderException e) {
+            String code = e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : null;
+            if ("CodeMismatchException".equals(code) || "ExpiredCodeException".equals(code)) {
+                throw new IllegalArgumentException("Wrong or expired confirmation code");
+            }
+            throw e;
+        }
+
         ConfirmForgotPasswordResponseDTO confirmForgotPasswordResponseDTO = new ConfirmForgotPasswordResponseDTO();
+        confirmForgotPasswordResponseDTO.setSession(
+                passwordResetSessionService.markOtpVerified(
+                        confirmForgotPasswordRequestDTO.getEmail(),
+                        confirmForgotPasswordRequestDTO.getSession()));
         confirmForgotPasswordResponseDTO.setMessage("OTP for Forgot Password confirmed successfully");
         confirmForgotPasswordResponseDTO.setTimestamp(ZonedDateTime.now());
         return confirmForgotPasswordResponseDTO;
@@ -156,11 +180,20 @@ public class UserService {
         if (!resetPasswordRequestDTO.getPassword().equals(resetPasswordRequestDTO.getConfirmPassword())) {
             throw new IllegalArgumentException("Password and confirmation password do not match");
         }
+        passwordResetSessionService.consumeVerifiedSession(
+                resetPasswordRequestDTO.getEmail(),
+                resetPasswordRequestDTO.getSession());
+
         awsService.setPassword(resetPasswordRequestDTO);
         ResetPasswordResponseDTO resetPasswordResponseDTO = new ResetPasswordResponseDTO();
         resetPasswordResponseDTO.setMessage("Password reset successfully");
         resetPasswordResponseDTO.setTimestamp(ZonedDateTime.now());
         return resetPasswordResponseDTO;
+    }
+
+    private static String generateTemporaryPassword() {
+        // Meets typical Cognito complexity: upper, lower, digit, symbol, length >= 12
+        return "Tmp!" + UUID.randomUUID().toString().replace("-", "") + "aA1!";
     }
 
     public ChangePasswordResponseDTO changePassword(String accessToken, ChangePasswordRequestDTO changePasswordRequestDTO) {
