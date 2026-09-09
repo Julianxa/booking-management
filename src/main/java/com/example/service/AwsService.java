@@ -211,19 +211,21 @@ public class AwsService {
     }
 
     public void forgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO) {
-        boolean isEmailVerified = isEmailVerified(forgotPasswordRequestDTO.getEmail());
-
-        if (!isEmailVerified) {
-            throw new UnverifiedEmailException("Email not verified");
+        String email = forgotPasswordRequestDTO.getEmail();
+        try {
+            if (!isEmailVerified(email)) {
+                return;
+            }
+            ForgotPasswordRequest request = ForgotPasswordRequest.builder()
+                    .clientId(clientId)
+                    .username(email)
+                    .secretHash(hashGenerator.calculateSecretHash(clientId, email, appSecretKey))
+                    .build();
+            cognitoClient.forgotPassword(request);
+        } catch (CognitoIdentityProviderException e) {
+            logger.warn("Forgot-password OTP dispatch skipped: {}",
+                    e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : e.getMessage());
         }
-
-        ForgotPasswordRequest request = ForgotPasswordRequest.builder()
-                .clientId(clientId)
-                .username(forgotPasswordRequestDTO.getEmail())
-                .secretHash(hashGenerator.calculateSecretHash(clientId, forgotPasswordRequestDTO.getEmail(), appSecretKey))
-                .build();
-
-        cognitoClient.forgotPassword(request);
     }
 
     public ConfirmForgotPasswordResponse confirmForgotPassword(
@@ -239,15 +241,26 @@ public class AwsService {
         return cognitoClient.confirmForgotPassword(request);
     }
 
-    public AdminSetUserPasswordResponse setPassword(ResetPasswordRequestDTO resetPasswordRequestDTO) {
+    public AdminSetUserPasswordResponse setPassword(String email, String password, boolean permanent) {
         AdminSetUserPasswordRequest adminSetUserPasswordRequest = AdminSetUserPasswordRequest.builder()
                 .userPoolId(userPoolId)
-                .username(resetPasswordRequestDTO.getEmail())
-                .password(resetPasswordRequestDTO.getPassword())
-                .permanent(true)
+                .username(email)
+                .password(password)
+                .permanent(permanent)
                 .build();
-
         return cognitoClient.adminSetUserPassword(adminSetUserPasswordRequest);
+    }
+
+    public void adminUserGlobalSignOut(String email) {
+        try {
+            cognitoClient.adminUserGlobalSignOut(AdminUserGlobalSignOutRequest.builder()
+                    .userPoolId(userPoolId)
+                    .username(email)
+                    .build());
+        } catch (CognitoIdentityProviderException e) {
+            logger.warn("Global sign-out after password reset skipped: {}",
+                    e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : e.getMessage());
+        }
     }
 
     public ChangePasswordResponse changePassword(String accessToken, ChangePasswordRequestDTO changePasswordRequestDTO) {

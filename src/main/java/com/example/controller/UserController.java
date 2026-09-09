@@ -72,7 +72,7 @@ public class UserController {
 
     @Operation(
             summary = "Initiate forgot password",
-            description = "Send a verification code to the user’s email for password recovery.",
+            description = "Send a verification code to the user’s email for password recovery. Always returns a session so accounts cannot be enumerated.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Password reset email sent successfully",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -87,14 +87,14 @@ public class UserController {
     )
     @PostMapping("/users/forgot-password")
     public ResponseEntity<?> forgotPassword(
-            @RequestBody ForgotPasswordRequestDTO forgotPasswordRequest) {
+            @Valid @RequestBody ForgotPasswordRequestDTO forgotPasswordRequest) {
         ForgotPasswordResponseDTO forgotPasswordResponseDTO = userService.forgotPassword(forgotPasswordRequest);
         return ResponseEntity.ok(forgotPasswordResponseDTO);
     }
 
     @Operation(
             summary = "Confirm password reset with OTP",
-            description = "Confirm the OTP using the session from /users/forgot-password. Returns a verified session for /users/reset-password.",
+            description = "Verify the email OTP using the session from /users/forgot-password. Returns a one-time session for /users/reset-password.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Forgot password is confirmed successfully",
                             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -109,7 +109,7 @@ public class UserController {
     )
     @PostMapping("/users/forgot-password-confirmation")
     public ResponseEntity<?> confirmForgotPassword(
-            @RequestBody ConfirmForgotPasswordRequestDTO confirmForgotPasswordRequestDTO) {
+            @Valid @RequestBody ConfirmForgotPasswordRequestDTO confirmForgotPasswordRequestDTO) {
         ConfirmForgotPasswordResponseDTO confirmForgotPasswordResponseDTO = userService.confirmForgotPassword(confirmForgotPasswordRequestDTO);
         return ResponseEntity.ok(confirmForgotPasswordResponseDTO);
     }
@@ -174,7 +174,7 @@ public class UserController {
 
     @Operation(
             summary = "Reset user password",
-            description = "Completes the password reset process after OTP verification.",
+            description = "Sets the new password using the one-time session from /users/forgot-password-confirmation.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
