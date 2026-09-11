@@ -233,10 +233,8 @@ public class EventSlotReservationService {
     @Transactional
     public void reserveCapacityForBookingEvents(List<BookingEvents> bookingEvents) {
         for (BookingEvents bookingEvent : orderBookingEventsForSlotUpdate(bookingEvents)) {
-            if (countsTowardCapacity(bookingEvent.getBooking().getStatus())) {
-                Events event = bookingEvent.getEvent();
-                reserveCapacityForBookingEvent(bookingEvent, event.getMaxCapacity(), event.getName());
-            }
+            Events event = bookingEvent.getEvent();
+            reserveCapacityForBookingEvent(bookingEvent, event.getMaxCapacity(), event.getName());
         }
     }
 

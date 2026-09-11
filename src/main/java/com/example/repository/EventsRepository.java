@@ -96,10 +96,15 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
         SELECT
             COALESCE(SUM(CASE
                 WHEN be.cancelled_at IS NULL
-                 AND be.status <> 'CANCELLED'
-                 AND b.status IN (
-                     'ON_HOLD', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS',
-                     'PAID', 'CONFIRMED'
+                 AND (
+                     be.status IN ('AVAILABLE', 'CHECKED_IN', 'NO_SHOW')
+                     OR (
+                         be.status = 'PENDING'
+                         AND b.status IN (
+                             'ON_HOLD', 'AWAITING_PAYMENT', 'PAYMENT_IN_PROGRESS',
+                             'PAID', 'CONFIRMED'
+                         )
+                     )
                  )
                 THEN bi.quantity
                 ELSE 0
@@ -121,7 +126,7 @@ public interface EventsRepository extends JpaRepository<Events, Long> {
         LEFT JOIN booking_items bi ON be.id = bi.booking_event_id
         WHERE be.event_id = :eventId
           AND be.event_date = :filterDate
-          AND be.event_time = :eventTime
+          AND LEFT(be.event_time, 5) = LEFT(:eventTime, 5)
         """, nativeQuery = true)
     EventBookingSummary getBookingSummary(
             @Param("eventId") Long eventId,

@@ -716,13 +716,12 @@ public class EventService {
         List<EventDailySlot> slots = eventsRepository.getAllEventsScheduleSlots(true, filterDate, dayValue);
 
         return slots.stream().map(slot -> {
-            int totalBooked = eventSlotReservationService.getReservedQty(
-                    slot.eventId(), filterDate, slot.eventTime());
             EventBookingSummary summary = eventsRepository.getBookingSummary(
                     slot.eventId(), filterDate, slot.eventTime()
             );
 
             int maxCap = slot.maxCapacity() != null ? slot.maxCapacity().intValue() : 0;
+            int totalBooked = summary.totalBooked() != null ? summary.totalBooked().intValue() : 0;
             int totalCheckedIn = summary.totalCheckedIn() != null ? summary.totalCheckedIn().intValue() : 0;
             int totalCancelled = summary.totalCancelled() != null ? summary.totalCancelled().intValue() : 0;
 
@@ -754,13 +753,12 @@ public class EventService {
         List<EventDailySlot> slots = eventsRepository.getEventScheduleSlots(isPublishedOnly, eventId, filterDate, dayValue);
 
         return slots.stream().map(slot -> {
-            int totalBooked = eventSlotReservationService.getReservedQty(
-                    slot.eventId(), filterDate, slot.eventTime());
             EventBookingSummary summary = eventsRepository.getBookingSummary(
                     slot.eventId(), filterDate, slot.eventTime()
             );
 
             int maxCap = slot.maxCapacity() != null ? slot.maxCapacity().intValue() : 0;
+            int totalBooked = summary.totalBooked() != null ? summary.totalBooked().intValue() : 0;
             int totalCheckedIn = summary.totalCheckedIn() != null ? summary.totalCheckedIn().intValue() : 0;
             int totalCancelled = summary.totalCancelled() != null ? summary.totalCancelled().intValue() : 0;
 
