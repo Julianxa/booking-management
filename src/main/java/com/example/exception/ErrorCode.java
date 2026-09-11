@@ -40,6 +40,9 @@ public class ErrorCode {
     public static final ErrorDefinition ACCESS_DENIED =
             new ErrorDefinition("BT012", HttpStatus.FORBIDDEN, "Access denied");
 
+    public static final ErrorDefinition RESOURCE_NOT_FOUND =
+            new ErrorDefinition("BT013", HttpStatus.NOT_FOUND, "Resource not found");
+
     public static final ErrorDefinition UNHANDLED_ERROR =
             new ErrorDefinition("BT999", HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

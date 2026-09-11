@@ -7,8 +7,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Object> handleBusinessException(BusinessException ex, WebRequest request) {
@@ -85,12 +85,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Object> handleNoResourceFound(NoResourceFoundException ex) {
         log.debug("No resource: {}", ex.getResourcePath());
-        return toErrorResponse(ErrorCode.INVALID_ARGUMENT, "Resource not found");
+        return toErrorResponse(ErrorCode.RESOURCE_NOT_FOUND, "Resource not found");
     }
 
     // Fallback for any other unexpected exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
+        if (ex instanceof NoResourceFoundException noResource) {
+            return handleNoResourceFound(noResource);
+        }
         log.error("Unhandled exception", ex);
         return toErrorResponse(ErrorCode.UNHANDLED_ERROR, ErrorCode.UNHANDLED_ERROR.getDefaultMessage());
     }
