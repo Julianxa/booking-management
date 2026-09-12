@@ -10,6 +10,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.ZonedDateTime;
@@ -88,11 +90,37 @@ public class GlobalExceptionHandler {
         return toErrorResponse(ErrorCode.RESOURCE_NOT_FOUND, "Resource not found");
     }
 
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Object> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        log.warn("Upload too large: {}", ex.getMessage());
+        return toErrorResponse(ErrorCode.FILE_UPLOAD_ERROR,
+                "Upload too large. Max per file is 25MB; total request max is 250MB.");
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<Object> handleMultipartException(MultipartException ex) {
+        Throwable root = ex;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        String rootName = root.getClass().getSimpleName();
+        if (rootName.contains("FileCountLimitExceeded") || rootName.contains("SizeLimitExceeded")) {
+            log.warn("Multipart rejected ({}): {}", rootName, root.getMessage());
+            return toErrorResponse(ErrorCode.FILE_UPLOAD_ERROR,
+                    "Too many multipart parts or upload too large. Reduce images or increase server.tomcat.max-part-count.");
+        }
+        log.warn("Multipart parse failed: {}", ex.getMessage());
+        return toErrorResponse(ErrorCode.FILE_UPLOAD_ERROR, "Failed to parse multipart upload");
+    }
+
     // Fallback for any other unexpected exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
         if (ex instanceof NoResourceFoundException noResource) {
             return handleNoResourceFound(noResource);
+        }
+        if (ex instanceof MultipartException multipartException) {
+            return handleMultipartException(multipartException);
         }
         log.error("Unhandled exception", ex);
         return toErrorResponse(ErrorCode.UNHANDLED_ERROR, ErrorCode.UNHANDLED_ERROR.getDefaultMessage());
